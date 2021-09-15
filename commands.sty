@@ -1,0 +1,69 @@
+\newcommand\hmmax{0}
+\newcommand\bmmax{0}
+\RequirePackage{bm}
+
+% Customize the list structures (using paralist)
+\setdefaultitem{$\diamond$}{}{}{}
+\renewcommand{\descriptionlabel}[1]{\hspace{\labelsep} $\vartriangleright$\enskip {\heiti #1} \;}
+\renewcommand{\paradescriptionlabel}[1]{\normalfont \heiti #1 \enskip}
+
+% Well-known algebraic structures
+\newcommand{\N}{\ensuremath{\mathbb{N}}}
+\newcommand{\Z}{\ensuremath{\mathbb{Z}}}
+\newcommand{\Q}{\ensuremath{\mathbb{Q}}}
+\newcommand{\R}{\ensuremath{\mathbb{R}}}
+\newcommand{\CC}{\ensuremath{\mathbb{C}}}
+\newcommand{\F}{\ensuremath{\mathbb{F}}}
+\newcommand{\A}{\ensuremath{\mathbb{A}}}
+
+\newcommand{\ssa}{\ensuremath{\varphi}}
+\newcommand{\ssb}{\ensuremath{\psi}}
+\newcommand{\ssc}{\ensuremath{\chi}}
+\newcommand{\ssd}{\ensuremath{\omega}}
+\newcommand{\ssl}{\ensuremath{\mathscr L}}
+
+% Analysis
+\newcommand{\dd}{\mathop{}\!\mathrm{d}}
+\newcommand{\champ}[1]{\ensuremath{\frac{\partial}{\partial #1}}}
+\newcommand{\norme}[1]{\ensuremath{\| #1 \|}}
+\newcommand{\normeL}[2]{\ensuremath{\| #2 \|_{L^{#1}}}}
+\newcommand{\normeLs}[3]{\ensuremath{\| #3 \|_{L^{#1}, #2}}}
+
+% General things
+\newcommand{\ceil}[1]{\ensuremath{\left\lceil #1 \right\rceil}}
+\newcommand{\floor}[1]{\ensuremath{\left\lfloor #1 \right\rfloor}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\spec}{\operatorname{Spec}}
+\newcommand{\sgn}{\operatorname{sgn}}
+\newcommand{\rer}{\operatorname{ker}}
+\newcommand{\im}{\operatorname{im}}
+\newcommand{\tr}{\operatorname{tr}}
+\newcommand{\dom}{\operatorname{dom}}
+\newcommand{\ran}{\operatorname{ran}}
+\newcommand{\card}{\operatorname{card}}
+\newcommand{\lcm}{\operatorname{lcm}}
+\newcommand{\per}{\operatorname{per}}
+\newcommand{\diam}{\operatorname{diam}}
+\newcommand{\nmgp}{\vartriangleleft}
+\newcommand{\nmgpto}{\vartriangleright}
+\renewcommand{\mod}[1]{\left(\operatorname{mod} #1 \right)}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\geq}{\geqslant}
+\renewcommand{\preceq}{\preccurlyeq}
+\renewcommand{\succeq}{\succcurlyeq}
+\DeclareMathOperator{\argmax}{argmax}
+\renewcommand{\epsilon}{\varepsilon}
+
+% Striling numbers
+\DeclareRobustCommand{\stirlinga}{\genfrac[]{0pt}{}}
+\DeclareRobustCommand{\stirlingb}{\genfrac\{\}{0pt}{}}
+
+\newcommand*{\TakeFourierOrnament}[1]{{\fontencoding{U}\fontfamily{futs}\selectfont\char#1}}
+\newcommand*{\danger}{\TakeFourierOrnament{66}}
+
+% Probability
+\newcommand{\e}{e}
+\newcommand{\E}{\operatorname*{\mathbb E}}
+\newcommand{\var}{\operatorname*{Var}}
+\newcommand{\cov}{\operatorname*{cov}}

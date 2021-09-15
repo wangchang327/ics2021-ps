@@ -1,0 +1,69 @@
+\RequirePackage{newtxtext}
+\RequirePackage[vvarbb, cmintegrals, cmbraces]{newtxmath}
+\RequirePackage{esint}
+
+\DeclareSymbolFont{CMlargesymbols}{OMX}{cmex}{m}{n}
+\let\sumop\relax\let\prodop\relax
+\DeclareMathSymbol{\sumop}{\mathop}{CMlargesymbols}{"50}
+\DeclareMathSymbol{\prodop}{\mathop}{CMlargesymbols}{"51}
+
+\RequirePackage{fontspec}
+
+\setsansfont{TeX Gyre Heros}
+\RequirePackage{courier}
+
+\setCJKmainfont[
+	ItalicFont=FZKai-Z03S
+]{FZShuSong-Z01S}
+
+\setCJKsansfont[
+	BoldFont=* Medium,
+	ItalicFont=FZKai-Z03S
+]{Noto Sans CJK SC}
+
+\setCJKmonofont[
+	BoldFont=* Medium,
+	ItalicFont=FZKai-Z03S
+]{Noto Sans CJK SC}
+
+\setCJKfamilyfont{kai}{FZKai-Z03S}
+
+\setCJKfamilyfont{song}[
+	ItalicFont=FZKai-Z03S
+]{FZShuSong-Z01S}
+
+\setCJKfamilyfont{fangsong}[
+	ItalicFont=FZKai-Z03S
+]{FZFangSong-Z02S}
+
+\setCJKfamilyfont{hei}{Noto Sans CJK SC Medium}
+\setCJKfamilyfont{hei2}[
+	BoldFont=* Bold
+]{Noto Sans CJK SC}
+
+\setCJKfamilyfont{black}[
+	BoldFont=* Black
+]{Noto Sans CJK SC}
+
+\setCJKfamilyfont{sectionfont}[
+	BoldFont=* Black
+]{Noto Sans CJK SC}
+
+\setCJKfamilyfont{pffont}[
+	BoldFont=* Medium
+]{Noto Sans CJK SC}
+
+\setCJKfamilyfont{emfont}[
+	BoldFont=* Medium
+]{Noto Sans CJK SC}
+
+\defaultfontfeatures{Ligatures=TeX} 
+\XeTeXlinebreaklocale "zh"
+\XeTeXlinebreakskip=0pt plus 1pt minus 0.1pt
+
+\newcommand\kaishu{\CJKfamily{kai}}
+\newcommand\songti{\CJKfamily{song}}
+\newcommand\heiti{\CJKfamily{hei}}
+\newcommand\thmheiti{\CJKfamily{hei2}}
+\newcommand\fangsong{\CJKfamily{fangsong}}
+\renewcommand{\em}{\bfseries\CJKfamily{emfont}}

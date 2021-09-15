@@ -1,0 +1,20 @@
+\chapter{位级表示}
+    \begin{problems}
+        \pro 下面关于 IEEE 浮点数标准说法正确的是哪个？
+		\begin{choices}
+			\item 在位数一定的情况下，不论怎么分配 exponent bits 和 fraction bits，所能表示的数的个数是不变的。
+			\item 若甲类浮点数有 10 位，乙类浮点数有 11 位，那么甲所能表示的最大数一定比乙小。
+			\item 若甲类浮点数有 10 位，乙类浮点数有 11 位，那么甲所能表示的最小正数一定比乙小。
+		    \item “\texttt{0111000}”可能是 7 位浮点数的 \texttt{NaN} 表示。
+		\end{choices}
+		\sol A 错误，因为 \texttt{unsigned} 确实一样多，但是 \texttt{NaN} 的数目不一样，小数位越多 \texttt{NaN} 越多。 依照前述，最大数，最大正数，最小正数只和指数有关（$\epsilon>0$ 不影响比较），所以 B、C 都错误。D 正确，比如“\texttt{0\_1\_11000}”就是一个表示方法。
+        \pro 对于 IEEE 浮点数，如果减少 1 位指数位，将其用于小数部分，下列叙述正确的是哪个？
+		\begin{choices}
+			\item 能表示更多数量的实数值，但实数值取值范围比原来小了。
+			\item 能表示的实数数量没有变化，但数值的精度更高了。
+			\item 能表示的最大实数变小，最小的实数变大，但数值的精度更高。
+			\item 以上说法都不正确。
+        \end{choices}
+		\sol 按照前一题的分析：减少指数位，导致范围变窄；增加小数位，提高精度，\texttt{NaN}变多，表示数量变少。选 C。
+        \pro 对 $x=1 \frac{1}{8}$ 和 $y=1 \frac{3}{8}$ 进行小数点后两位取整（rounding to nearest even），结果是什么？
+    \end{problems}
