@@ -1,5 +1,104 @@
 \chapter{位级表示}
+	\begin{summary}
+		\begin{compactitem}
+			\item 知道整数、浮点数在系统的存储方式。
+			\item 熟练掌握整数、浮点数的位级表示规则，快速完成其同十进制数的转换。
+			\item 理解整数、浮点数规范中的各类特殊数的计算方法及其性质。
+			\item 运用浮点数舍入的规则进行运算，知道类型转换的基本规则，能针对整数、浮点数的一些常见“反常情况”进行判断。
+			\item *了解位级操作中常见的技巧和套路，会用位运算处理非常规的编程要求。
+		\end{compactitem}
+	\end{summary}
+
     \begin{problems}
+		\pro 在 x86-64 机器上，定义 \texttt{unsigned int A = 0x123456}。请画出 \texttt{A} 在内存中的存储方式：
+		\begin{table}[H]
+			\centering
+			\begin{tabular}{|c|c|c|c|c|c|c|c|}
+				\hline
+				... & 低地址 & \multicolumn{4}{c|}{\texttt{A}} & 高地址 & ... \\ \hline
+				\multicolumn{2}{|c|}{...} & {\qquad \qquad} & {\qquad \qquad} & {\qquad \qquad} & {\qquad \qquad} & \multicolumn{2}{c|}{...} \\ \hline
+			\end{tabular}
+		\end{table}
+		定义 \texttt{unsigned short B[2] = \{0x1234, 0x5678\}}。请画出 \texttt{B} 在内存中的存储方式：
+		\begin{table}[H]
+			\centering
+			\begin{tabular}{|c|c|c|c|c|c|c|c|}
+				\hline
+				... & 低地址 & \multicolumn{4}{c|}{\texttt{B}} & 高地址 & ... \\ \hline
+				\multicolumn{2}{|c|}{...} & {\qquad \qquad} & {\qquad \qquad} & {\qquad \qquad} & {\qquad \qquad} & \multicolumn{2}{c|}{...} \\ \hline
+			\end{tabular}
+		\end{table}
+		\pro 下列代码的目的是将字符串 \texttt{A} 的内容复制到字符串 \texttt{B}，覆盖 \texttt{B} 原有的内容，并输出“Hello World”；但实际运行输出是“Buggy Codes”。尝试找到代码中的错误。
+		\begin{minted}[frame=single, fontsize=\small]{c}
+    int main() {
+        char A[12] = "Hello World";
+        char B[12] = "Buggy Codes";
+        int pos;
+        for (pos = 0; pos - sizeof(B) < 0; pos++)
+            B[pos] = A[pos];
+        printf("%s\n", B);
+    }
+		\end{minted}
+		\pro 在 x86-64 机器上，有下列 C 代码：
+		\begin{minted}[frame=single, fontsize=\small]{c}
+    int main() {
+        unsigned int A = 0x11112222;
+        unsigned int B = 0x33336666;
+        void *x = (void *)&A;
+        void *y = 2 + (void *)&B;
+        unsigned short P = *(unsigned short *)x;
+        unsigned short Q = *(unsigned short *)y;
+        printf("0x%04x", P + Q);
+        return 0;
+    }
+		\end{minted}
+		运行该代码，结果是什么？
+		\pro 在 x86-64 机器上，有下列 C 代码：
+		\begin{minted}[frame=single, fontsize=\small]{c}
+    int main() {
+        char A[12] = "11224455";
+        char B[12] = "11445577";
+        void *x = (void *)&A;
+        void *y = 2 + (void *)&B;
+        unsigned short P = *(unsigned short *)x;
+        unsigned short Q = *(unsigned short *)y;
+        printf("0x%04x", Q - P);
+        return 0;
+    }
+		\end{minted}
+		运行该代码，结果是什么？
+		\pro 在 x86-64 机器上，有如下的定义：
+		\begin{minted}[frame=single, fontsize=\small]{c}
+    int x = ...; // 表达式 A
+    int y = ...; // 表达式 B
+    unsigned int ux = x;
+    unsigned int uy = y;
+		\end{minted}
+		判断下表中的表达式是否等价：
+		\begin{table}[H]
+			\centering
+			\begin{tabular}{|c|c|c|}
+				\hline
+				序号 & 表达式 \verb|A| & 表达式 \verb|B| \\ \hline
+				1 & \verb|x > y| & \verb|ux > uy| \\ \hline
+				2 & \verb+(x > 0) || (x < ux)+ & \verb|1| \\ \hline
+				3 & \verb|x ^ y ^ x ^ y ^ x| & \verb|x| \\ \hline
+				4 & \verb|((x >> 1) << 1) <= x| & \verb|1| \\ \hline
+				5 & \verb|((x / 2) * 2) <= x| & \verb|1| \\ \hline
+				6 & \verb|x ^ y ^ (~x) - y| & \verb|y ^ x ^ (~y) - x| \\ \hline
+				7 & \verb|(x == 1) && (ux - 2 < 2)| & \verb|(x == 1) && ((!!ux) - 2 < 2)| \\ \hline
+			\end{tabular}
+		\end{table}
+		\begin{hint}
+			减法的运算优先级比按位异或高。布尔运算的结果都是有符号数。
+		\end{hint}
+		\pro 现有一个二进制浮点的表示规则，其中 $E$ 为指数部分（3 比特），bias为 3；$M$ 为小数部分（5 比特），采用二进制补码表示形式，且取值 $0.5 \leq |M|<1$，$s$ 是浮点的符号位。该形式包含一个值为 1 的隐藏位。问 $+5_{10}$ 在该表示下的值是下列哪一个？
+		\begin{choices}
+			\item \texttt{010001100}
+			\item \texttt{010100100}
+			\item \texttt{011011010}
+			\item \texttt{011110101}
+		\end{choices}
         \pro 下面关于 IEEE 浮点数标准说法正确的是哪个？
 		\begin{choices}
 			\item 在位数一定的情况下，不论怎么分配 exponent bits 和 fraction bits，所能表示的数的个数是不变的。
@@ -7,7 +106,6 @@
 			\item 若甲类浮点数有 10 位，乙类浮点数有 11 位，那么甲所能表示的最小正数一定比乙小。
 		    \item “\texttt{0111000}”可能是 7 位浮点数的 \texttt{NaN} 表示。
 		\end{choices}
-		\sol A 错误，因为 \texttt{unsigned} 确实一样多，但是 \texttt{NaN} 的数目不一样，小数位越多 \texttt{NaN} 越多。 依照前述，最大数，最大正数，最小正数只和指数有关（$\epsilon>0$ 不影响比较），所以 B、C 都错误。D 正确，比如“\texttt{0\_1\_11000}”就是一个表示方法。
         \pro 对于 IEEE 浮点数，如果减少 1 位指数位，将其用于小数部分，下列叙述正确的是哪个？
 		\begin{choices}
 			\item 能表示更多数量的实数值，但实数值取值范围比原来小了。
@@ -15,6 +113,53 @@
 			\item 能表示的最大实数变小，最小的实数变大，但数值的精度更高。
 			\item 以上说法都不正确。
         \end{choices}
-		\sol 按照前一题的分析：减少指数位，导致范围变窄；增加小数位，提高精度，\texttt{NaN}变多，表示数量变少。选 C。
-        \pro 对 $x=1 \frac{1}{8}$ 和 $y=1 \frac{3}{8}$ 进行小数点后两位取整（rounding to nearest even），结果是什么？
+		\pro 假设某浮点数格式为 1 位符号、3 位阶码、4 位小数。下表给出了用该格式表达的浮点数 $(-1)^SM \cdot 2^E$ 与其二进制表示的关系。完成下表。
+		\begin{table}[H]
+			\centering
+			\begin{tabular}{|c|c|c|c|c|}
+				\hline
+				描述 & 二进制表示 & $M$（写成分数） & $E$ & $f$ \\ \hline
+				负零 &  & / & / & \texttt{-0.0} \\ \hline
+				/ & \verb|01000101| &  &  &  \\ \hline
+				最小的非规格化负数 &  &  &  &  \\ \hline
+				最大的规格化正数 &  &  &  &  \\ \hline
+				一 &  &  &  & \texttt{1.0} \\ \hline
+				/ &  &  &  & \texttt{5.5} \\ \hline
+				$+\infty$ &  & / & / & / \\ \hline
+			\end{tabular}
+		\end{table}
+		\pro 假设浮点数格式 A 为 1 位符号、3 位阶码、4 位小数，浮点数格式 B 为 1 位符号、4 位阶码、3 位小数。回答下列问题。
+			\qn 格式 A 中有多少个二进制表示对应于正无穷大？
+			\qn 考虑能精确表示的实数的最大绝对值。A 比 B 大还是比 B 小，还是两者一样？
+			\qn 考虑能精确表示的实数的最小非零绝对值。A 比 B 大还是比 B 小，还是两者一样？
+			\qn 考虑能精确表示的实数的个数。A 比 B 多还是比 B 少，还是两者一样？
+		\pro 判断下列说法的正确性。
+			\qn 对于任意的单精度浮点数 \texttt{a} 和 \texttt{b}，如果 \texttt{a > b}，那么 \texttt{a + 1 > b}。
+			\qn 对于任意的单精度浮点数 \texttt{a} 和 \texttt{b}，如果 \texttt{a > b}，那么 \texttt{a + b > b + b}。
+			\qn 对于任意的单精度浮点数 \texttt{a} 和 \texttt{b}，如果 \texttt{a} > \texttt{b}，那么 \texttt{a + 1 > b + 1}。
+			\qn 对于任意的双精度浮点数 \texttt{d}，如果 \texttt{d < 0}，那么 \texttt{d * d > 0}。
+			\qn 对于任意的双精度浮点数 \texttt{d}，如果 \texttt{d < 0}，那么 \texttt{d * 2 < 0}。
+			\qn 对于任意的双精度浮点数 \texttt{d}，\texttt{d == d}。
+			\qn 将 \texttt{float} 转换成 \texttt{int} 时，既有可能造成舍入，又有可能造成溢出。
+		\pro 遵循 IEEE 754 浮点数标准，考虑下列代码：
+		\begin{minted}[frame=single, fontsize=\small]{c}
+    for (int x = 0; ; x++) {
+        float f = x;
+        if (x != (int)f) {
+            printf("%d", x);
+            break;
+        }
+    }
+		\end{minted}
+		试问代码的运行结果是什么？或者死循环？
+		\pro 遵循 IEEE 754 浮点数标准，考虑下列代码：
+		\begin{minted}[frame=single, fontsize=\small]{c}
+    int x = 33554466; // 2^25 + 34
+    int y = x + 8;
+    for ( ; x < y; x++) {
+        float f = x;
+        printf("%d ", x - (int)f);
+    }
+		\end{minted}
+		写出程序的运行结果。
     \end{problems}

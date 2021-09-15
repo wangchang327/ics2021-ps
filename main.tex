@@ -39,10 +39,13 @@
 \usepackage[dvipsnames]{xcolor}
 
 \usepackage{paralist}
+\usepackage{commands}
 \usepackage[figurewithin=none]{caption}
 \usepackage{graphicx}
+\usepackage{float}
 \usepackage{tikz}
 \usetikzlibrary{shapes.symbols, backgrounds, matrix, calc, arrows, math, arrows.meta}
+\usepackage{minted}
 
 \numberwithin{equation}{chapter}
 \renewcommand{\theequation}{\thechapter.\arabic{equation}}
@@ -72,6 +75,23 @@
 }
 
 \usepackage[many]{tcolorbox}
+
+\newtcolorbox{summary}{
+	breakable,
+	enhanced,
+	width=\textwidth,
+	colback=white, colbacktitle=white,
+	colframe=gray!50, boxrule=0.2mm,
+	coltitle=black,
+	fonttitle=\bfseries\sffamily,
+	attach boxed title to top left={yshift=-\tcboxedtitleheight/2, xshift=\tcboxedtitlewidth/4},
+	boxed title style={boxrule=0pt, colframe=white},
+	after skip=1cm,
+	top=3mm,
+	bottom=3mm,
+	title={要点}
+}
+
 \usepackage[calcwidth, explicit, nobottomtitles, newparttoc, indentafter]{titlesec}
 \usepackage{titletoc}
 \usepackage[titles]{tocloft}
