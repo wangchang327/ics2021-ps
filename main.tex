@@ -158,11 +158,11 @@
   	{\gdef\chapterlabel{}\sffamily\CJKfamily{black}\bfseries\Huge}
   	{\gdef\chapterlabel{\thechapter\ }}{0pt}
   	{\begin{tikzpicture}[remember picture, overlay]
-    	\node[yshift=-3cm] at (current page.north west)
-      		{\begin{tikzpicture}[remember picture, overlay]
-				\draw[fill=LightSkyBlue] (0,0) rectangle (\paperwidth, 3cm);
-				\node[anchor=east, xshift=0.9\paperwidth, rectangle,  rounded corners=20pt, inner sep=11pt, fill=MidnightBlue] {\color{white} {\fontsize{48}{60}\selectfont\chapterlabel}#1};
-    		\end{tikzpicture}};
+		\node[yshift=-3cm] at (current page.north west)
+	  		{\begin{tikzpicture}[remember picture, overlay]
+				\draw[fill=titlepagecolor!20] (0,0) rectangle (\paperwidth, 3cm);
+				\node[anchor=east, xshift=0.9\paperwidth, rectangle,  rounded corners=20pt, inner sep=11pt, fill=titlepagecolor] {\color{white} {\fontsize{48}{60}\selectfont\chapterlabel}#1};
+			\end{tikzpicture}};
    	\end{tikzpicture}
 }
 \titlespacing*{name=\chapter, numberless}
@@ -310,39 +310,68 @@
 \renewcommand{\theequation}{\thesection.\arabic{equation}}
 \allowdisplaybreaks
 
-\newenvironment{code}{\begin{minted}[frame=single, fontsize=\small]{c}}{\end{minted}}
+\usepackage{epigraph}
+
+\renewcommand\epigraphflush{flushright}
+\renewcommand\epigraphsize{\normalsize}
+\setlength\epigraphwidth{0.7\textwidth}
+
+\definecolor{titlepagecolor}{cmyk}{1, 0.6, 0, 0.4}
+
+\newcommand\titlepagedecoration{%
+	\begin{tikzpicture}[remember picture,overlay,shorten >= -10pt]
+		\coordinate (aux1) at ([yshift=-15pt] current page.north east);
+		\coordinate (aux2) at ([yshift=-410pt] current page.north east);
+		\coordinate (aux3) at ([xshift=-4.5cm] current page.north east);
+		\coordinate (aux4) at ([yshift=-150pt] current page.north east);
+
+		\begin{scope}[titlepagecolor!40, line width=12pt, rounded corners=12pt]
+			\draw (aux1) -- coordinate (a) ++(225:5) -- ++(-45:5.1) coordinate (b);
+			\draw[shorten <= -10pt] (aux3) -- (a) -- (aux1);
+			\draw[opacity=0.6,titlepagecolor,shorten <= -10pt] (b) -- ++(225:2.2) -- ++(-45:2.2);
+		\end{scope}
+		
+		\draw[titlepagecolor, line width=8pt, rounded corners=8pt, shorten <= -10pt] (aux4) -- ++(225:0.8) -- ++(-45:0.8);
+		
+		\begin{scope}[titlepagecolor!70, line width=6pt, rounded corners=8pt]
+			\draw[shorten <= -10pt] (aux2) -- ++(225:3) coordinate[pos=0.45] (c) -- ++(-45:3.1);
+			\draw (aux2) -- (c) -- ++(135:2.5) -- ++(45:2.5) -- ++(-45:2.5) coordinate[pos=0.3] (d);   
+			\draw (d) -- +(45:1);
+		\end{scope}
+	\end{tikzpicture}%
+}
 
 \begin{document}
 	\begin{titlepage}
-		\vspace*{\stretch{1}}
-		\noindent\begin{center}\rule{\linewidth}{2pt}\end{center}
-		\vspace{0.5em}
-		\begin{center}
-			{\fontsize{32}{32} \selectfont \bfseries \sffamily \CJKfamily{sectionfont} ICS 问题求解} \\ \vspace{1.5em}
-			\LARGE PKU 04832363：计算机系统导论讨论班
-		\end{center}
-		\noindent\begin{center}\rule{\linewidth}{2pt}\end{center}
-		\vspace{1em}
-		\begin{center}
-			{\Large 2021 年秋} \\ \vspace{1em}
-			{\Large 北京大学} \\ \vspace{1.5em}
-		\end{center}
-		\vfill
-		\begin{center} \href{https://www.pku.edu.cn/}{\includegraphics[height=64pt]{logo.eps}} \end{center}
+		\noindent
+		{\fontsize{40}{40} \selectfont \bfseries \sffamily \CJKfamily{sectionfont} ICS 问题求解} \par
+		\vspace{1cm}
+		\epigraph{\LARGE PKU 04832363：计算机系统导论讨论班}{\Large 2021 年秋}
+		\null\vfill
+		\vspace*{1cm}
+		\noindent
+		\hfill
+		\begin{minipage}{0.35\linewidth}
+			\begin{flushright}
+				\Large \textbf{汇编：} 王畅 \\
+    			\href{mailto:wchang@pku.edu.cn}{\texttt{wchang@pku.edu.cn}}
+			\end{flushright}
+		\end{minipage}%
+		\begin{minipage}{0.02\linewidth}
+			\ \rule{1pt}{56pt}
+		\end{minipage}
+		\begin{center} \href{https://www.pku.edu.cn/}{\includegraphics[height=54pt]{logo.eps}} \end{center}
+		\titlepagedecoration
 	\end{titlepage}
-	
 	\newpage
 	\thispagestyle{empty}
 	\begin{center}
-		\Large 编译于 {\today} \currenttime
+		\LARGE 编译于 {\today} \currenttime
 	\end{center}
 	\vfill
 	\begin{flushleft}
-		\large
-    	\textbf{汇编：}王畅 \\
-    	\textbf{勘误：}请写信到 \href{mailto:wchang@pku.edu.cn}{\texttt{wchang@pku.edu.cn}} \\
-		编者仅做了汇编和微小的改动，主要内容均来源于往年计算机系统导论课程，请悉知。
-    \end{flushleft}
+		\large 编者仅做了汇编和微小的改动，主要内容均来源于往年计算机系统导论课程，请悉知。
+	\end{flushleft}
 
 	\frontmatter
 
