@@ -10,7 +10,6 @@
 \setlength{\parindent}{2em}
 
 \usepackage[intlimits, leqno]{amsmath}
-\usepackage{amsthm}
 \usepackage{amssymb}
 
 \input{font-setup}
@@ -36,7 +35,7 @@
 	headsep=6ex,
 }
 
-\usepackage[dvipsnames]{xcolor}
+\usepackage[svgnames, dvipsnames]{xcolor}
 
 \usepackage{paralist}
 \usepackage{commands}
@@ -50,6 +49,9 @@
 \numberwithin{equation}{chapter}
 \renewcommand{\theequation}{\thechapter.\arabic{equation}}
 
+\usepackage{ulem}
+\normalem
+
 \usepackage{datetime}
 
 \usepackage{xstring}
@@ -57,7 +59,7 @@
 \newcommand\sectionname{\arabic{chapter}.\arabic{section}}
 \pagestyle{fancy}
 \renewcommand{\chaptermark}[1]{\markboth{
-	第\CJKnumber{\thechapter}周\quad #1
+	\CJKnumber{\thechapter}\quad #1
 	}{}}
 \renewcommand{\sectionmark}[1]{\markright{\arabic{chapter} \quad #1}}
 \fancyhf{}
@@ -96,7 +98,7 @@
 \usepackage{titletoc}
 \usepackage[titles]{tocloft}
 \cftsetpnumwidth{1.75em}
-\providecommand{\dmchapterttl}[1]{\IfSubStr{ABCDEFGHIJKLMNOPQRSTUVWXYZ}{#1}{附录 #1	}{第\CJKnumber{#1}周}}
+\providecommand{\dmchapterttl}[1]{\IfSubStr{ABCDEFGHIJKLMNOPQRSTUVWXYZ}{#1}{附录 #1	}{\CJKnumber{#1}}}
 
 \newlength{\BoxTtlwidth}
 
@@ -151,24 +153,18 @@
 	overlay={ \draw[line width=1pt] (interior.south west) -- (interior.south east); }
 }
 
-\titleformat{name=\chapter}
-	{\filright\sffamily\CJKfamily{black}\bfseries\Huge}
-	{}
-	{0mm}
-	{\MakeChapBox{\thechapter}{#1}}
-	[]
-\titlespacing*{name=\chapter}
-	{1pc}{*4}{1em}
-
-\titleformat{name=\chapter, numberless}
-	{\filcenter\sffamily\CJKfamily{black}\bfseries\Huge}
-	{}
-	{0mm}
-	{\MakeChapBoxSingle{#1}}
-	[{\if@mainmatter
-		\addcontentsline{toc}{chapter}{#1}
-		\markboth{#1}{}
-	\fi}]
+\newcommand*\chapterlabel{}
+\titleformat{\chapter}
+  	{\gdef\chapterlabel{}\sffamily\CJKfamily{black}\bfseries\Huge}
+  	{\gdef\chapterlabel{\thechapter\ }}{0pt}
+  	{\begin{tikzpicture}[remember picture, overlay]
+    	\node[yshift=-3cm] at (current page.north west)
+      		{\begin{tikzpicture}[remember picture, overlay]
+				\draw[fill=LightSkyBlue] (0,0) rectangle (\paperwidth, 3cm);
+				\node[anchor=east, xshift=0.9\paperwidth, rectangle,  rounded corners=20pt, inner sep=11pt, fill=MidnightBlue] {\color{white} {\fontsize{48}{60}\selectfont\chapterlabel}#1};
+    		\end{tikzpicture}};
+   	\end{tikzpicture}
+}
 \titlespacing*{name=\chapter, numberless}
 	{1pc}{*4}{1em}
 
@@ -244,7 +240,7 @@
 \newenvironment{problems}{%
 	\begin{ExerciseList}
 		\global\setbox\temp@Answerbox%
-		\vbox{\unvbox\all@Answerbox\section*{第\zhnum{chapter}周}\unvbox\@Exercisebox\vskip\z@}%
+		\vbox{\unvbox\all@Answerbox\section*{参考答案\zhnum{chapter}}\unvbox\@Exercisebox\vskip\z@}%
 		\global\setbox\all@Answerbox\copy\temp@Answerbox
 		}{
 	\end{ExerciseList}
@@ -289,6 +285,33 @@
 	\addcontentsline{toc}{chapter}{\listtablename}
 }{}{}
 
+\usepackage[thmmarks, amsmath, hyperref]{ntheorem}
+\theoremstyle{change}
+\theorembodyfont{\fangsong}
+\theoremheaderfont{\sffamily\bfseries\thmheiti}
+\theoremseparator{\ }
+\setlength{\theorempreskipamount}{2mm}
+\setlength{\theorempostskipamount}{2mm}
+
+\newtheorem{theorem}{定理}[chapter]
+
+\theorembodyfont{\songti}
+\newtheorem{problem}[theorem]{例题}
+\newtheorem{example}[theorem]{例}
+
+\theorembodyfont{}
+\theoremstyle{nonumberplain}
+\theoremheaderfont{\sffamily\bfseries\CJKfamily{pffont}}
+\theoremseparator{\enspace}
+\theoremsymbol{}
+\newtheorem{solution}{解}
+
+\numberwithin{equation}{section}
+\renewcommand{\theequation}{\thesection.\arabic{equation}}
+\allowdisplaybreaks
+
+\newenvironment{code}{\begin{minted}[frame=single, fontsize=\small]{c}}{\end{minted}}
+
 \begin{document}
 	\begin{titlepage}
 		\vspace*{\stretch{1}}
@@ -325,5 +348,6 @@
 
 	\mainmatter
 	\include{week1}
+	\include{datalab}
 	\include{solution}
 \end{document}

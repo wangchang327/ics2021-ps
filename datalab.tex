@@ -1,0 +1,80 @@
+\chapter{Datalab 热身}
+    \begin{summary}
+        \begin{compactitem}
+            \item 在 ANSI C 中，变量的声明必须出现在每个花括号包容的 scope 的开头，否则会发生编译错误。
+            \item 在使用 \texttt{int, long} 的转换时需要小心，例如立即数默认为 \texttt{int}，经 \texttt{!} 操作后的整数类型都会变为 \texttt{int}，等等。
+            \item 可能会有些方法刻意运用整型溢出的操作（以节省操作数），正常完成一般用不到。如果你要使用，请特别注意整型溢出中的编译器行为。
+            \item 通常来说，datalab 的完成不会遇到太多困难。如果你在整数部分遇到了一些麻烦，可以看一看下面的例题。这里的例子给出的提示都比较充分，部分展现了一些处理技巧。若还是做不出来，可以问同学或者助教获取答案。
+            \item 浮点部分的题目允许使用的操作大大增多，所以用暴力方法就能完成，主要考察的是大家对 IEEE 754 标准的理解。（其实大多数整数部分的题目也是这样。）
+            \item 有两本有趣的参考书：\textit{Hacker's Delight} 和 \textit{Matters Computational: Ideas, Algorithms, Source Code}，以及一个链接 \url{https://graphics.stanford.edu/~seander/bithacks.html}，里面介绍了一些位运算魔法。Datalab 和往年有一些比较过分的考题大量出自前一本书。但是，做完 Lab 之前\uwave{绝对不要}去看！！！否则会被视为抄袭。 
+        \end{compactitem}
+    \end{summary}
+
+    总地来说，做 datalab 时，不要总是惦记着只能用某些运算，而是先要宏观地找出方法和思路。对于中等难度的题，一般都可以用“拼凑”的方法，先算出什么...再算出什么...
+    
+    即便是遇到很难的题，直接用（不加限制的） C 代码写出算法都是很容易的，你可以先这样做，然后设法改写成符合要求的代码。如有必要，你可以直接展开循环和条件表达式。
+
+    \begin{example}[表达式]
+        试用位级运算的技术计算表达式 \texttt{cond ? t : f}。根据注释中的提示尝试补全下面的代码，假设 \texttt{cond} 的输入总是 1 或者 0。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int conditional(int cond, int t, int f) {
+        /* Compute a mask that equals 0x00000000
+         * or 0xFFFFFFFF depending on the value of cond */
+        int mask = ____________________;
+        /* Use the mask to toggle between returning t or returning f */
+        return ____________________;
+    }
+        \end{minted}
+        这个例子的用处是，如果你一定想要用 \texttt{if}，可以用这个办法避开 datalab 的限制。更显然地，减法、常数乘法都是事实上可以用的。
+    \end{example}
+
+    \begin{example}[模拟操作]
+        你可能以前听说过，如果要计算两个无符号数的平均 $\left \lfloor \frac{x+y}{2} \right \rfloor$ 而不发生溢出可以用：\verb|(x & y) + ((x ^ y) >> 1)|。不难看出其原理：\verb|x ^ y| 是半加（不考虑进位）的部分，不会发生溢出，右移即可；另一部分则包括进位，当且仅当两位均为 1 时发生，而如果将这个进位保留在原地，恰好就是除以 2 的效果。这样的思想来自于计算机的加法器。
+
+        一般来说，有符号数的处理比无符号数稍微需要一些讨论。根据上面的方法，请你尝试计算两个有符号数的平均 $\left \lfloor \frac{x+y}{2} \right \rfloor$ 而不发生溢出的算法；对 $\left \lceil \frac{x+y}{2} \right \rceil$ 做同样的事。与此相关，请问如何用位运算检查 $x+y$ 是否溢出了？
+    \end{example}
+
+    \begin{example}[计数]
+        让我们来决定一个给定数的二进制表示中，1 的个数是偶数还是奇数；奇数返回 1，否则返回 0。允许使用 datalab 整数部分规定的所有运算符。
+        
+        这里我们采用\emph{分治}的策略，首先考察比较短的数。例如，当所处理的数只有两位时，采用的代码十分显然：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int bitParity2bit(int x) {
+        int bit1 = 0b01 & x;
+        int bit2 = 0b01 & (x >> 1);
+        return bit1 ^ bit2;
+    }
+        \end{minted}
+        将异或理解为 $\mathbb F_2$ 上的加法是非常有益的。
+
+        对于四位整数，我们两位两位操作，并让操作的过程某种意义上“并行”进行。首先分别确定 1、2 和 3、4 位的奇偶性，所得结果再设法异或一次。（思考：\texttt{mask2} 可以改成其他数吗？）
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int bitParity4bit(int x) {
+        int mask = 0b0101;
+        int halfParity = (mask & x) ^ (mask & (x >> 1));
+        int mask2 = 0b0011;
+        return (mask2 & halfParity) ^ (mask2 & (halfParity >> 2));
+    }
+        \end{minted}
+
+        现在，请你尝试根据上面的提示，补全下面针对八位整数的算法（要求使用操作符数目不超过 12 个）。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int bitParity8bit(int x) {
+        int mask = ____________________;
+        int quarterParity = ____________________;
+        int mask2 = ____________________;
+        int halfParity = ____________________;
+        int mask3 = ____________________;
+        return ____________________;
+    }
+        \end{minted}
+        最后，试完成针对十六位或更长整数的算法（注意，根据 datalab 要求，立即数有效长度不能超过 8 位）。同时，请你对问题“决定一个给定数的二进制表示中有多少个 1”做同样的事。
+    \end{example}
+
+    \begin{example}[算术运算]
+        考虑这样一个问题：对一个无符号整数 $x$, 计算 $x \bmod 5$。除了加法之外不能用其他算术操作。
+
+        方法上这很标准，假设 $x=(b_{31} \dotsm b_1b_0)_2$，通过计算 $2^i \pmod 5$ 的周期，我们知道
+        \[ x \equiv \sum_{i=0}^{31} b_i2^i \equiv 1b_0+2b_1+4b_2+3b_3+1b_4 + \dotsb + 3b_{31} \pmod 5. \]
+        技术上，对一个四位无符号整数 $(b_3b_2b_1b_0)_2$ 计算 $b_0+2b_1+4b_2+3b_3$ 可以非常直接：比如首先取得各位，然后用左移配合加法计算结果。你也可以思考有什么更省操作符数目的方法。
+    \end{example}
