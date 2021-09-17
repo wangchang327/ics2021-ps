@@ -11,10 +11,11 @@
 
 \usepackage[intlimits, leqno]{amsmath}
 \usepackage{amssymb}
+\usepackage[centercolon]{mathtools}
 
 \input{font-setup}
 
-\usepackage[unicode, colorlinks]{hyperref}
+\usepackage[unicode, colorlinks, bookmarksnumbered]{hyperref}
 \hypersetup{
 	linkcolor=blue,
 	citecolor=red,
@@ -39,11 +40,11 @@
 
 \usepackage{paralist}
 \usepackage{commands}
-\usepackage[figurewithin=none]{caption}
+\usepackage[font=small, labelfont=bf]{caption}
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{tikz}
-\usetikzlibrary{shapes.symbols, backgrounds, matrix, calc, arrows, math, arrows.meta}
+\usetikzlibrary{shapes.symbols, backgrounds, matrix, calc, arrows, math, arrows.meta, shapes.gates.logic.US, shapes.gates.logic.IEC}
 \usepackage{minted}
 
 \numberwithin{equation}{chapter}
@@ -92,6 +93,22 @@
 	top=3mm,
 	bottom=3mm,
 	title={要点}
+}
+
+\newtcolorbox{help}{
+	breakable,
+	enhanced,
+	width=\textwidth,
+	colback=white, colbacktitle=white,
+	colframe=gray!50, boxrule=0.2mm,
+	coltitle=black,
+	fonttitle=\bfseries\sffamily,
+	attach boxed title to top left={yshift=-\tcboxedtitleheight/2, xshift=\tcboxedtitlewidth/4},
+	boxed title style={boxrule=0pt, colframe=white},
+	after skip=1cm,
+	top=3mm,
+	bottom=3mm,
+	title={提示}
 }
 
 \usepackage[calcwidth, explicit, nobottomtitles, newparttoc, indentafter]{titlesec}

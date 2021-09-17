@@ -1,18 +1,31 @@
 \chapter{Datalab 热身}
-    \begin{summary}
+    \begin{help}
         \begin{compactitem}
             \item 在 ANSI C 中，变量的声明必须出现在每个花括号包容的 scope 的开头，否则会发生编译错误。
             \item 在使用 \texttt{int, long} 的转换时需要小心，例如立即数默认为 \texttt{int}，经 \texttt{!} 操作后的整数类型都会变为 \texttt{int}，等等。
             \item 可能会有些方法刻意运用整型溢出的操作（以节省操作数），正常完成一般用不到。如果你要使用，请特别注意整型溢出中的编译器行为。
-            \item 通常来说，datalab 的完成不会遇到太多困难。如果你在整数部分遇到了一些麻烦，可以看一看下面的例题。这里的例子给出的提示都比较充分，部分展现了一些处理技巧。若还是做不出来，可以问同学或者助教获取答案。
+            \item 通常来说，datalab 的完成不会遇到太多困难。如果你在整数部分遇到了一些麻烦，可以看一看下面的例题。这里的例子给出的提示都比较充分，展现了一些处理技巧。这些例子做不出可以找同学或者我索取答案。
             \item 浮点部分的题目允许使用的操作大大增多，所以用暴力方法就能完成，主要考察的是大家对 IEEE 754 标准的理解。（其实大多数整数部分的题目也是这样。）
             \item 有两本有趣的参考书：\textit{Hacker's Delight} 和 \textit{Matters Computational: Ideas, Algorithms, Source Code}，以及一个链接 \url{https://graphics.stanford.edu/~seander/bithacks.html}，里面介绍了一些位运算魔法。Datalab 和往年有一些比较过分的考题大量出自前一本书。但是，做完 Lab 之前\uwave{绝对不要}去看！！！否则会被视为抄袭。 
         \end{compactitem}
-    \end{summary}
+    \end{help}
 
-    总地来说，做 datalab 时，不要总是惦记着只能用某些运算，而是先要宏观地找出方法和思路。对于中等难度的题，一般都可以用“拼凑”的方法，先算出什么...再算出什么...
+    总地来说，做 datalab 时，不要总是惦记着只能用某些运算，而是先要宏观地找出方法和思路。对于中等难度的题，一般都可以用“拼凑”的方法，先算出什么...再算出什么... 使用模块化的思考方式，例如一些常见的操作可以总结出来随时使用，等等。
     
     即便是遇到很难的题，直接用（不加限制的） C 代码写出算法都是很容易的，你可以先这样做，然后设法改写成符合要求的代码。如有必要，你可以直接展开循环和条件表达式。
+
+    我们下面看几个例子。本学期的 Lab 内容大多数和它们不同，而且这里都没有给出答案，因此不要期望在其中找到答案而不思考。但这里基本把需要用到的思路都涵盖了，因而你如果不想因为被变相剧透思路而失去做题的乐趣，我强烈建议你现在就关掉本文档。
+
+    \begin{example}[de Morgan 律]
+        我们知道 \verb+~, &, |+ 可以表达“所有”的逻辑表达式，比方说异或 \verb+x ^ y = (x & ~y) | (~x ^ y)+。而实际上 \verb+~, |+ 就足以做到这件事，因为我们有 \verb+x & y = ~(~x | ~y)+。这样的情况称为\emph{连接词的完备集}，以后大家还会反复学到。
+
+        当然，其实单纯一个与非或者一个或非也够了。假设\emph{或非} 用 $\downarrow$ 表示（即 $\texttt{x} \downarrow \texttt{y} = \verb+~(x | y)+$），请你完成以下代码：唯一允许的位运算操作符是 $\downarrow$。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    unsigned xor_with_nor(unsigned x, unsigned y) {
+        return _________________________; // return x ^ y with only NOR
+    }
+        \end{minted}
+    \end{example}
 
     \begin{example}[表达式]
         试用位级运算的技术计算表达式 \texttt{cond ? t : f}。根据注释中的提示尝试补全下面的代码，假设 \texttt{cond} 的输入总是 1 或者 0。
@@ -25,13 +38,61 @@
         return ____________________;
     }
         \end{minted}
-        这个例子的用处是，如果你一定想要用 \texttt{if}，可以用这个办法避开 datalab 的限制。更显然地，减法、常数乘法都是事实上可以用的。
+        这个例子的用处是，如果你一定想要用 \texttt{if}，可以用这个办法避开 datalab 的限制。更显然地，减法、常数乘法都是事实上可以用的，此外你也可以思考如何表达 \texttt{==}。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int equal(int x, int y) {
+        return _________________________; // return x == y
+    }
+
+    int minus(int x, int y) {
+        return _________________________; // return x - y
+    }
+        \end{minted}
     \end{example}
 
-    \begin{example}[模拟操作]
+    \begin{example}[模拟操作 1]
         你可能以前听说过，如果要计算两个无符号数的平均 $\left \lfloor \frac{x+y}{2} \right \rfloor$ 而不发生溢出可以用：\verb|(x & y) + ((x ^ y) >> 1)|。不难看出其原理：\verb|x ^ y| 是半加（不考虑进位）的部分，不会发生溢出，右移即可；另一部分则包括进位，当且仅当两位均为 1 时发生，而如果将这个进位保留在原地，恰好就是除以 2 的效果。这样的思想来自于计算机的加法器。
+        \begin{figure}[H]
+            \centering
+            \tikzstyle{branch}=[fill, shape=circle, minimum size=3pt, inner sep=0pt]
+            \begin{tikzpicture}[label distance=2mm]
+                \node (x) at (-1,6) {$x$};
+                \node (y) at ($(x) + (0,-1.2)$) {$y$};
+                \node[not gate US, draw] at ($(x)+(0.5,-0.8)$) (notx) {};
+                \node[not gate US, draw] at ($(y)+(0.5,-0.8)$) (noty) {};
+                \node[and gate US, draw, rotate=-90, logic gate inputs=nn] at (1,3) (A) {};
+                \node[and gate US, draw, rotate=-90, logic gate inputs=nn] at ($(A)+(2,0)$) (B) {};
+                \node[and gate US, draw, rotate=-90, logic gate inputs=nn] at ($(B)+(2,0)$) (C) {};
+                \node[or gate US, draw, rotate=-90, logic gate inputs=nn] at ($(A)+(1,-1.5)$) (D) {};
+                \foreach \i in {x,y} {
+                    \path (\i) -- coordinate (punt\i) (\i |- not\i.input);
+                    \draw (\i) |- (punt\i) node[branch] {} |- (not\i.input);
+                }
+                \draw (puntx) -| (C.input 1);
+                \draw (punty) -| (C.input 2);
+                \draw (puntx) -| (B.input 1);
+                \draw (punty) -| (A.input 2);
+                \draw (notx) -| (A.input 1);
+                \draw (noty) -| (B.input 2);
+                \draw (A.output) -- ([yshift=-0.2cm] A.output) -| (D.input 2);
+                \draw (B.output) -- ([yshift=-0.2cm] B.output) -| (D.input 1);
+                \draw (C) -- ($(C) + (0, -1.8)$) -- node[right] {$C$} ($(C) + (0, -2.5)$);
+                \draw (D.output) -- node[right] {$S$} ($(D) + (0, -1)$);
+            \end{tikzpicture}
+            \caption{半加器的结构，它计算两个一位整数的和 $S$ 及其进位 $C$。可以看出 $S = x \oplus y, C=x \& y$。}
+        \end{figure}
 
-        一般来说，有符号数的处理比无符号数稍微需要一些讨论。根据上面的方法，请你尝试计算两个有符号数的平均 $\left \lfloor \frac{x+y}{2} \right \rfloor$ 而不发生溢出的算法；对 $\left \lceil \frac{x+y}{2} \right \rceil$ 做同样的事。与此相关，请问如何用位运算检查 $x+y$ 是否溢出了？
+        一般来说，有符号数的处理比无符号数稍微需要一些讨论。根据上面的方法，请你尝试给出两个有符号数的平均 $\left \lfloor \frac{x+y}{2} \right \rfloor$ 而不发生溢出的算法；对 $\left \lceil \frac{x+y}{2} \right \rceil$ 做同样的事。
+        
+        与此相关，请问如何用位运算检查 $x+y$ 是否溢出了？\begin{hint} 检查符号位。 \end{hint}
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int addOK(int x, int y) {
+        ________________________________;
+        ________________________________;
+        // You can add more lines
+        return ____; // Determine if we can compute x + y without overflow
+    }
+        \end{minted}
     \end{example}
 
     \begin{example}[计数]
@@ -68,7 +129,40 @@
         return ____________________;
     }
         \end{minted}
-        最后，试完成针对十六位或更长整数的算法（注意，根据 datalab 要求，立即数有效长度不能超过 8 位）。同时，请你对问题“决定一个给定数的二进制表示中有多少个 1”做同样的事。
+        最后，试完成针对十六位或更长整数的算法（注意，根据 datalab 要求，立即数有效长度不能超过 8 位）。
+        
+        作为模仿练习，请你对问题“决定一个给定数的二进制表示中有多少个 1”做同样的事。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    /* Let's count how many bits are set in a number */
+    int bitCount8bit(int x) {
+        int mask = ____________________;
+        int quarterSum = ____________________;
+        int mask2 = ____________________;
+        int halfSum = ____________________;
+        int mask3 = ____________________;
+        return ____________________ + ____________________;
+    }
+        \end{minted}
+    \end{example}
+
+    \begin{example}[模拟操作 2]
+        对于一个无符号整数，我们希望将它的位反过来（记为 $\operatorname{rev}(\cdot)$），例如 \texttt{0x01234567} 倒过来就是 \texttt{0xE6A2C480}。
+
+        这个某种意义上是一个广为流传的\sout{面试题}。我们沿用\emph{分治}的思想。假设二进制数 $x$ 有 $2m$ 位 $(\underbracket{b_{2m-1} \dotsm b_m}_{x_h} \underbracket{b_{m-1} \dotsm b_0}_{x_l})_2$，那么显然有
+        \[ \operatorname{rev}(x) = \operatorname{rev}(x_l) \operatorname{rev}(x_h). \]
+        根据这个思路，请你补全以下代码：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    unsigned reverseBits(unsigned n) {
+        n = (n >> 16) | (n << 16);
+        n = ((n & __________) >>> 8) | ((n & __________) << 8);
+        n = ________________________ | _______________________;
+        n = __________________________________________________;
+        n = __________________________________________________;
+        return n;
+    }
+        \end{minted}
+
+        读过两个分治的操作之后，请思考：给一个整数，如何计算它有多少个前导零？允许的操作符包括所有的位级运算，以及加法和 \texttt{!}。\begin{hint} 二分查找。 \end{hint}
     \end{example}
 
     \begin{example}[算术运算]
