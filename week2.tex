@@ -43,7 +43,7 @@
             \qn \verb|movabsq $0x123456789AB, %rdi|
             \qn \verb|movabsq $0x123456789AB, 16(%rcx)|
             \qn \verb|movq 8(%rsp), %rip|
-        \pro 在 32 位机器中有如下定义 \texttt{int array[10] = \{0, 1, 2, 3, 4, 5, 6, 7, 8, 9\};}
+        \pro 在 32 位机器中有如下定义 \texttt{int array[10] = \{0, 1, 2, 3, 4, 5, 6, 7, 8, 9\};}。
         
         某一时刻，\verb|%ecx| 存着第一个元素的地址，\verb|%ebx| 值为 3，那么下列操作中，哪一个将 \verb|array[3]| 移入了 \verb|%eax|？
         \begin{choices}
@@ -147,11 +147,11 @@
     0x400474: cmp   $0x7, %edi
     0x400477: ja    0x40049a
     0x400479: mov   %edi, %edi
-    0x40047b: jmpq  *0x400598(,%rdi,8)
+    0x40047b: jmpq  *0x400598(, %rdi, 8)
     0x400482: mov   $0x15213, %eax
     0x400487: retq
     0x400488: sub   $0x5, %edx
-    0x40048b: lea   0x0(,%rdx,4), %eax
+    0x40048b: lea   0x0(, %rdx, 4), %eax
     0x400492: retq
     0x400493: mov   $0x2, %edx
     0x400498: and   %edx, %esi
