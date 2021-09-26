@@ -44,8 +44,26 @@
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{tikz}
-\usetikzlibrary{shapes.symbols, backgrounds, matrix, calc, arrows, math, arrows.meta, shapes.gates.logic.US, shapes.gates.logic.IEC}
+\usetikzlibrary{shapes.symbols, backgrounds, matrix, calc, arrows, math, arrows.meta, shapes.gates.logic.US, shapes.gates.logic.IEC, decorations.pathreplacing}
 \usepackage{minted}
+\renewcommand\fcolorbox[4][]{\textcolor[rgb]{0.63,0.63,0.00}{\strut#4}}
+
+\newcommand\MemoryLayout[2]{
+	\begin{tikzpicture}[scale=0.3]
+		% \draw[thick] (0,0) -- ++(0,3) node[above] {$0$};
+		\foreach \pt/\col/\lab [remember=\pt as \tp (initially 0)] in {#1} {
+			\pgfmathparse{\pt-1}
+			\foreach \a in {\tp, ..., \pgfmathresult} {
+				\draw[fill=\col] (-\a,0) rectangle ++(-1,2);
+			}
+			% \draw[thick] (-\pt,0) -- ++(0,3) node[above] {$\pt$};
+			\if\lab\relax\relax\else
+				\draw[thick, decorate, decoration={brace, amplitude=4mm}] (-\tp,-0.2) -- node[below=4mm]{\lab} (-\pt,-0.2);
+			\fi
+    	}
+		#2
+  	\end{tikzpicture}
+}
 
 \numberwithin{equation}{chapter}
 \renewcommand{\theequation}{\thechapter.\arabic{equation}}
@@ -65,17 +83,15 @@
 \renewcommand{\sectionmark}[1]{\markright{\arabic{chapter} \quad #1}}
 \fancyhf{}
 \fancyhead[EC]{\CJKfamily{hei2}\footnotesize{\leftmark}\vspace{1mm}}
-\fancyhead[OC]{\CJKfamily{hei2}\footnotesize{\rightmark}\vspace{1mm}}
+\fancyhead[OC]{\CJKfamily{hei2}\footnotesize{\leftmark}\vspace{1mm}}
 \fancyhead[LE, RO]{{\footnotesize \thepage}\vspace{1mm}}
 \fancyhead[RE, LO]{}
 \renewcommand{\headrulewidth}{0.5pt}
 \renewcommand{\footrulewidth}{0pt}
 \addtolength{\headheight}{0.5pt}
-
-\fancypagestyle{plain}{%
-	\fancyhead{}
-	\renewcommand{\headrulewidth}{0pt}
-}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\addtolength{\headheight}{0.5pt}
 
 \usepackage[many]{tcolorbox}
 
@@ -205,7 +221,7 @@
 \renewcommand{\ExerciseHeaderNB}{\theExercise}
 \renewcommand{\QuestionNB}{(\arabic{Question})}
 \renewcommand{\ExerciseHeaderOrigin}{\ ({\kaishu\ExerciseOrigin})}
-\renewcommand{\ExerciseListHeader}{\ExerciseHeaderDifficulty\textbf{\ExerciseHeaderNB}\ExerciseHeaderOrigin\textbf{.}\enspace}
+\renewcommand{\ExerciseListHeader}{\ExerciseHeaderDifficulty\textbf{\ExerciseHeaderNB}\textbf{.}\ExerciseHeaderOrigin\enspace}
 \renewcommand{\AnswerListHeader}{\textbf{\ExerciseHeaderNB.}\enspace}
 \renewcounter{Exercise}[chapter]
 \renewcommand{\AtBeginAnswer}{\vspace{-1\baselineskip}}
@@ -311,6 +327,8 @@
 \renewcommand{\theequation}{\thesection.\arabic{equation}}
 \allowdisplaybreaks
 
+\newcommand{\proy}[1]{\pro[origin={#1}]}
+
 \usepackage{epigraph}
 
 \renewcommand\epigraphflush{flushright}
@@ -360,8 +378,9 @@
 	\vfill
 	\begin{flushleft}
 		\large \textbf{汇编：} 王畅 \\
-    	\textbf{勘误：}请写信到 \href{mailto:wchang@pku.edu.cn}{\texttt{wchang@pku.edu.cn}} \\
-		主要的练习题均来源于往年计算机系统导论课程，编者仅做了汇编和微小的改动；有关 Lab 的指导则为编者自行组织，请悉知。
+    	\textbf{勘误：} 请写信到 \href{mailto:wchang@pku.edu.cn}{\texttt{wchang@pku.edu.cn}} \\
+		\vspace{\baselineskip}
+		\textbf{说明：}以下内容是 2021 年秋计算机系统导论班（04832363，班号 16）使用的材料。主要的练习题均来源于往年计算机系统导论课程，编者仅做了汇编和微小的改动。考题只选择了 2018 年及之前的内容，不选用更新的题目是因为 2019 年和 2020 年的试卷将留给大家复习备考时整套使用。有关 Lab 的指导则为编者自行组织。
 	\end{flushleft}
 
 	\frontmatter
@@ -369,5 +388,5 @@
 	\mainmatter
 	\include{week1}
 	\include{datalab}
-	\include{solution}
+	\include{week2}
 \end{document}

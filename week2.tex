@@ -1,0 +1,186 @@
+\chapter{汇编语言}
+    \begin{summary}
+        \begin{compactitem}
+            \item 知道 x86-64 中指令、程序计数器、寄存器、条件码、内存等概念，记住重要的寄存器名称、含义和使用规范，清楚掌握数据传送指令和操作数的正确用法。
+            \item 掌握条件分支、条件传送、各种循环、跳转表的翻译方式，能熟练地在汇编语言中识别控制流结构，快速完成机器码、汇编语言、C 代码的相互转换。
+            \item 理解 x86-64 系统栈空间的分布和管理方式，知道过程调用中的重要寄存器和相关保存指令，会复述过程调用的整个过程并绘制栈空间的变化情况。
+            \item 知道结构体、联合体在内存中的存储情况，掌握用对齐规则访问结构体和联合体，以及计算其实际大小的方法。会处理复杂的指针和函数指针问题。
+        \end{compactitem}
+    \end{summary}
+
+    \begin{problems}
+        \pro 判断下列 x86-64 ATT 操作数格式是否合法。
+            \qn \verb|8(%rax, , 2)|
+            \qn \verb|$30(%rax, %rax, 2)|
+            \qn \verb|0x30|
+            \qn \verb|13(, %rdi, 4)|
+            \qn \verb|(%rsi, %rdi, 6)|
+            \qn \verb|%ecx|
+            \qn \verb|(%ecx)|
+            \qn \verb|(%rbp, %rsp)|
+        \pro 假设 \verb|%rax|、\verb|%rbx| 的初始值都是 0。根据下列一段汇编代码，写出每执行一步后两个寄存器的值。
+        \begin{minted}[frame=single, fontsize=\small]{gas}
+    movabsq   $0x0123456789ABCDEF, %rax
+    movw      %ax, %bx
+    movswq    %bx, %rbx
+    movl      %ebx, %eax
+    movabsq   $0x123456789ABCDEF, %rax
+    cltq
+        \end{minted}
+        \pro 下列操作不等价的是：
+        \begin{choices}
+            \item \verb|movzbq| 和 \verb|movzbl|
+            \item \verb|movzwq| 和 \verb|movzwl|
+            \item \verb|movl| 和 \verb|movslq|
+            \item \verb|movslq %eax, %rax| 和 \verb|cltq|
+        \end{choices}
+        \pro 判断下列 x86-64 ATT 数据传送指令是否合法。
+            \qn \verb|movl $0x400010, $0x800010|
+            \qn \verb|movl $0x400010, 0x800010|
+            \qn \verb|movl 0x400010, 0x800010|
+            \qn \verb|movq $-4, (%rsp)|
+            \qn \verb|movq $0x123456789AB, %rax|
+            \qn \verb|movabsq $0x123456789AB, %rdi|
+            \qn \verb|movabsq $0x123456789AB, 16(%rcx)|
+            \qn \verb|movq 8(%rsp), %rip|
+        \pro 在 32 位机器中有如下定义 \texttt{int array[10] = \{0, 1, 2, 3, 4, 5, 6, 7, 8, 9\};}
+        
+        某一时刻，\verb|%ecx| 存着第一个元素的地址，\verb|%ebx| 值为 3，那么下列操作中，哪一个将 \verb|array[3]| 移入了 \verb|%eax|？
+        \begin{choices}
+            \item \verb|leal 12(%ecx), %eax|
+            \item \verb|leal (%ecx, %ebx, 4), %eax|
+            \item \verb|movl (%ecx, %ebx, 4), %eax|
+            \item \verb|movl 8(%ecx, %ebx, 2), %eax|
+        \end{choices}
+        \pro 下面的汇编代码对应一个 C 函数，其原型为 \verb|long func(long a, long b);|。将其翻译为 C 代码。
+        \begin{minted}[frame=single, fontsize=\small]{gas}
+    // a in %rdi, b in %rsi
+    func:
+        movq   %rdi, %rax
+        salq   $4, %rax
+        subq   %rdi, %rax
+        movq   %rax, %rdi
+        leaq   0(, %rsi, 8), %rax
+        subq   %rsi, %rax
+        addq   %rdi, %rax
+        ret
+        \end{minted}
+        \pro 指令 \verb|setg %al| 会让寄存器 \verb|%al| 得到：
+        \begin{choices}
+            \item \verb+~(SF ^ OF) & ~ZF+
+            \item \verb+~(SF | OF) & ~ZF+
+            \item \verb+~(SF | OF)+
+            \item \verb+~(SF ^ OF)+
+        \end{choices}
+        \pro 下面的汇编代码对应一个 C 函数，其原型为 \verb|long func(long a, long b);|。将其翻译为 C 代码。
+        \begin{minted}[frame=single, fontsize=\small]{gas}
+    // a in %rdi, b in %rsi
+    func: 
+        movl    $1, %eax
+        jmp     .L2
+    .L4: 
+        testb   $1, %sil
+        je      .L3
+        imulq   %rdi, %rax
+    .L3: 
+        sarq    %rsi
+        imulq   %rdi, %rdi
+    .L2: 
+        testq   %rsi, %rsi
+        jg      .L4
+        rep ret 
+        \end{minted}
+        \pro 对于下列四个函数，假设 gcc 开了编译优化，判断 gcc 是否会将其编译为条件传送。
+        \qn
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    long f1(long a, long b) { return (++a > --b) ? a : b; }
+        \end{minted}
+        \qn
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    long f2(long a, long b) { return (*a > *b) ? --(*a) : (*b)--; }
+        \end{minted}
+        \qn
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    long f3(long a, long b) { return a ? *a : (b ? *b : 0); }
+        \end{minted}
+        \qn
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    long f4(long a, long b) { return (a > b) ? a++ : ++b; }
+        \end{minted}
+        \pro 根据下面的汇编指令补充机器码中缺失的字节。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|}
+                \hline
+                机器码 & 汇编指令 \\ \hline
+                \tt
+                \begin{tabular}{l}
+                    loop: \\
+                    4004d0: 48 89 f8 \\
+                    4004d3: eb \verb|_____| \\
+                    4004d5: 48 d1 f8 \\
+                    4004d8: 48 85 c0 \\
+                    4004db: 7f \verb|_____| \\
+                    4004dd: f3 c3 
+                \end{tabular} &
+                \begin{tabular}{l}
+                    \\
+                    \verb|mov   %rdi, %rax| \\
+                    \verb|jmp   4004d8 <loop+0x8>| \\
+                    \verb|sar   %rax| \\
+                    \verb|test  %rax, %rax| \\
+                    \verb|jg    4004d5 <loop+0x5>| \\
+                    \verb|repz retq|
+                \end{tabular}
+                \\ \hline
+            \end{tabular}
+        \end{table}
+        \pro 使用 GDB 查看某个可执行文件，发现其一段内存为：
+        \begin{minted}[frame=single, fontsize=\small]{text}
+    0x400598: 0x0000000000400488 0x0000000000400488
+    0x4005a8: 0x000000000040048b 0x0000000000400493
+    0x4005b8: 0x000000000040049a 0x0000000000400482
+    0x4005c8: 0x000000000040049a 0x0000000000400498
+        \end{minted}
+        根据以下汇编代码，
+        \begin{minted}[frame=single, fontsize=\small]{gas}
+    0x400474: cmp   $0x7, %edi
+    0x400477: ja    0x40049a
+    0x400479: mov   %edi, %edi
+    0x40047b: jmpq  *0x400598(,%rdi,8)
+    0x400482: mov   $0x15213, %eax
+    0x400487: retq
+    0x400488: sub   $0x5, %edx
+    0x40048b: lea   0x0(,%rdx,4), %eax
+    0x400492: retq
+    0x400493: mov   $0x2, %edx
+    0x400498: and   %edx, %esi
+    0x40049a: lea   0x4(%rsi), %eax
+    0x40049d: retq             
+        \end{minted}
+        补全主函数的 C 代码。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    // a in %rdi, b in %rsi, c in %rdx
+    int main(int a, int b, int c) {
+        int res = 4;
+        switch (a) {
+            case 0:
+            case 1:
+                __________;
+            case ___:
+                res = __________;
+                break;
+            case ___:
+                res = __________;
+                break;
+            case 3:
+                __________;
+            case 7:
+                __________;
+            default:
+                __________;
+        }
+        return res;
+    }
+        \end{minted}
+    \end{problems}
