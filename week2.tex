@@ -184,3 +184,157 @@
     }
         \end{minted}
     \end{problems}
+
+\chapter{汇编语言{---}往年考题}
+    \begin{problems}
+        \proy{2018} 在 x86-64 下，以下哪个选项的说法是错误的？
+        \begin{choices}
+            \item \verb|movl| 指令以寄存器作为目的时，会将该寄存器的高位 4 字节设置为 0
+            \item \verb|cltq| 指令的作用是将 \verb|%eax| 符号扩展到 \verb|%rax|
+            \item \verb|movabsq| 指令只能以寄存器作为目的
+            \item \verb|movswq| 指令的作用是将零扩展的字传送到四字节目的
+        \end{choices}
+        \proy{2018} 下列关于程序控制结构的机器代码实现的说法中，正确的是：
+        \begin{choices}
+            \item 使用条件跳转语句实现的程序片段比使用条件赋值语句实现的同一程序片段的运行效率高
+            \item 使用条件跳转语句实现的程序片段与使用条件赋值语句实现的同一程序片段虽然效率可能不同，但在 C 语言的层面上看总是有着相同的行为
+            \item 一些 \verb|switch| 语句不会被 gcc 用跳转表的方式实现
+            \item 以上说法都不正确
+        \end{choices}
+        \proy{2017} 下列关于条件码的叙述中，不正确的是：
+        \begin{choices}
+            \item 所有算术指令都会改变条件码
+            \item 所有比较指令都会改变条件码
+            \item 所有与数据传送有关的指令都会改变条件码
+            \item 条件码一般不会直接读取，但可以直接修改
+        \end{choices}
+        \proy{2017} 在下列的 x86-64 汇编代码中，错误的是：
+        \begin{choices}
+            \item \verb|movq %rax, (%rsp)|
+            \item \verb|movl $0xFF, (%ebx)|
+            \item \verb|movsbl (%rdi), %eax|
+            \item \verb|leaq (%rdx, 1), %rdx|
+        \end{choices}
+        \proy{2017} 在下列关于条件传送的说法中，正确的是：
+        \begin{choices}
+            \item 条件传送可以用来传送字节、字、双字和四字的数据
+            \item C语言中的“\verb|?:|”条件表达式都可以编译成条件传送
+            \item 使用条件传送总可以提高代码的执行效率
+            \item 条件传送指令不需要用后缀(例如 \verb|b, w, l, q|)来表明操作数的长度
+        \end{choices}
+        \proy{2017} 在下列指令中，其执行会影响条件码中的 CF 位的是：
+        \begin{choices}
+            \item \verb|jmp NEXT|
+            \item \verb|jc NEXT|
+            \item \verb|inc %bx|
+            \item \verb|shl $1, %ax|
+        \end{choices}
+        \proy{2016} 下列关于比较指令 \verb|cmp| 说法中，正确的是：
+        \begin{choices}
+            \item 专用于有符号数比较
+            \item 专用于无符号数比较
+            \item 专用于串比较
+            \item 不区分比较的对象是有符号数还是无符号数
+        \end{choices}
+        \proy{2016} 在如下代码段的跳转指令中，目的地址是：
+        \begin{minted}[frame=single, fontsize=\small]{gas}
+    400020: 74 F0 je   ________
+    400022: 5d    pop  %rbp
+        \end{minted}
+        \begin{choices}
+            \item \texttt{400010}
+            \item \texttt{400012}
+            \item \texttt{400110}
+            \item \texttt{400112}
+        \end{choices}
+        \proy{2016} 对于如下的 C 语言中的条件转移指令，它所对应的汇编代码中至少包含几条条件转移指令：\verb+if (a > 0 && a != 1 || a < 0 && a != -1) b = a;+？
+        \begin{choices}
+            \item 2 条
+            \item 3 条
+            \item 4 条
+            \item 5 条
+        \end{choices}
+        \proy{2016} 将 \verb|%ax| 清零，下列指令不能实现该效果的是：
+        \begin{choices}
+            \item \verb|sub %ax, %ax|
+            \item \verb|xor %ax, %ax|
+            \item \verb|test %ax, %ax|
+            \item \verb|and $0, %ax|
+        \end{choices}
+        \proy{2016} 在如下 \verb|switch| 语句翻译得到的跳转表中，哪些标号没有出现在分支中？
+        \begin{minted}[frame=single, fontsize=\small]{gas}
+    addq    $1, %rdi
+    cmpq    $8, %rdi
+    ja      .L2
+    jmp     *.L4(, %rdi, 8)
+    .L4:
+        .quad .L9
+        .quad .L5
+        .quad .L6
+        .quad. L7
+        .quad .L2
+        .quad .L7
+        .quad .L8
+        .quad .L2
+        .quad .L5
+        \end{minted}
+        \begin{choices}
+            \item 3, 6
+            \item $-1$, 4
+            \item 0, 7
+            \item 2, 4
+        \end{choices}
+        \proy{2016} 已知短整型数组 \verb|S| 的起始地址和下标 \verb|i| 分别存放在寄存器 \verb|%rdx| 和\verb|%rcx|，将 \verb|&S[i]| 存放在寄存器\verb|%rax| 中所对应的汇编代码是：
+        \begin{choices}
+            \item \verb|leaq (%rdx, %rcx, 1), %rax|
+            \item \verb|movw (%rdx, %rcx, 2), %rax|
+            \item \verb|leaq (%rdx, %rcx, 2), %rax|
+            \item \verb|movw (%rdx, %rcx, 1), %rax|
+        \end{choices}
+        \proy{2015} 下列寻址模式中，正确的是：
+        \begin{choices}
+            \item \verb|(%eax, , 4)|
+            \item \verb|(%eax, %esp, 3)|
+            \item \verb|123|
+            \item \verb|$1(%ebx, %ebp, 1)|
+        \end{choices}
+        \proy{2015} 假设某条 C 语言 \verb|switch| 语句编译后产生了如下的汇编代码及跳转表：
+        \begin{minted}[frame=single, fontsize=\small]{gas}
+    movl   8(%ebp), %eax
+    subl   $48, %eax
+    cmpl   $8, %eax
+    ja     .L2
+    jmp    *.L7(, %eax, 4)
+    .L7:
+        .long .L3
+        .long .L2
+        .long .L2
+        .long .L5
+        .long .L4
+        .long .L5
+        .long .L6
+        .long .L2
+        .long .L3
+        \end{minted}
+        在源程序中，下面的哪些标号出现过？
+        \begin{choices}
+            \item 2, 7
+            \item 1
+            \item 3
+            \item 5
+        \end{choices}
+        \proy{2015, 2014} 下列的指令组中，哪一组指令只改变条件码，而不改变寄存器的值？
+        \begin{choices}
+            \item \verb|CMP, SUB|
+            \item \verb|TEST, AND|
+            \item \verb|CMP, TEST|
+            \item \verb|LEAL, CMP|
+        \end{choices}
+        \proy{2014} 简单的 \verb|switch| 语句常采用跳转表的方式实现，在 x86-64 系统中，下述最有可能是正确的 \verb|switch| 分支跳转汇编指令的是哪个？
+        \begin{choices}
+            \item \verb|jmp .L3(, %eax, 4)|
+            \item \verb|jmp .L3(, %eax, 8)|
+            \item \verb|jmp *.L3(, %eax, 4)|
+            \item \verb|jmp *.L3(, %eax, 8)|
+        \end{choices}
+    \end{problems}
