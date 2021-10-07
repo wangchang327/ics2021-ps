@@ -43,6 +43,7 @@
 \usepackage[font=small, labelfont=bf]{caption}
 \usepackage{graphicx}
 \usepackage{float}
+\usepackage{longtable}
 \usepackage{tikz}
 \usetikzlibrary{shapes.symbols, backgrounds, matrix, calc, arrows, math, arrows.meta, shapes.gates.logic.US, shapes.gates.logic.IEC, decorations.pathreplacing}
 \usepackage{minted}
@@ -257,7 +258,7 @@
 \newenvironment{problems}{%
 	\begin{ExerciseList}
 		\global\setbox\temp@Answerbox%
-		\vbox{\unvbox\all@Answerbox\section*{参考答案\zhnum{chapter}}\unvbox\@Exercisebox\vskip\z@}%
+		\vbox{\unvbox\all@Answerbox\vspace{1cm}\section*{参考答案\zhnum{chapter}}\unvbox\@Exercisebox\vskip\z@}%
 		\global\setbox\all@Answerbox\copy\temp@Answerbox
 		}{
 	\end{ExerciseList}
@@ -389,4 +390,6 @@
 	\include{week1}
 	\include{datalab}
 	\include{week2}
+	\include{bomblab}
+	\include{solution}
 \end{document}

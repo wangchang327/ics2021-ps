@@ -27,6 +27,7 @@
 				\multicolumn{2}{|c|}{...} & {\qquad \qquad} & {\qquad \qquad} & {\qquad \qquad} & {\qquad \qquad} & \multicolumn{2}{c|}{...} \\ \hline
 			\end{tabular}
 		\end{table}
+		\sol 分别为 \verb|0x56 0x34 0x12 0x00|、\verb|0x34 0x12 0x78 0x56|。
 		\pro 在 x86-64 机器上，有下列 C 代码：
 		\begin{minted}[frame=single, fontsize=\small]{c}
     int main() {
@@ -41,6 +42,7 @@
     }
 		\end{minted}
 		运行该代码，结果是什么？
+		\sol \verb|0x5555|。
 		\pro 在 x86-64 机器上，有下列 C 代码：
 		\begin{minted}[frame=single, fontsize=\small]{c}
     int main() {
@@ -55,6 +57,7 @@
     }
 		\end{minted}
 		运行该代码，结果是什么？
+		\sol \verb|0x0303|。
 		\pro 在 x86-64 机器上，有如下的定义：
 		\begin{minted}[frame=single, fontsize=\small]{c}
     int x = ...; // 表达式 A
@@ -80,6 +83,7 @@
 		\begin{hint}
 			减法的运算优先级比按位异或高。布尔运算的结果都是有符号数。
 		\end{hint}
+		\sol 1 取 \verb|x = 1, y = -1| 即不正确；2 取 \verb|x = -1| 即不正确；3 正确，利用异或的交换律、结合律，以及 \verb|x ^ x == 0|（视为模 2 加法即可）；4 正确，即使是对负数；5 不正确，负奇数该运算向 0 舍入；6 正确，\verb|(~x) – y| 也就是 \verb|(~x) + (~y) + 1|，注意运算优先级；7 不正确，\verb|!!ux| 是有符号数。
 		\pro 下列代码的目的是将字符串 \texttt{A} 的内容复制到字符串 \texttt{B}，覆盖 \texttt{B} 原有的内容，并输出“Hello World”；但实际运行输出是“Buggy Codes”。尝试找到代码中的错误。
 		\begin{minted}[frame=single, fontsize=\small]{c}
     int main() {
@@ -91,6 +95,7 @@
         printf("%s\n", B);
     }
 		\end{minted}
+		\sol \verb|sizeof| 返回的结果是无符号数。
 		\pro 假设某浮点数格式为 1 位符号、3 位阶码、4 位小数。下表给出了用该格式表达的浮点数 $(-1)^SM \cdot 2^E$ 与其二进制表示的关系。完成下表。
 		\begin{table}[H]
 			\centering
@@ -111,6 +116,7 @@
 			\qn 考虑能精确表示的实数的最大绝对值。A 比 B 大还是比 B 小，还是两者一样？
 			\qn 考虑能精确表示的实数的最小非零绝对值。A 比 B 大还是比 B 小，还是两者一样？
 			\qn 考虑能精确表示的实数的个数。A 比 B 多还是比 B 少，还是两者一样？
+		\sol 1 个；B 大；A 大；B 更多。
 		\pro 判断下列说法的正确性。
 			\qn 对于任意的单精度浮点数 \texttt{a} 和 \texttt{b}，如果 \texttt{a > b}，那么 \texttt{a + 1 > b}。
 			\qn 对于任意的单精度浮点数 \texttt{a} 和 \texttt{b}，如果 \texttt{a > b}，那么 \texttt{a + b > b + b}。
@@ -119,6 +125,7 @@
 			\qn 对于任意的双精度浮点数 \texttt{d}，如果 \texttt{d < 0}，那么 \texttt{d * 2 < 0}。
 			\qn 对于任意的双精度浮点数 \texttt{d}，\texttt{d == d}。
 			\qn 将 \texttt{float} 转换成 \texttt{int} 时，既有可能造成舍入，又有可能造成溢出。
+		\sol 1 正确；2 取 \verb|a = INF, b = FLT_MAX|；3 取 \verb|a = 16777220, b = 16777218|；4 取最大的非规格化负数；5 正确；6 \verb|nan != nan|；7 正确。
 		\pro 遵循 IEEE 754 浮点数标准，考虑下列代码：
 		\begin{minted}[frame=single, fontsize=\small]{c}
     for (int x = 0; ; x++) {
@@ -130,6 +137,7 @@
     }
 		\end{minted}
 		试问代码的运行结果是什么？或者死循环？
+		\sol $16777217=2^{24}+1$。
 		\pro 遵循 IEEE 754 浮点数标准，考虑下列代码：
 		\begin{minted}[frame=single, fontsize=\small]{c}
     int x = 33554466; // 2^25 + 34
@@ -140,6 +148,7 @@
     }
 		\end{minted}
 		写出程序的运行结果。
+		\sol 写出 $2^{25}+34$ 的科学计数法表示后按要求舍入即可，答案为 $2\ -1\ 0\ 1\ -2\ -1\ 0\ 1$。
 	\end{problems}
 
 \chapter{位级表示{---}往年考题}
@@ -151,6 +160,7 @@
 			\item \texttt{int} 转 \texttt{double}
 			\item \texttt{float} 转 \texttt{double}
 		\end{choices}
+		\sol B。
 		\proy{2018} 在采用小端法存储机器上运行下面的代码，输出的结果是？（\texttt{int}、\texttt{unsigned} 为 32 位长，\texttt{short} 为 16 位长，0\textasciitilde9 的 ASCII 码是 \texttt{0x30}\textasciitilde\texttt{0x39}）
 		\begin{minted}[frame=single, fontsize=\small]{c}
     char *s = "2018";
@@ -207,6 +217,7 @@
 			\item 用 \verb|&| 和 \verb|~| 可以表示所有的逻辑与或非操作
 			\item 用 \verb|&| 和 \verb+|+ 可以表示所有的逻辑与或非操作
 		\end{choices}
+		\sol C，连接词的完备集。
 		\proy{2017, 2016} 若我们采用基于 IEEE 浮点格式的浮点数表示方法，阶码字段（exp）占据 $k$ 位，小数字段（frac）占据 $n$ 位，则最小的规格化正数是：
 		\begin{choices}
 			\item $(1-2^{-n}) \cdot 2^{-2^{k-1}+2}$
@@ -224,12 +235,21 @@
 			\item $2^{230}$
 			\item $2^{231}$
 		\end{choices}
+		\sol A。计算过程：浮点数阶码 8 位，即最大指数为 127，尾数为 23 位，即最低位表示的数为 $2^{-23}2^{127}=2^{104}$。那么误差在刚好落在最低位的一半的时候最大，即 $2^{103}$。
 		\proy{2016} 现有一个二进制浮点的表示规则，其中 $E$ 为指数部分（3 比特），bias为 3；$M$ 为小数部分（5 比特），采用二进制补码表示形式，且取值 $0.5 \leq |M|<1$，$s$ 是浮点的符号位。该形式包含一个值为 1 的隐藏位。问 $+5_{10}$ 在该表示下的值是下列哪一个？
 		\begin{choices}
 			\item \texttt{010001100}
 			\item \texttt{010100100}
 			\item \texttt{011011010}
 			\item \texttt{011110101}
+		\end{choices}
+		\sol D。计算 $0.5 \leq \left|\frac{5}{2^e}-1 \right|<1 \implies e=4, \text{EXP}=7 = \texttt{111}_\texttt{2}$，注意此时 $M$ 为负数，$|M|=\texttt{0.01010}_\texttt{2}$, 用补码表示得$\texttt{1.10101}_\texttt{2}$。
+		\proy{2015} 关于浮点数，以下说法正确的是：
+		\begin{choices}
+			\item 给定任意浮点数 $a, b, x$，如果 $a>b$ 成立(指求值为 1)，则一定有 $a+x>b+x$ 成立
+			\item 给定任意浮点数 $a, b, x$，如果 $a>b$ 不成立(指求值为 0)，则一定有 $a+x>b+x$ 不成立
+			\item 不考虑结果为 \texttt{NaN, Inf} 或运算过程发生溢出的情况，高精度浮点数一定得到比低精度浮点数更精确或相同的结果
+			\item 不考虑结果为 \texttt{NaN, Inf} 的情况，高精度浮点数一定得到比低精度浮点数更精确或相同的结果
 		\end{choices}
 		\proy{2015} 在 32 位平台上，按 C90 标准判定以下语句中结果为假的是：
 		\begin{choices}
@@ -241,13 +261,7 @@
 		\begin{hint}
 			C90 中的类型转换顺序：\texttt{int -> long -> unsigned -> unsigned long}，$2^{31}=2147483648$。
 		\end{hint}
-		\proy{2015} 关于浮点数，以下说法正确的是：
-		\begin{choices}
-			\item 给定任意浮点数 $a, b, x$，如果 $a>b$ 成立(指求值为 1)，则一定有 $a+x>b+x$ 成立
-			\item 给定任意浮点数 $a, b, x$，如果 $a>b$ 不成立(指求值为 0)，则一定有 $a+x>b+x$ 不成立
-			\item 不考虑结果为 \texttt{NaN, Inf} 或运算过程发生溢出的情况，高精度浮点数一定得到比低精度浮点数更精确或相同的结果
-			\item 不考虑结果为 \texttt{NaN, Inf} 的情况，高精度浮点数一定得到比低精度浮点数更精确或相同的结果
-		\end{choices}
+		\sol B。此题和 C90 标准有关，分析参看 \url{https://stackoverflow.com/questions/9941261/warning-this-decimal-constant-is-unsigned-only-in-iso-c90}。
 		\proy{2014} 设整数均为 32 位，其中 \texttt{unsigned x = 0x00000001; int y = 0x80000000; int z = 0x80000001;}。以下表达式求值为 1 的是：
 		\begin{choices}
 			\item \verb|(-1) < x|
@@ -262,6 +276,7 @@
 			\item \verb|1000_1111_1110_1111_1100_0000_0000_0000| 表示的唯一整数是 \texttt{0x8FEFC000}
 			\item \verb|1000_1111_1110_1111_1100_0000_0000_0000| 如果是单精度浮点数，则其值是 $-(1.110111111)_2 \cdot 2^{31-127}$
 		\end{choices}
+		\sol D，注意 C 可能是有符号整数。
 		\proy{2016, 2014} 下面表达式中为真的是：
 		\begin{choices}
 			\item \verb|(unsigned)-1 < -2|
@@ -282,6 +297,7 @@
     int y = (x + a) / 4;
 		\end{minted}
 		那么有 \rule{2.5cm}{0.25mm} 个位于闭区间 $[-8, 8]$ 内的整数 $a$ 能使得 $x$ 和 $y$ 相等。
+		\sol B，可以直接计算，注意不同运算的舍入规则。
         \proy{2013} 对于 IEEE 浮点数，如果减少 1 位指数位，将其用于小数部分，下列叙述正确的是哪个？
 		\begin{choices}
 			\item 能表示更多数量的实数值，但实数值取值范围比原来小了。
@@ -344,6 +360,7 @@
 		\qn 如果 \texttt{d < 0}，则 \texttt{d * d} \rule{2.5cm}{0.25mm} \texttt{0}
 		\qn \verb|x ^ y ^ (~x) - y| \rule{2.5cm}{0.25mm} \verb|y ^ x ^ (~y) - x|
 		\qn \verb|(((!!ux)) << 31) >> 31)| \rule{2.5cm}{0.25mm} \verb|(((!!x) << 31) >> 31)|
+		\sol 分别为 D、D、BD、E、AD、E、C、C。
 		\proy{2015} 考虑一种 12-bit 长的浮点数，此浮点数遵循 IEEE 浮点数格式，浮点数的字段划分如下：符号位(s) 1-bit、阶码字段(exp) 4-bit、小数字段(frac) 7-bit。回答下列问题。
 			\qn 请写出在下列区间中包含多少个用上面规则精确表示的浮点数：$[1, 2); [2, 3)$。
 			\qn 填写下表。

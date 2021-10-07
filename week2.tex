@@ -27,6 +27,7 @@
     movabsq   $0x123456789ABCDEF, %rax
     cltq
         \end{minted}
+        \sol 1 不正确；2 不正确，\verb|$| 只用来表示立即数；3 正确，是内存地址 \verb|0x30|；4 正确；5 不正确，缩放比例只能是 1、2、4、8；6 正确；7 不正确，x86-64 不允许将除了 64 位寄存器以外的寄存器作为寻址模式基地址；8不正确，\verb|%rsp|不能作为操作数！
         \pro 下列操作不等价的是：
         \begin{choices}
             \item \verb|movzbq| 和 \verb|movzbl|
@@ -34,6 +35,7 @@
             \item \verb|movl| 和 \verb|movslq|
             \item \verb|movslq %eax, %rax| 和 \verb|cltq|
         \end{choices}
+        \sol C，\verb|movl| 和 \verb|movzlq| 等价。
         \pro 判断下列 x86-64 ATT 数据传送指令是否合法。
             \qn \verb|movl $0x400010, $0x800010|
             \qn \verb|movl $0x400010, 0x800010|
@@ -65,6 +67,12 @@
         addq   %rdi, %rax
         ret
         \end{minted}
+        \sol 如下所示:
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    long func(long a, long b) {
+        return a * 15 + b * 7;
+    }
+        \end{minted}
         \pro 指令 \verb|setg %al| 会让寄存器 \verb|%al| 得到：
         \begin{choices}
             \item \verb+~(SF ^ OF) & ~ZF+
@@ -90,6 +98,19 @@
         jg      .L4
         rep ret 
         \end{minted}
+        \sol 如下所示（快速幂）：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    long func(long a, long b) {
+        long ans = 1;
+        while (b > 0) {
+            if (b & 1)
+                ans = ans * a;
+            b = b >> 1;
+            a = a * a;
+        }
+        return ans;
+    }
+        \end{minted}
         \pro 对于下列四个函数，假设 gcc 开了编译优化，判断 gcc 是否会将其编译为条件传送。
         \qn
         \begin{minted}[frame=single, fontsize=\small]{c}
@@ -107,6 +128,7 @@
         \begin{minted}[frame=single, fontsize=\small]{c}
     long f4(long a, long b) { return (a > b) ? a++ : ++b; }
         \end{minted}
+        \sol 1、4 会被编译成条件传送，注意 \verb|return| 之后 \verb|a, b| 本身的值是没有用的。
         \pro 根据下面的汇编指令补充机器码中缺失的字节。
         \begin{table}[H]
             \centering
@@ -135,6 +157,7 @@
                 \\ \hline
             \end{tabular}
         \end{table}
+        \sol \verb|03; f8|。第五行跳转位置为 \verb|0xf8(-8) + 0x4004dd = 0x4004d5|，注意进行跳转之前，PC 指向该指令的下一条指令。
         \pro 使用 GDB 查看某个可执行文件，发现其一段内存为：
         \begin{minted}[frame=single, fontsize=\small]{text}
     0x400598: 0x0000000000400488 0x0000000000400488
@@ -183,6 +206,277 @@
         return res;
     }
         \end{minted}
+        \sol 如下所示：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    case 0:
+    case 1:
+        c = c - 5;
+    case 2:
+        res = 4 * c; // or res *= c
+        break;
+    case 5:
+        res = 86547; // or 0x15213
+        break;
+    case 3:
+        c = 2;
+    case 7:
+        b = b & c;
+    default:
+        res += b; // or res = b + 4
+        \end{minted}
+        \pro 将下列汇编代码翻译成 C 代码。
+        \begin{minted}[frame=single, fontsize=\small]{gas}
+    func:
+        movq   %rsi, %rax
+        testq  %rdi, %rdi
+        jne    .L7
+        rep ret
+    .L7:
+        subq   $8, %rsp
+        imulq  %rdi, %rax
+        movq   %rax, %rsi
+        subq   $1, %rdi
+        call   func
+        addq   $8, %rsp
+        ret
+        \end{minted}
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    long func(long n, long m) {
+        if (__________)
+            return __________;
+        return func(__________, __________);
+    }
+        \end{minted}
+        \pro 将下列 C 代码翻译为汇编代码。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    void callee(long *a, long *b) {
+        if (a == b) return;
+        *a ^= *b;
+        *b ^= *a;
+        *a ^= *b;
+    }
+    void caller(long n, long arr[]) {
+        for (long i = 0; i < n/2; i++)
+            callee(&arr[i], &arr[n-i]);
+    }
+        \end{minted}
+        汇编代码为:
+        \begin{minted}[frame=single, fontsize=\small]{gas}
+    callee:
+        cmpq   %rsi, %rdi
+        je     .L1
+        movq   (%rsi), %rax
+        xorq   (%rdi), %rax
+        movq   ____________
+        xorq   (%rsi), %rax
+        movq   %rax, (%rsi)
+        xorq   %rax, (%rdi)
+    .L1:
+        rep ret
+
+    caller:
+        pushq  %r12
+        pushq  %rbp
+        pushq  %rbx
+        movq   %rdi, %rbp
+        movq   %rsi, %r12
+        movl   $0, %ebx
+        jmp    .L4
+    .L5:
+        movq   %rbp, %rax
+        subq   %rbx, %rax
+        ____   (%r12, %rax, ____), %rsi
+        ____   (%r12, %rbx, ____), %rdi
+        call   callee
+        addq   $1, %rbx
+    .L4:
+        movq   %rbp, %rax
+        shrq   $63, %rax
+        addq   %rbp, %rax
+        sarq   %rax
+        cmpq   %rbx, %rax
+        jg     .L5
+        popq   ____
+        popq   ____
+        popq   ____
+        ret
+        \end{minted}
+        
+        对于上面代码，在 x86-64、操作系统为 Linux 的情况下，假设 main 在 \verb|0x4000ac| 处调用 caller， caller 在 \verb|0x400088| 处调用 callee；调用函数（\verb|call xx|）的代码长度为 5。在 main 即将调用 caller 时，部分寄存器的情况见下表左侧。请在下图右侧画出控制流第一次走 到 \verb|.L1| 时，堆栈的结构。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|c|c|}
+                \hline
+                寄存器 & 调用前的值 & 地址 & 内容（不确定的空格不用填） \\ \hline
+                \verb|%rsp| & \verb|0xffffffffff80| & \verb|0xf...f88~8f| &  \\ \hline
+                \verb|%rax| & \verb|0x0| & \verb|0xf...f80~87| &  \\ \hline
+                \verb|%rbx| & \verb|0x15| & \verb|0xf...f78~7f| &  \\ \hline
+                \verb|%rbp| & \verb|0x18| & \verb|0xf...f70~77| &  \\ \hline
+                \verb|%r12| & \verb|0x213| & \verb|0xf...f68~6f| &  \\ \hline
+                \verb|%rsi| & \verb|0x0| & \verb|0xf...f60~67| &  \\ \hline
+                \verb|%rdi| & \verb|0x0| & \verb|0xf...f58~5f| &  \\ \hline
+                &  & \verb|0xf...f50~57| &  \\ \hline
+            \end{tabular}
+        \end{table}
+        \pro 在 x86-64、Linux 操作系统下有如下 C 定义：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    struct A {
+        char CC1[6];
+        int II1;
+        long LL1;
+        char CC2[10];
+        long LL2;
+        int II2;
+    };
+        \end{minted}
+            \qn \verb|sizeof(A) = |\rule{2.5cm}{0.25mm}。
+            \qn 将 \texttt{A} 重排后，令结构体尽可能小，那么得到的新的结构体大小为 \rule{2.5cm}{0.25mm} 字节。
+        \pro 在 x86-64、LINUX 操作系统下，考虑如下的 C 定义：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    typedef union {
+        char c[7];
+        short h;
+    } union_e;
+
+    typedef struct {
+        char d[3];
+        union_e u;
+        int i;
+    } struct_e;
+
+    struct_e s;
+        \end{minted}
+            \qn \verb|s.u.c| 的首地址相对于 \verb|s| 的首地址的偏移量是 \rule{2.5cm}{0.25mm} 字节。
+            \qn \verb|sizeof(union_e) = |\rule{2.5cm}{0.25mm} 字节。
+            \qn \verb|s.i| 的首地址相对于 \verb|s| 的首地址的偏移量是 \rule{2.5cm}{0.25mm} 字节。
+            \qn \verb|sizeof(struct_e) = |\rule{2.5cm}{0.25mm} 字节。
+            \qn 若只将 \verb|i| 的类型改成 \verb|short|，那么 \verb|sizeof(struct_e) = |\rule{2.5cm}{0.25mm} 字节。
+            \qn 若只将 \verb|h| 的类型改成 \verb|int|，那么 \verb|sizeof(union_e) = |\rule{2.5cm}{0.25mm} 字节。
+            \qn 若将 \verb|i| 的类型改成 \verb|short|、\verb|h| 的类型改成 \verb|int|，则 \verb|sizeof(union_e) = |\rule{2.5cm}{0.25mm} 字节，\verb|sizeof(struct_e) = |\rule{2.5cm}{0.25mm} 字节。
+            \qn 若只将 \verb|short h| 的定义删除，那么 (1)\textasciitilde(4) 问的答案分别是 \rule{1cm}{0.25mm}、\rule{1cm}{0.25mm}、\rule{1cm}{0.25mm}、\rule{1cm}{0.25mm} 字节。
+        \pro 以下提供了一段代码的 C 语言、汇编语言以及运行到某一时刻栈的情况。
+        \begin{minted}[frame=single, fontsize=\small]{gas}
+0000000000400596 <func>: 
+    400596: sub    $0x28, %rsp
+    40059a: mov    %fs:0x28, %rax
+    4005a3: mov    %rax, 0x18(%rsp)
+    4005a8: xor    %eax, %eax
+    4005aa: mov    (%rdi), %rax
+    4005ad: mov    0x8(%rdi), %rdx
+    4005b1: cmp    %rdx, %rax
+    4005b4: jge    _____(1)_____
+    4005b6: mov    %rdx, (%rdi)
+    4005b9: mov    %rax, 0x8(%rdi)
+    4005bd: mov    0x8(%rdi), %rax
+    4005c1: test   %rax, %rax
+    4005c4: jne    4005cb <func+0x35>
+    4005c6: mov    (%rdi), %rax
+    4005c9: jmp    _____(2)_____
+    4005cb: mov    (%rdi), %rdx
+    4005ce: sub    %rax, %rdx
+    4005d1: mov    %rdx, (%rsp)
+    4005d5: mov    %rax, 0x8(%rsp)
+    4005da: mov    _____(3)_____, %rdi
+    4005dd: callq  400596 <func>
+    4005e2: mov    0x18(%rsp), %rcx
+    4005e7: xor    _____(4)_____, %rcx
+    4005f0: (5)    4005f7 <func+0x61>
+    4005f2: callq  400460 <__stack_chk_fail@plt>
+    4005f7: add    _____(6)_____, %rsp
+    4005fb: retq
+ 
+00000000004005fc <main>: 
+    4005fc: sub    $0x28, %rsp 
+    400600: mov    %fs:0x28, %rax 
+    400609: mov    %rax, 0x18(%rsp) 
+    40060e: xor    %eax, %eax 
+    400610: movq   0x69, (%rsp) 
+    400618: movq   0xfc, 0x8(%rsp) 
+    400621: mov    %rsp, %rdi 
+    400624: callq  400596 <func>
+    400629: mov    %rax, %rsi
+    40062c: mov    $0x4006e4, %edi
+    400631: mov    $0x0, %eax
+    400636: callq  400470 <printf@plt>
+    40063b: mov    0x18(%rsp), %rdx
+    400640: xor    _____(4)_____, %rdx
+    400649: _____(5)_____    400650 <main+0x54>
+    40064b: callq  400460 <__stack_chk_fail@plt>
+    400650: mov    $0x0, %eax
+    400655: add    _____(6)_____, %rsp
+    400659: retq
+        \end{minted}
+        C 语言代码：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    typedef struct{
+        long a;
+        long b;
+    } pair_type;
+
+    long func(pair_type *p) {
+        if (p -> a < p -> b) {
+            long temp = p -> a;
+            p -> a = p -> b;
+            p->b = temp;
+        }
+        if (_____(7)_____) {
+            retur np->a;
+        }
+        pair_type np;
+        np.a = _____(8)_____;
+        np.b = _____(9)_____;
+        return func(&np);
+    } 
+
+    int main(int argc, char* argv[]) {
+        pair_type np;
+        np.a = _____(10)_____;
+        np.b = _____(11)_____;
+        printf("%ld", func(&np));
+    }
+        \end{minted}
+        堆栈情况如下（从高地址向低地址列举）：
+        {\tt \begin{compactenum}
+            \item\ 0x0000000000000000
+            \item\ 0xc76d5add7bbeaa00 
+            \item\ 0x00007fffffffdf60 
+            \item\ \verb|__________________|
+            \item\ \verb|__________________|
+            \item\ 0x0000000000400629 
+            \item\ \verb|__________________|
+            \item\ \verb|__________________|
+            \item\ 0x0000000000000001 
+            \item\ 0x0000000000000069 
+            \item\ 0x0000000000000093 
+            \item\ \verb|__________________|
+            \item\ 0x00000000ff000000 
+            \item\ \verb|__________________|
+            \item\ 0x0000000000000000 
+            \item\ \verb|__________________|
+            \item\ \verb|__________________|
+            \item\ \verb|__________________|
+            \item\ 0x0000000000000000 
+            \item\ \verb|__________________|
+            \item\ \verb|__________________|
+            \item\ 0x000000000000002a 
+            \item\ 0x000000000000003f 
+            \item\ 0x00000000004005e2 
+        \end{compactenum}}
+        一些可能用到的字符的 ASCII 码如下：
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|}
+                \hline
+                换行 & 空格 & \verb|"| & \verb|%| & \verb|(| & \verb|)| & \verb|,| & \verb|0| & \verb|A| & \verb|a| \\ \hline
+                \verb|0x0a| & \verb|0x20| & \verb|0x22| & \verb|0x25| & \verb|0x28| & \verb|0x29| & \verb|0x2c| & \verb|0x30| & \verb|0x41| & \verb|0x61| \\ \hline
+            \end{tabular}
+        \end{table}
+
+        回答下列问题。
+            \qn gdb 下使用命令 \verb|x/4b 0x4006e4| 后（即查看 \verb|0x4006e4| 开始的 4 个字节，用 16 进制表示）得到的输出结果是 \rule{2.5cm}{0.25mm}。
+            \qn 互相翻译 C 语言代码和汇编代码，补充缺失的空格（标号相同的为同一格）。
+            \qn 补充栈的内容。使用16进制，可以不写前导多余的 0；对于给定已知条件后仍无法确定的值，填写“不确定”；已知程序运行过程中寄存器 \verb|%fs| 的值没有改变。
+            \qn 程序运行结果是 \rule{2.5cm}{0.25mm}。
     \end{problems}
 
 \chapter{汇编语言{---}往年考题}
@@ -201,13 +495,14 @@
             \item 一些 \verb|switch| 语句不会被 gcc 用跳转表的方式实现
             \item 以上说法都不正确
         \end{choices}
-        \proy{2017} 下列关于条件码的叙述中，不正确的是：
+        \proy{2018} 下列关于条件码的叙述中，不正确的是：
         \begin{choices}
             \item 所有算术指令都会改变条件码
             \item 所有比较指令都会改变条件码
             \item 所有与数据传送有关的指令都会改变条件码
             \item 条件码一般不会直接读取，但可以直接修改
         \end{choices}
+        \sol 此题有错，A、B 都不准确，有一些 SIMD 指令并不会改变条件码；C 明显是错的；D 基本正确，确实有指令可以直接写条件码。
         \proy{2017} 在下列的 x86-64 汇编代码中，错误的是：
         \begin{choices}
             \item \verb|movq %rax, (%rsp)|
@@ -215,6 +510,7 @@
             \item \verb|movsbl (%rdi), %eax|
             \item \verb|leaq (%rdx, 1), %rdx|
         \end{choices}
+        \sol 此题有错，B、D 都不对，其中 B 不能用 32 位寄存器寻址，D 中少了一个逗号。
         \proy{2017} 在下列关于条件传送的说法中，正确的是：
         \begin{choices}
             \item 条件传送可以用来传送字节、字、双字和四字的数据
@@ -254,6 +550,7 @@
             \item 4 条
             \item 5 条
         \end{choices}
+        \sol B，这个条件相当于 \verb+(a == 0 || a == 1 || a == -1)+。
         \proy{2016} 将 \verb|%ax| 清零，下列指令不能实现该效果的是：
         \begin{choices}
             \item \verb|sub %ax, %ax|
@@ -323,6 +620,7 @@
             \item \verb|'3'|
             \item \verb|5|
         \end{choices}
+        \sol C，从 \verb|subl| 可看出待比较的数是字符型。
         \proy{2015, 2014} 下列的指令组中，哪一组指令只改变条件码，而不改变寄存器的值？
         \begin{choices}
             \item \verb|CMP, SUB|
@@ -336,5 +634,100 @@
             \item \verb|jmp .L3(, %eax, 8)|
             \item \verb|jmp *.L3(, %eax, 4)|
             \item \verb|jmp *.L3(, %eax, 8)|
+        \end{choices}
+        \proy{2018} 以下代码的输出结果是
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    union {
+        double d;
+        struct {
+            int i;
+            char c[4];
+        } s;
+    } u;
+    u.d = 1;
+    printf("%d\n", u.s.c[2]);
+        \end{minted}
+        \begin{choices}
+            \item 0
+            \item $-16$
+            \item 240
+            \item 191
+        \end{choices}
+        \proy{2018} 下列关于 C 语言中的结构体（struct）以及联合（union）的说法中，正确的是：
+        \begin{choices}
+            \item 对于任意 struct，将其成员按照其实际占用内存大小从小到大的顺序进行排列不一定会使之内存占用最小
+            \item 对于任意 struct，将其成员按照其实际占用内存大小从小到大的顺序进行排列一定不会使之内存占用最大
+            \item 对于任意 union，将其成员按照其实际占用内存大小从小到大的顺序进行排列不一定会使之内存占用最小
+            \item 对于任意 union，将其成员按照其实际占用内存大小从小到大的顺序进行排列一定不会使之内存占用最大
+        \end{choices}
+        \proy{2017} 有如下代码段：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int func(int x, int y);
+    int (*p) (int a, int b);
+    p = func;
+    p(0, 0);
+        \end{minted}
+        对应的下列 x86-64 过程调用正确的是：
+        \begin{choices}
+            \item \verb|call *%rax|
+            \item \verb|call *(%rax)|
+            \item \verb|call (%rax)|
+            \item \verb|call func|
+        \end{choices}
+        \proy{2017} 有定义：\verb|int A[3][2] = {{1,2}，{3,3}，{2,1}};|，则 \verb|A[2]| 是：
+        \begin{choices}
+            \item \verb|&A + 16|
+            \item \verb|A + 16|
+            \item \verb|*A + 4|
+            \item \verb|*A + 2|
+        \end{choices}
+        \proy{2015} 已知下面的数据结构，假设在 Linux/IA32 下要求对齐，这个结构的总的大小是多少个字节？如果重新排列其中的字段，最少可以达到多少个字节？
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    struct {
+        char a;
+        double *b;
+        double c;
+        short d;
+        long long e;
+        short f;
+    };
+        \end{minted}
+        \begin{choices}
+            \item 32, 28
+            \item 36, 32
+            \item 28, 26
+            \item 26, 26
+        \end{choices}
+        \proy{2015} 在“大端法”下，已知如下的 C 语言数据结构：\verb|union { char c[2]; int i; };|。当 \verb|c| 的值为 \verb|0x01, 0x23| 时，\verb|i| 的值为：
+        \begin{choices}
+            \item \verb|0x0123|
+            \item \verb|0x2301|
+            \item \verb|0x01230000|
+            \item 不确定
+        \end{choices}
+        \proy{2014} 有如下定义的结构，在 x86-64 下，下述结论中错误的是？
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    struct {
+        char c;
+        union {
+            char vc;
+            double value;
+            int vi;
+        } u;
+        int i;
+    } sa;
+        \end{minted}
+        \begin{choices}
+            \item \verb|sizeof(sa) == 24|
+            \item \verb|(&sa.i - &sa.u.vi) == 8|
+            \item \verb|(&sa.u.vc - &sa.c) == 8|
+            \item 优化成员变量的顺序，可以做到 \verb|sizeof(sa) == 16|
+        \end{choices}
+        \proy{2013} 32 位 x86、Windows 操作系统下定义 struct \verb|S| 包含: \verb|double a, int b, char c|, 请问 \verb|S| 在内存空间中最多和最少分别能占据多少个字节（32 位 Windows 系统按 1、4、8 的原则对齐 \verb|char, int, double|）？
+        \begin{choices}
+            \item 16, 13
+            \item 16, 16
+            \item 24, 13
+            \item 24, 16
         \end{choices}
     \end{problems}
