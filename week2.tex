@@ -18,16 +18,25 @@
             \qn \verb|%ecx|
             \qn \verb|(%ecx)|
             \qn \verb|(%rbp, %rsp)|
+        \sol 1 不正确；2 不正确，\verb|$| 只用来表示立即数；3 正确，是内存地址 \verb|0x30|；4 正确；5 不正确，缩放比例只能是 1、2、4、8；6 正确；7 不正确，x86-64 不允许将除了 64 位寄存器以外的寄存器作为寻址模式基地址；8不正确，\verb|%rsp|不能作为操作数！
         \pro 假设 \verb|%rax|、\verb|%rbx| 的初始值都是 0。根据下列一段汇编代码，写出每执行一步后两个寄存器的值。
         \begin{minted}[frame=single, fontsize=\small]{gas}
     movabsq   $0x0123456789ABCDEF, %rax
     movw      %ax, %bx
     movswq    %bx, %rbx
     movl      %ebx, %eax
-    movabsq   $0x123456789ABCDEF, %rax
+    movabsq   $0x0123456789ABCDEF, %rax
     cltq
         \end{minted}
-        \sol 1 不正确；2 不正确，\verb|$| 只用来表示立即数；3 正确，是内存地址 \verb|0x30|；4 正确；5 不正确，缩放比例只能是 1、2、4、8；6 正确；7 不正确，x86-64 不允许将除了 64 位寄存器以外的寄存器作为寻址模式基地址；8不正确，\verb|%rsp|不能作为操作数！
+        \sol 注意 \verb|movl| 会清零高 32 位。如果 \verb|movabsq| 的立即数是负数，主要要取绝对值（本题中不需要）。答案为：
+        \begin{compactenum}
+            \item \ \verb|0x0123456789ABCDEF, 0x0000000000000000|
+            \item \ \verb|0x0123456789ABCDEF, 0x000000000000CDEF|
+            \item \ \verb|0x0123456789ABCDEF, 0xFFFFFFFFFFFFCDEF|
+            \item \ \verb|0x00000000FFFFCDEF, 0xFFFFFFFFFFFFCDEF|
+            \item \ \verb|0x0123456789ABCDEF, 0xFFFFFFFFFFFFCDEF|
+            \item \ \verb|0xFFFFFFFF89ABCDEF, 0xFFFFFFFFFFFFCDEF|
+        \end{compactenum}
         \pro 下列操作不等价的是：
         \begin{choices}
             \item \verb|movzbq| 和 \verb|movzbl|
@@ -35,7 +44,7 @@
             \item \verb|movl| 和 \verb|movslq|
             \item \verb|movslq %eax, %rax| 和 \verb|cltq|
         \end{choices}
-        \sol C，\verb|movl| 和 \verb|movzlq| 等价。
+        \sol C。A、B 中，\verb|movzbl/movzwl| 都生成了四字节，把高位设为0。D 中 \verb|cltq| 是对 \verb|%eax|的符号拓展。而 C 中 \verb|movl| 和 \verb|movzlq| 等价。
         \pro 判断下列 x86-64 ATT 数据传送指令是否合法。
             \qn \verb|movl $0x400010, $0x800010|
             \qn \verb|movl $0x400010, 0x800010|
@@ -45,6 +54,7 @@
             \qn \verb|movabsq $0x123456789AB, %rdi|
             \qn \verb|movabsq $0x123456789AB, 16(%rcx)|
             \qn \verb|movq 8(%rsp), %rip|
+        \sol 1 不正确，目的不能是立即数；2 正确；3 不正确，两个操作数不能同时是内存地址；4 正确；5 不正确，要用 \verb|movabsq|；6 正确；7 不正确，\verb|movabsq| 的目标地址必须是整数寄存器；8 不正确，不能用 \verb|mov| 向 \verb|%rip| 中传入数据，否则读程序计数器产生破坏。
         \pro 在 32 位机器中有如下定义 \texttt{int array[10] = \{0, 1, 2, 3, 4, 5, 6, 7, 8, 9\};}。
         
         某一时刻，\verb|%ecx| 存着第一个元素的地址，\verb|%ebx| 值为 3，那么下列操作中，哪一个将 \verb|array[3]| 移入了 \verb|%eax|？
@@ -80,6 +90,7 @@
             \item \verb+~(SF | OF)+
             \item \verb+~(SF ^ OF)+
         \end{choices}
+        \sol A。如果 \verb|a > b|，那么 \verb|a – b| 或者为正，或者发生上溢变负；同时 \verb|a| 不等于 \verb|b|。
         \pro 下面的汇编代码对应一个 C 函数，其原型为 \verb|long func(long a, long b);|。将其翻译为 C 代码。
         \begin{minted}[frame=single, fontsize=\small]{gas}
     // a in %rdi, b in %rsi
@@ -128,7 +139,7 @@
         \begin{minted}[frame=single, fontsize=\small]{c}
     long f4(long a, long b) { return (a > b) ? a++ : ++b; }
         \end{minted}
-        \sol 1、4 会被编译成条件传送，注意 \verb|return| 之后 \verb|a, b| 本身的值是没有用的。
+        \sol 1、4 会被编译成条件传送。1 由于比较前计算出的 \verb|a| 与 \verb|b| 就是传送的目标，因此会被编译成条件传送；2 由于比较结果会导致 \verb|a| 与 \verb|b| 指向的元素发生不同的改变，因此会被编译成条件跳转；3 由于指针 \verb|a| 可能无效，因此会被编译为条件跳转；4 会被编译成条件传送，因为 \verb|a| 和 \verb|b| 都是局部变量，返回的时候对 \verb|a| 和 \verb|b| 的操作都是无影响的。
         \pro 根据下面的汇编指令补充机器码中缺失的字节。
         \begin{table}[H]
             \centering
@@ -657,7 +668,7 @@
             \item \verb|jmp *.L3(, %eax, 4)|
             \item \verb|jmp *.L3(, %eax, 8)|
         \end{choices}
-        \proy{2018} 以下代码的输出结果是
+        \proy{2018} 以下代码的输出结果不可能是
         \begin{minted}[frame=single, fontsize=\small]{c}
     union {
         double d;
@@ -675,6 +686,7 @@
             \item 240
             \item 191
         \end{choices}
+        \sol D。题目没有说明大小端，如果是大端法则为 A。若为小端法，注意 \verb|char| 在不同的编译器上可能是有符号型或者是无符号型，所以计算知 $-16$ 和 240 都有可能。
         \proy{2018} 下列关于 C 语言中的结构体（struct）以及联合（union）的说法中，正确的是：
         \begin{choices}
             \item 对于任意 struct，将其成员按照其实际占用内存大小从小到大的顺序进行排列不一定会使之内存占用最小
@@ -696,6 +708,7 @@
             \item \verb|call (%rax)|
             \item \verb|call func|
         \end{choices}
+        \sol 此题有错，A、D 都可能产生（和优化选项有关）。
         \proy{2017} 有定义：\verb|int A[3][2] = {{1,2}，{3,3}，{2,1}};|，则 \verb|A[2]| 是：
         \begin{choices}
             \item \verb|&A + 16|

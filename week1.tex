@@ -27,7 +27,7 @@
 				\multicolumn{2}{|c|}{...} & {\qquad \qquad} & {\qquad \qquad} & {\qquad \qquad} & {\qquad \qquad} & \multicolumn{2}{c|}{...} \\ \hline
 			\end{tabular}
 		\end{table}
-		\sol 分别为 \verb|0x56 0x34 0x12 0x00|、\verb|0x34 0x12 0x78 0x56|。
+		\sol 根据小端法可知分别为 \verb|0x56 0x34 0x12 0x00|、\verb|0x34 0x12 0x78 0x56|。
 		\pro 在 x86-64 机器上，有下列 C 代码：
 		\begin{minted}[frame=single, fontsize=\small]{c}
     int main() {
@@ -42,7 +42,7 @@
     }
 		\end{minted}
 		运行该代码，结果是什么？
-		\sol \verb|0x5555|。
+		\sol 根据小端法，\verb|A| 在内存中从高地址到低地址分别是 \verb|11 11 22 22|，得到 \verb|P = 0x2222|，同理 \verb|Q = 0x3333|，结果为 \verb|0x5555|。
 		\pro 在 x86-64 机器上，有下列 C 代码：
 		\begin{minted}[frame=single, fontsize=\small]{c}
     int main() {
@@ -57,7 +57,7 @@
     }
 		\end{minted}
 		运行该代码，结果是什么？
-		\sol \verb|0x0303|。
+		\sol 答案为 \verb|0x0303|，分析方法和前一题一样。
 		\pro 在 x86-64 机器上，有如下的定义：
 		\begin{minted}[frame=single, fontsize=\small]{c}
     int x = ...; // 表达式 A
@@ -95,7 +95,7 @@
         printf("%s\n", B);
     }
 		\end{minted}
-		\sol \verb|sizeof| 返回的结果是无符号数。
+		\sol \verb|sizeof| 返回的结果是无符号数，因此循环条件恒不成立，不会执行循环体。
 		\pro 假设某浮点数格式为 1 位符号、3 位阶码、4 位小数。下表给出了用该格式表达的浮点数 $(-1)^SM \cdot 2^E$ 与其二进制表示的关系。完成下表。
 		\begin{table}[H]
 			\centering
@@ -116,7 +116,7 @@
 			\qn 考虑能精确表示的实数的最大绝对值。A 比 B 大还是比 B 小，还是两者一样？
 			\qn 考虑能精确表示的实数的最小非零绝对值。A 比 B 大还是比 B 小，还是两者一样？
 			\qn 考虑能精确表示的实数的个数。A 比 B 多还是比 B 少，还是两者一样？
-		\sol 1 个；B 大；A 大；B 更多。
+		\sol 根据无穷大的定义，类 IEEE 754 的浮点数都只有 1 个无穷大。一般阶码越多，则最大绝对值越大，所以 B 大；A 大，理由同前；小数长度越多，则 \verb|NaN| 越多，而总的可能表示的模式数一样，所以 B 更多。
 		\pro 判断下列说法的正确性。
 			\qn 对于任意的单精度浮点数 \texttt{a} 和 \texttt{b}，如果 \texttt{a > b}，那么 \texttt{a + 1 > b}。
 			\qn 对于任意的单精度浮点数 \texttt{a} 和 \texttt{b}，如果 \texttt{a > b}，那么 \texttt{a + b > b + b}。
@@ -137,7 +137,7 @@
     }
 		\end{minted}
 		试问代码的运行结果是什么？或者死循环？
-		\sol $16777217=2^{24}+1$。
+		\sol $16777217=2^{24}+1$，这时写成科学计数法小数点后面要 24 位，超出了单精度浮点的表示范围，会发生舍入。
 		\pro 遵循 IEEE 754 浮点数标准，考虑下列代码：
 		\begin{minted}[frame=single, fontsize=\small]{c}
     int x = 33554466; // 2^25 + 34
@@ -148,7 +148,17 @@
     }
 		\end{minted}
 		写出程序的运行结果。
-		\sol 写出 $2^{25}+34$ 的科学计数法表示后按要求舍入即可，答案为 $2\ -1\ 0\ 1\ -2\ -1\ 0\ 1$。
+		\sol 写出 $2^{25}+34$ 的科学计数法表示后按要求舍入即可，这些数舍入到单精度浮点数的结果计算如下。我们用下划线表示单精度浮点数小数表示的极限位置，后面的需要进行舍入，根据四舍六入五成双规则即可得到答案（注意最后一位相当于 1，倒数第二位相当于 2）。
+		\begin{compactenum}
+			\item \ \verb|1.00000000000000000001000_10 * 2^25|，差 2。
+			\item \ \verb|1.00000000000000000001000_11 * 2^25|，差 $-1$。
+			\item \ \verb|1.00000000000000000001001_00 * 2^25|，差 0。
+			\item \ \verb|1.00000000000000000001001_01 * 2^25|，差 1。
+			\item \ \verb|1.00000000000000000001001_10 * 2^25|，差 $-2$
+			\item \ \verb|1.00000000000000000001011_11 * 2^25|，差 $-1$。
+			\item \ \verb|1.00000000000000000001010_00 * 2^25|，差 0。
+			\item \ \verb|1.00000000000000000001010_01 * 2^25|，差 1。
+		\end{compactenum}
 	\end{problems}
 
 \chapter{位级表示{---}往年考题}
