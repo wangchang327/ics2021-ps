@@ -111,6 +111,21 @@
 				$+\infty$ &  & / & / & / \\ \hline
 			\end{tabular}
 		\end{table}
+		\sol 这是基本练习，填完的表格如下：
+		\begin{table}[H]
+			\centering
+			\begin{tabular}{|c|c|c|c|c|}
+				\hline
+				描述 & 二进制表示 & $M$（写成分数） & $E$ & $f$ \\ \hline
+				负零 & \verb|10000000| & / & / & \texttt{-0.0} \\ \hline
+				/ & \verb|01000101| & \verb|21/16| & \verb|1| & \verb|1/8| \\ \hline
+				最小的非规格化负数 & \verb|10001111| & \verb|15/16| & \verb|-2| & \verb|-15/64| \\ \hline
+				最大的规格化正数 & \verb|01101111| & \verb|31/16| & \verb|3| & \verb|31/2| \\ \hline
+				一 & \verb|00110000| & \verb|1| & \verb|0| & \texttt{1.0} \\ \hline
+				/ & \verb|01010110| & \verb|11/8| & \verb|2| & \texttt{5.5} \\ \hline
+				$+\infty$ & \verb|01110000| & / & / & / \\ \hline
+			\end{tabular}
+		\end{table}
 		\pro 假设浮点数格式 A 为 1 位符号、3 位阶码、4 位小数，浮点数格式 B 为 1 位符号、4 位阶码、3 位小数。回答下列问题。
 			\qn 格式 A 中有多少个二进制表示对应于正无穷大？
 			\qn 考虑能精确表示的实数的最大绝对值。A 比 B 大还是比 B 小，还是两者一样？

@@ -1,0 +1,23 @@
+\chapter{体系结构初步}
+    \begin{summary}
+        \begin{compactitem}
+            \item 了解体系结构的简要发展史，熟悉 RISC、CISC 的区别和应用。了解基本的门电路、算术运算器、选择器、触发器和寄存器的原理和实现。
+            \item 熟悉 Y86 “体系结构”中，各种指令的编码规则（包括操作数、指令子类型等），会将汇编代码和指令编码相互转换。简单了解 MIPS 体系结构。
+        \end{compactitem}
+    \end{summary}
+
+    \begin{problems}
+        \pro 下列描述更符合（早期）RISC 还是 CISC？
+            \qn 指令机器码长度固定。
+            \qn 指令类型多、功能丰富。
+            \qn 不采用条件码。
+            \qn 实现同一功能，需要的汇编代码较多。
+            \qn 译码电路复杂。
+            \qn 访存模式多样。
+            \qn 参数、返回地址都使用寄存器进行保存。
+            \qn x86-64。
+            \qn MIPS。
+            \qn 广泛用于嵌入式系统。
+            \qn 已知某个体系结构使用 \verb|add R1, R2, R3| 来完成加法运算。当要将数据从寄存器 \verb|S| 移动至寄存器 \verb|D| 时，需要使用 \verb|add S, #ZR, D| 进行操作（\verb|#ZR| 是一个恒为 0 的寄存器）。
+            \qn 已知某个体系结构提供了 \verb|xlat| 指令，它以一个固定的寄存器 \verb|A| 为基地址，以另一个固定的寄存器 \verb|B| 为偏移量，在 \verb|A| 对应的数组中取出下标为 \verb|B| 的项的内容，放回寄存器 \verb|A| 中。
+    \end{problems}
