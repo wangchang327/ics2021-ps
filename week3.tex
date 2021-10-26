@@ -2,7 +2,9 @@
     \begin{summary}
         \begin{compactitem}
             \item 了解体系结构的简要发展史，熟悉 RISC、CISC 的区别和应用。了解基本的门电路、算术运算器、选择器、触发器和寄存器的原理和实现。
-            \item 熟悉 Y86 “体系结构”中，各种指令的编码规则（包括操作数、指令子类型等），会将汇编代码和指令编码相互转换。简单了解 MIPS 体系结构。
+            \item 熟悉 Y86-64 “体系结构”中，各种指令的编码规则（包括操作数、指令子类型等），会将汇编代码和指令编码相互转换。简单了解 MIPS 体系结构。
+            \item 在上一项的基础上，理解并熟练\uwave{记忆} Y86-64 处理器执行各种指令的几个阶段及其详细的功能（含重要的中间状态变化）。理解并熟练\uwave{记忆} Y86-64 顺序处理器的实现。
+            \item 知道流水线设计的通用原理，会进行相关的计算和分析。
         \end{compactitem}
     \end{summary}
 
@@ -20,4 +22,329 @@
             \qn 广泛用于嵌入式系统。
             \qn 已知某个体系结构使用 \verb|add R1, R2, R3| 来完成加法运算。当要将数据从寄存器 \verb|S| 移动至寄存器 \verb|D| 时，需要使用 \verb|add S, #ZR, D| 进行操作（\verb|#ZR| 是一个恒为 0 的寄存器）。
             \qn 已知某个体系结构提供了 \verb|xlat| 指令，它以一个固定的寄存器 \verb|A| 为基地址，以另一个固定的寄存器 \verb|B| 为偏移量，在 \verb|A| 对应的数组中取出下标为 \verb|B| 的项的内容，放回寄存器 \verb|A| 中。
+        \sol 依次为 RISC、CISC、RISC、RISC、CISC、CISC、RISC、CISC、RISC、RISC、RISC、CISC。这里对于 1，固定长的指令译码电路简单；通常 CISC 有变长指令，例如 x86 中清零用 \verb|xor|，因为这样可以节省指令长度。对于 10，嵌入式系统是指可穿戴设备、物联网之类的小设备，功能简单且需要省电，因此处理器电路不用太复杂。
+        \pro 写出下列电路对应的逻辑表达式：
+        \begin{figure}[H]
+            \centering
+            \begin{tikzpicture}[
+                GateCfg/.style={
+                    logic gate inputs={normal, normal, normal},
+                    draw
+                }
+            ]
+                \path (0,0) node[and gate US, GateCfg] (AND1) {} ++(2,-2) node[and gate US, GateCfg] (AND2) {} ++(5,1) node[or gate US, GateCfg] (OR1) {} (AND1.input 3) ++(-1,0) node[not gate US, draw] (N1) {} (AND2.input 3) ++(-1,0) node[not gate US, draw] (N2) {} (AND2.input 1 -| N1) node[not gate US, draw] (N3) {};
+        
+                \draw (OR1.input 1) -- ++(-1.5,0) |- (AND1.output) (OR1.input 3) -- ++(-1.5,0) |- (AND2.output) (N2.output) -- (AND2.input 3) (N1.output) -- (AND1.input 3) (N3.output) -- (AND2.input 1) (AND1.input 1) -- ++(-3,0) coordinate (init) node[anchor=east] {\texttt{A}} node[pos=0.6] (temp) {} (N1-| temp) ++(0,5pt) edge (temp.center) arc (90:-90:5pt) |- (N3.input) (init |- N1) node[anchor=east] {\texttt{B}} -- (N1.input) node[pos=0.4] (temp2) {} (temp2.center) |- (N2.input) (OR1.output) -- ++(2,0) node [midway,anchor=south]{\texttt{f(A, B)}};
+            \end{tikzpicture}
+        \end{figure}
+        \sol \verb+f(A, B) = (!A && B) || (A && !B)+。
+        \pro 根据 Y86-64 体系结构完成下表中的更新逻辑：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|}
+                \hline
+                &  & call & jXX \\ \hline
+                \multirow{4}{*}{Fetch (F)} & icode, ifun & {\qquad \qquad \qquad \qquad} & {\qquad \qquad \qquad \qquad} \\ \cline{2-4} 
+                & rA, rB &  &  \\ \cline{2-4} 
+                & valC &  &  \\ \cline{2-4} 
+                & valP &  &  \\ \hline
+                \multirow{2}{*}{Decode (D)} & valA, srcA &  &  \\ \cline{2-4} 
+                & valB, srcB &  &  \\ \hline
+                \multirow{2}{*}{Execute (E)} & valE &  &  \\ \cline{2-4} 
+                & Cond Code &  &  \\ \hline
+                Memory (M) & valM &  &  \\ \hline
+                \multirow{2}{*}{Writeback (W)} & dstE &  &  \\ \cline{2-4} 
+                & dstM &  &  \\ \hline
+                PC & PC &  &  \\ \hline
+            \end{tabular}
+        \end{table}
+        \sol 首先确定 \verb|call V| 和 \verb|jXX V| 两个指令都长 9 字节，然后按运算逻辑进行填写即可。没有填写的空格表示不需要填。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|}
+                \hline
+                &  & call & jXX \\ \hline
+                \multirow{4}{*}{Fetch} & icode:ifun & icode:ifun <- M1[PC] & icode:ifun <- M1[PC] \\ \cline{2-4} 
+                & rA, rB &  &  \\ \cline{2-4} 
+                & valC & valC <- M8[PC+1] & valC <- M8[PC+1] \\ \cline{2-4} 
+                & valP & valP <- PC+9 & valP <- PC+9 \\ \hline
+                \multirow{2}{*}{Decode} & valA &  &  \\ \cline{2-4} 
+                & valB & valB <- R[\%rsp] &  \\ \hline
+                \multirow{2}{*}{Execute} & valE & valE <- valB+(-4) &  \\ \cline{2-4} 
+                & Cond Code &  & Cnd <- Cond(CC, ifun) \\ \hline
+                Memory (M) & valM & M8[valE] <- valP &  \\ \hline
+                \multirow{2}{*}{Writeback} & dstE & R[\%rsp] <- valE &  \\ \cline{2-4} 
+                & dstM &  &  \\ \hline
+                PC & PC & PC <- valC & PC <- Cnd?valC:valP \\ \hline
+            \end{tabular}
+        \end{table}
+        \pro 已知 \verb|valC| 为指令中的常数值，\verb|valM| 为访存得到的数据，\verb|valP| 为 \verb|PC| 自增得到的值，完成以下的 PC 更新逻辑：
+        \begin{minted}[frame=single, fontsize=\small]{text}
+    int new_pc = [
+        icode == ICALL : _____;
+        icode == IJXX && Cnd: _____;
+        icode == IRET : _____;
+        1: _____;
+    ];
+        \end{minted}
+        \sol 此题顺着上一题的填写就很容易写出了。
+        \begin{minted}[frame=single, fontsize=\small]{text}
+    int new_pc = [
+        icode == ICALL : valC;
+        icode == IJXX && Cnd: valC;
+        icode == IRET : valM;
+        1: valP;
+    ];
+        \end{minted}
+        \pro 判断下列说法的正确性：
+            \qn 流水线的深度越深，总吞吐率越大，因此流水线应当越深越好。
+            \qn 流水线的吞吐率取决于最慢的流水级，因此流水线的划分应当尽量均匀。\qn 假设寄存器延迟为 \SI{20}{ps}，那么总吞吐率不可能达到或超过 \SI{50}{GIPS}。
+            \qn 数据冒险总是可以只通过转发来解决。
+            \qn 数据冒险总是可以只通过暂停流水线来解决。
+        \sol 分别是错误（深度会影响冒险问题和电路复杂性，以及吞吐量有上界）、正确、正确、错误（load-use 冒险）、正确。
+        \pro 一条三级流水线，包括延迟为 \SI{50}{ps}、\SI{100}{ps}、\SI{100}{ps} 的三个流水级，每个寄存器的延迟为 \SI{10}{ps}。那么这条流水线的总延迟是 \rule{2.5cm}{0.25mm} ps，吞吐率是 \rule{2.5cm}{0.25mm} GIPS。
+        \sol 总延迟为 $100+100+100+3 \times 10 = \SI{330}{ps}$，吞吐率为 $1/330 = \SI{9.09}{GIPS}$。
+        \pro 在下图中，A\textasciitilde H 为 8 个基本逻辑单元，图中标出了每个单元的延迟，以及用箭头标出了单元之间的数据依赖关系。寄存器的延迟均为 \SI{10}{ps}。
+        \begin{figure}[H]
+            \centering
+            \begin{tikzpicture}
+                \draw[draw=black] (0,0) rectangle ++(1,1.5);
+                \node[align=center] at (0.5,0.75) {A \\ \SI{40}{ps}};
+                \draw[draw=black] (2,0) rectangle ++(1,1.5);
+                \node[align=center] at (2.5,0.75) {B \\ \SI{30}{ps}};
+                \draw[draw=black] (4,0) rectangle ++(1,1.5);
+                \node[align=center] at (4.5,0.75) {C \\ \SI{40}{ps}};
+                \draw[draw=black] (6,0) rectangle ++(1,1.5);
+                \node[align=center] at (6.5,0.75) {D \\ \SI{20}{ps}};
+                \draw[-{Stealth[angle'=45]}] (1,0.75) -- (2,0.75);
+                \draw[-{Stealth[angle'=45]}] (3,0.75) -- (4,0.75);
+                \draw[-{Stealth[angle'=45]}] (5,0.75) -- (6,0.75);
+                \draw[-{Stealth[angle'=45]}] (7,0.75) -- (8,0.75);
+
+                \begin{scope}[shift={(0,-2.5)}]
+                    \draw[draw=black] (0,0) rectangle ++(1,1.5);
+                    \node[align=center] at (0.5,0.75) {E \\ \SI{20}{ps}};
+                    \draw[draw=black] (2,0) rectangle ++(1,1.5);
+                    \node[align=center] at (2.5,0.75) {F \\ \SI{60}{ps}};
+                    \draw[draw=black] (4,0) rectangle ++(1,1.5);
+                    \node[align=center] at (4.5,0.75) {G \\ \SI{40}{ps}};
+                    \draw[draw=black] (6,0) rectangle ++(1,1.5);
+                    \node[align=center] at (6.5,0.75) {H \\ \SI{30}{ps}};
+                    \draw[-{Stealth[angle'=45]}] (1,0.75) -- (2,0.75);
+                    \draw[-{Stealth[angle'=45]}] (3,0.75) -- (4,0.75);
+                    \draw[-{Stealth[angle'=45]}] (5,0.75) -- (6,0.75);
+                    \draw[-{Stealth[angle'=45]}] (7,0.75) -- (8,0.75);
+                \end{scope}
+
+                \draw[draw=black] (8,-2.5) rectangle ++(0.5,4);
+                \node[align=center] at (8.25,-0.5) {R \\ E \\ G};
+                \draw[-{Stealth[angle'=45]}] (1,0) -- (2,-1);
+                \draw[-{Stealth[angle'=45]}] (5,-1) -- (6,0);
+            \end{tikzpicture}
+        \end{figure}
+        \qn 计算目前的电路的总延迟。
+        \qn 通过插入寄存器，可以对这个电路进行流水化改造。现在想将其改造为两级流水线， 为了达到尽可能高的吞吐率，问寄存器应插在何处？获得的吞吐率是多少？
+        \qn 现在想将其改造为三级流水线，问最优改造所获得的吞吐率是多少？
+        \sol 这里有多条数据通路，其总延迟由最高延迟的通路 $\mathrm A \to \mathrm F \to \mathrm G \to \mathrm H$ 决定，延迟是 $40+60+40+30+10 = \SI{180}{ps}$。插入寄存器使得其成为二级流水线，要求每一个通路都成为二级流水线，相当于多条单通路流水线求 $\max \min$。这里，通路 A\textasciitilde D 应当在 BC 之间插入寄存器；通路 E\textasciitilde H 应当在 FG 之间插入寄存器，此时各条数据通路都已经是二级的，最高单级延迟为 $40+60+10 = \SI{110}{ps}$，吞吐量 \SI{9.09}{GIPS}。同样的道理，插到 AB、AF、EF、BC、FG 之间得到三级流水线，最高单级延迟 \SI{80}{ps}，吞吐量 \SI{12.5}{GIPS}。
+    \end{problems}
+
+\chapter{体系结构初步{---}往年考题}
+    \begin{problems}
+        \proy{2018} Y86 指令 \verb|popl rA| 的 SEQ 实现中，在取指阶段，\verb|valP <- |（\quad），在执行阶段，\verb|valE <- |（\quad）。
+        \begin{choices}
+            \item \verb|PC+4|、\verb|valA+4|
+            \item \verb|PC+4|、\verb|valA+(-4)|
+            \item \verb|PC+2|、\verb|valB+4|
+            \item \verb|PC+2|、\verb|valB+(-4)|
+        \end{choices}
+        \proy{2017} 在 Y86 的 SEQ 实现中，对仅考虑 \verb|IRMMOVQ|、\verb|ICALL|、\verb|IPOPQ|、\verb|IRET| 指令， 对 \verb|mem_addr| 的 HCL 描述正确的是：
+        \begin{minted}[frame=single, fontsize=\small]{text}
+    word mem_addr = [
+        icode in { (1), (2) } : valE;
+        icode in { (3), (4) } : valA;
+    ];
+        \end{minted}
+        \begin{choices}
+            \item \verb|(1) IRMMOVQ  (2) IPOPQ  (3) IRET     (4) ICALL|
+            \item \verb|(1) IRMMOVQ  (2) IRET   (3) IPOPQ    (4) ICALL|
+            \item \verb|(1) ICALL    (2) IPOPQ  (3) IRMMOVQ  (4) IRET|
+            \item \verb|(1) IRMMOVQ  (2) ICALL  (3) IPOPQ    (4) IRET|
+        \end{choices}
+        \proy{2017} 关于流水线技术的描述，错误的是: 
+        \begin{choices}
+            \item 流水线技术能够提高执行指令的吞吐率，但也同时增加单条指令的执行时间。
+            \item 增加流水线级数，不一定能获得总体性能的提升。
+            \item 指令间数据相关引发的数据冒险，不一定可以通过暂停流水线来解决。
+            \item 流水级划分应尽量均衡，吞吐率会受到最慢的流水级影响，均衡的流水线能提高吞吐量。
+        \end{choices}
+        \proy{2017} 分析 32 位的 Y86 ISA 中新加入的条件内存传送指令：\verb|crmmovqXX| 和 \verb|cmrmovqXX|。\verb|crmmovqXX| 和 \verb|cmrmovqXX| 指令在条件码满足所需要的约束时，分别执行和 \verb|rmmovq| 以及 \verb|mrmovq| 同样的语义。其格式如下：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{c|c|c|c|c|c|}
+                \cline{2-6}
+                rmmovq & 4 & 0 & rA & rB & D (8 bytes) \\ \cline{2-6} 
+                crmmovqXX & 4 & fn & rA & rB & D (8 bytes) \\ \cline{2-6} 
+                mrmovq & 5 & 0 & rA & rB & D (8 bytes) \\ \cline{2-6} 
+                cmrmovqXX & 5 & fn & rA & rB & D (8 bytes) \\ \cline{2-6} 
+            \end{tabular}
+        \end{table}
+        \qn 请按下表补全每个阶段的操作。需说明的信号可能会包括：\verb|icode|、\verb|ifun|、\verb|rA|、\verb|rB|、\verb|valA|、\verb|valB|、\verb|valC|、\verb|valE|、\verb|valP|、\verb|Cnd|；寄存器堆 \verb|R[]|、存储器 \verb|M[]|、程序计数器 \verb|PC|、条件码 \verb|CC|。其中对存储器的引用必须标明字节数。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|c|}
+                \hline
+                阶段 & {\qquad} \verb|rmmovq rA, D(rB)| {\qquad} & {\qquad} \verb|cmrmovqXX D(rB), rA| {\qquad} \\ \hline
+                取指 & \multicolumn{2}{c|}{\rule{0pt}{10ex}} \\ \hline
+                译码 & \multicolumn{2}{c|}{\texttt{valA <- R[rA], valB <- R[rB]}} \\ \hline
+                执行 & \rule{0pt}{10ex} & \rule{0pt}{10ex} \\ \hline
+                访存 & \rule{0pt}{10ex} & \rule{0pt}{10ex} \\ \hline
+                写回 & N/A & \rule{0pt}{10ex} \\ \hline
+                更新 \verb|PC| & \multicolumn{2}{c|}{\texttt{PC <- valP}} \\ \hline
+            \end{tabular}
+        \end{table}
+        \sol 取指部分的填法是很基本的，需要获得 \verb|rA, rB, D|，所以我们写 \verb|icode:ifun <- M1[PC]|、 \verb|rA:rB <- M1[PC+1]|、\verb|valC <- M8[PC+2]| 和 \verb|vavlP <- PC+10|。译码部分也很简单，为 \verb|valA <- R[rA]|、\verb|valB <- R[rB]|。
+
+        在执行部分，\verb|rmmovq| 都要计算地址偏移，因此 \verb|valE <- valB+valC|，但是 \verb|cmrmovqXX| 还需要处理条件码，所以还要填 \verb|Cnd <- Cond(CC, ifun)|。最后 \verb|rmmovq| 还需要访存，即 \verb|M8[valE] <- valA|；而 \verb|cmrmovqXX| 除了访存 \verb|valM <- M8[valE]| 之外，还需要条件写回 \verb|if (Cnd) R[rA] <- valM|。
+        \proy{2016} 下面对指令系统的描述中，错误的是：
+        \begin{choices}
+            \item CISC 指令系统中的指令数目较多，有些指令的执行周期很长；而 RISC 指令系统中通常指令数目较少，指令的执行周期都较短。
+            \item CISC 指令系统中的指令编码长度不固定；RISC 指令系统中的指令编码长度固定，这样使得 CISC 机器可以获得了更短的代码长度。
+            \item CISC指令系统支持多种寻址方式，RISC指令系统支持的寻址方式较少。
+            \item CISC 机器中的寄存器数目较少，函数参数必须通过栈来进行传递；RISC 机器中的寄存器数目较多，只需要通过寄存器来传递参数，避免了不必要的存储访问。
+        \end{choices}
+        \proy{2016} 下面对流水线技术的描述，正确的是：
+        \begin{choices}
+            \item 流水线技术不仅能够提高执行指令的吞吐率，还能减少单条指令的执行时间。
+            \item 不断加深流水线级数，总能获得性能上的提升。
+            \item 流水级划分应尽量均衡，吞吐率会受到最慢的流水级影响。
+            \item 指令间的数据相关可能会引发流水线停顿，但总是可以通过调度指令来解决。
+        \end{choices}
+        \proy{2016} 若处理器实现了三级流水线，每一级流水线实际需要的运行时间分别为 \SI{1}{ns}、\SI{2}{ns} 和 \SI{3}{ns}，则此处理器不停顿地执行完毕 10 条指令需要的时间为：
+        \begin{choices}
+            \item \SI{21}{ns}
+            \item \SI{12}{ns}
+            \item \SI{24}{ns}
+            \item \SI{36}{ns}
+        \end{choices}
+        \sol 首先，每级流水线都是 \SI{3}{ns}，然后画出时序图就可以了。一般地，需要时间是一级流水线的总时间，补上一头一尾。这里需要的时间为 $10 \times 3+3+3 = \SI{36}{ns}$。
+        \proy{2016} 请分析 32 位的 Y86 ISA 中新加入的一组条件返回指令 \verb|cretXX|，其格式如下。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{c|c|c|}
+                \cline{2-3}
+                cretXX & 9 & fun \\ \cline{2-3} 
+            \end{tabular}
+        \end{table}
+        类似 \verb|cmovXX|，该组指令只有当条件码 \verb|Cnd| 满足时，才执行函数返回；如果条件不满足，则顺序执行。
+
+        若在教材所描述的 SEQ 处理器上执行这条指令，请按下表补全每个阶段的操作。需说明的信号可能会包括：\verb|icode|、\verb|ifun|、\verb|rA|、\verb|rB|、\verb|valA|、\verb|valB|、\verb|valC|、\verb|valE|、\verb|valP|、\verb|Cnd|；寄存器堆 \verb|R[]|、存储器 \verb|M[]|、程序计数器 \verb|PC|、条件码 \verb|CC|。其中对存储器的引用必须标明字节数。如果在某一阶段没有任何操作，请填写 \texttt{none} 指明。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|}
+                \hline
+                阶段 & {\qquad \qquad \qquad \qquad} \verb|cretXX offset| {\qquad \qquad \qquad \qquad} \\ \hline
+                取指 & \rule{0pt}{10ex} \\ \hline
+                译码 & \rule{0pt}{10ex} \\ \hline
+                执行 & \rule{0pt}{10ex} \\ \hline
+                访存 & \rule{0pt}{10ex} \\ \hline
+                写回 & \rule{0pt}{10ex} \\ \hline
+                更新 \verb|PC| & \rule{0pt}{10ex} \\ \hline
+            \end{tabular}
+        \end{table}
+        \sol 本质还是 \verb|ret|，只是需要稍微添加一下条件判断。取指是 \verb|icode:ifun <- M1[PC]|、\verb|valP <- PC+1|。译码需要注意，在 \verb|ret| 中两个值都会被取用，故填写 \verb|valB <- R[%rsp]|、\verb|valA <- R[%rsp]|。
+        
+        执行阶段是要恢复栈空间，因此为 \verb|valE <- valB+8| 和 \verb|Cnd <- Cond(CC, ifun)|。这里用 \verb|valA| 也可以。访存阶段需要读出返回地址，请注意，这里必须用 \verb|valA|（参看SEQ 实现图中的数据通路），填写 \verb|valM <- M8[valA]|。随后的写回和更新程序计数器的工作主要是关心条件（是否真的要返回了），所以分别是 \verb|if (Cnd) R[%rsp] <- valE| 和 \verb|PC <- Cnd?valM:valP|。
+        \proy{2015} 下面有关指令系统设计的描述正确的是：
+        \begin{choices}
+            \item 采用 CISC 指令比 RISC 指令代码更长。
+            \item 采用 CISC 指令比 RISC 指令运行时间更短。
+            \item 采用 CISC 指令比 RISC 指令译码电路更加复杂。
+            \item 采用 CISC 指令比 RISC 指令的流水线吞吐更高。
+        \end{choices}
+        \proy{2015} 一个功能模块包含组合逻辑和寄存器，组合逻辑单元的总延迟是 \SI{100}{ps}，单个寄存器的延时是 20ps，该功能模块执行一次并保存执行结果，理论上能达到的最短延时和最大吞吐分别是多少？
+        \begin{choices}
+            \item \SI{20}{ns}、\SI{50}{GIPS}
+            \item \SI{120}{ns}、\SI{50}{GIPS}
+            \item \SI{120}{ns}、\SI{10}{GIPS}
+            \item \SI{20}{ps}、\SI{10}{GIPS}
+        \end{choices}
+        \proy{2015} 关于流水线技术的描述，错误的是：
+        \begin{choices}
+            \item 流水线技术能够提高执行指令的吞吐率，但也同时增加单条指令的执行时间。
+            \item 减少流水线的级数，能够减少数据冒险发生的几率。
+            \item 指令间数据相关引发的数据冒险，都可以通过数据转发来解决。
+            \item 现代处理器支持一个时钟内取指、执行多条指令，会增加控制冒险的开销。
+        \end{choices}
+        \proy{2015} 请分析 Y86 ISA 中新加入的一条指令：\verb|NewJE|，其格式如下。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{c|c|c|c|c|c|}
+                \cline{2-6}
+                NewJE & C & 0 & rA & rB & dst \\ \cline{2-6} 
+            \end{tabular}
+        \end{table}
+        其功能为：如果 \verb|R[rA] == R[rB]|，则跳转到 \verb|dst| 继续执行，否则顺序执行。
+
+        若在教材所描述的 SEQ 处理器上执行这条指令，请按下表补全每个阶段的操作。需说明的信号可能会包括：\verb|icode|、\verb|ifun|、\verb|rA|、\verb|rB|、\verb|valA|、\verb|valB|、\verb|valC|、\verb|valE|、\verb|valP|、\verb|Cnd|；寄存器堆 \verb|R[]|、存储器 \verb|M[]|、程序计数器 \verb|PC|、条件码 \verb|CC|。其中对存储器的引用必须标明字节数。如果在某一阶段没有任何操作，请填写 \texttt{none} 指明。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|}
+                \hline
+                阶段 & {\qquad \qquad \qquad \qquad} \verb|cretXX offset| {\qquad \qquad \qquad \qquad} \\ \hline
+                取指 & \rule{0pt}{10ex} \\ \hline
+                译码 & \rule{0pt}{10ex} \\ \hline
+                执行 & \rule{0pt}{10ex} \\ \hline
+                访存 & \rule{0pt}{10ex} \\ \hline
+                写回 & \rule{0pt}{10ex} \\ \hline
+                更新 \verb|PC| & \rule{0pt}{10ex} \\ \hline
+            \end{tabular}
+        \end{table}
+        \proy{2014} 若处理器实现了三级流水线，每一级流水线实际需要的运行时间分别为 \SI{2}{ns}、\SI{2}{ns} 和 \SI{1}{ns}，则此处理器不停顿地执行完毕 10 条指令需要的时间为：
+        \begin{choices}
+            \item \SI{21}{ns}
+            \item \SI{22}{ns}
+            \item \SI{23}{ns}
+            \item \SI{24}{ns}
+        \end{choices}
+        \proy{2014} 关于 RISC 和 CISC 的描述，正确的是：
+        \begin{choices}
+            \item CISC 指令系统的指令编码可以很短，例如最短的指令可能只有一个字节，因此 CISC 的取指部件设计会比 RISC 更为简单。
+            \item CISC 指令系统中的指令数目较多，因此程序代码通常会比较长；而 RISC 指令系统中通常指令数目较少，因此程序代码通常会比较短。
+            \item CISC 指令系统支持的寻址方式较多，RISC 指令系统支持的寻址方式较少，因此用 CISC 在程序中实现访存的功能更容易。
+            \item CISC 机器中的寄存器数目较少，函数参数必须通过栈来进行传递；RISC 机器中的寄存器数目较多，只需要通过寄存器来传递参数。
+        \end{choices}
+        \proy{2014} 关于流水线技术的描述，正确的是：
+        \begin{choices}
+            \item 指令间数据相关引发的数据冒险，一定可以通过暂停流水线来解决。
+            \item 流水线技术不仅能够提高执行指令的吞吐率，还能减少单条指令的执行时间。
+            \item C. 增加流水线的级数，一定能获得性能上的提升。
+            \item 流水级划分应尽量均衡，不均衡的流水线会增加控制冒险。
+        \end{choices}
+        \proy{2014} 请分析 Y86 ISA 中新加入的一条指令：\verb|caddXX| 条件加法。其功能可以参考 \verb|add| 和 \verb|cmovXX| 两条指令。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{c|c|c|c|c|}
+                \cline{2-5}
+                caddXX & C & fn & rA & rB \\ \cline{2-5} 
+            \end{tabular}
+        \end{table}
+
+        若在教材所描述的 SEQ 处理器上执行这条指令，请按下表补全每个阶段的操作。需说明的信号可能会包括：\verb|icode|、\verb|ifun|、\verb|rA|、\verb|rB|、\verb|valA|、\verb|valB|、\verb|valC|、\verb|valE|、\verb|valP|、\verb|Cnd|；寄存器堆 \verb|R[]|、存储器 \verb|M[]|、程序计数器 \verb|PC|、条件码 \verb|CC|。其中对存储器的引用必须标明字节数。如果在某一阶段没有任何操作，请填写 \texttt{none} 指明。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|}
+                \hline
+                阶段 & {\qquad \qquad \qquad \qquad} \verb|cretXX offset| {\qquad \qquad \qquad \qquad} \\ \hline
+                取指 & \rule{0pt}{10ex} \\ \hline
+                译码 & \rule{0pt}{10ex} \\ \hline
+                执行 & \rule{0pt}{10ex} \\ \hline
+                访存 & \rule{0pt}{10ex} \\ \hline
+                写回 & \rule{0pt}{10ex} \\ \hline
+                更新 \verb|PC| & \rule{0pt}{10ex} \\ \hline
+            \end{tabular}
+        \end{table}
     \end{problems}

@@ -8,7 +8,9 @@
 
     \begin{problems}
         \pro 写出使用 gcc 编译源代码 \verb|lab.c|、生成可执行文件 \verb|lab|、采用二级编译优化的命令。
+        \sol \verb|gcc lab.c -o lab -O2|
         \pro 写出使用 gcc 编译源代码 \verb|foo.c|、生成汇编语言文件 \verb|foo.s| 的命令。
+        \sol \verb|gcc foo.c -S|
         \pro 将可执行文件逆向工程为汇编代码的工具是：
         \begin{choices}
             \item gcc
@@ -17,6 +19,7 @@
             \item hexedit
             \item gedit
         \end{choices}
+        \sol C。其中 D 是编辑二进制文件的工具，E 是一种图形化的编辑器。
         \pro Gdb 中，单步指令执行的命令是：
         \begin{choices}
             \item \verb|r|
@@ -26,6 +29,7 @@
             \item \verb|si|
             \item \verb|disas|
         \end{choices}
+        \sol E。A 为运行，B 为设置断点，C 为打印某些信息，D 为停止调试，E 为显示反汇编代码。
         \proy{2013} 在完成本课程的 bomblab 的时候，通常先执行 \verb|gdb bomb| 启动调试，然后执行 \verb|___ explode_bomb| 命令以防引爆炸弹，之后在进行其他必要的设置后，最后执行 \verb|___| 命令以便开始执行程序。上述两个空格对应的命令是：
         \begin{choices}
             \item \verb|st, ru|
@@ -33,4 +37,5 @@
             \item \verb|br, ru|
             \item \verb|st, go|
         \end{choices}
+        \sol C。
     \end{problems}

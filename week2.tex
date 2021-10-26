@@ -948,6 +948,26 @@
     .LFE2:
         .size   main, .-main
         \end{minted}
+        \sol 此题的难点不多。其一是标号 \verb|.LC2| 处的字符串中，形如 \verb|\252| 的代码表示的是 8 进制的一个字节（注意表示字符串时总是可以用一个一个字节表示），\verb|main| 函数中的字符串则是 16 进制的。
+
+        下面分析 \verb|myprint| 汇编代码。这里前三步指令是标准的，分配了 48 字节的栈空间（所以填 \verb|subq $48, %rsp|），并使得 \verb|%rbp| 指向其开头，\verb|%rsp| 指向其结尾。结合 C 语言的声明知 \verb|%rdi| 是字符串 \verb|str| 的开头，现在被存到 \verb|-40(%rbp)| 的位置。接下来的三句汇编也是标准的，是在栈的头部放置金丝雀，因此填 \verb|movq %fs:40, %rax|。
+
+        接下来的空需要倒推。注意到 \verb|strcpy| 返回后，需要将 \verb|buffer| 作为 \verb|printf| 的第二个参数，由此推断出 \verb|buffer| 在栈的 \verb|-32(%rbp)| 的位置。栈空间的布局如下所示：
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{r|c|}
+                \cline{2-2}
+                \verb|%rbp| $\to$ & old \verb|%rbp| \\ \cline{2-2} 
+                & 金丝雀 \\ \cline{2-2} 
+                &  \\ \cline{2-2} 
+                & \verb|buffer[8..15]| \\ \cline{2-2} 
+                \verb|-32(%rbp)| $\to$ & \verb|buffer[0..7]| \\ \cline{2-2} 
+                \verb|-40(%rbp)| $\to$ & \verb|str| \\ \cline{2-2} 
+                \verb|%rsp| $\to$ &  \\ \cline{2-2} 
+            \end{tabular}
+        \end{table}
+        
+        从而，\verb|xor| 后的第一条指令对应于 \verb|str| 参数，即 \verb|movq -40(%rbp), %rdx|，第三条指令为 \verb|movq %rdx, %rsi|，第四条指令为 \verb|movq -32(%rbp), %rdi|。\verb|call| 后仍为 \verb|leaq|。\verb|myprint| 函数的结尾是检查金丝雀，是标准的。填写 \verb|movq %fs:40, %rax|、\verb|xorq -8(%rbp), %rax| 或者 \verb|movq -8(%rbp), %rax|、\verb|xorq %fs:40, %rax| 都是可以的。
         \proy{2015} 在 32 位机器中，有如下声明。
         \begin{minted}[frame=single, fontsize=\small]{c}
     union ELE {
@@ -1017,6 +1037,57 @@
     movl    %edx, 44(%eax)
         \end{minted}
         给出 \verb|A, B| 的值。
+        \sol 本题我们主要分析的是(2)、(4)两问。
+        
+        对于第(2)问，我们首先注意这是 IA32 汇编，第一个参数位置是 \verb|8(%ebp)|，所以第一行结束后 \verb|%eax| 是 \verb|up| 的地址。我们画出联合体的图示（以及链表第二个元素）如下：
+        \begin{figure}[H]
+            \centering
+            \begin{tikzpicture}
+                \node at (-1.5,1) {\texttt{\%eax}};
+                \node at (3,1) {\texttt{\%ecx}};
+                \draw[-{Stealth[angle'=45]}] (-1,1) -- (0,1);
+                \draw[draw=black] (0,0) rectangle ++(2.5,1);
+                \node at (1.25,0.5) {\texttt{x} 或者 \texttt{next}};
+                \draw[draw=black] (4,0) rectangle ++(2.5,1);
+                \node at (5.25,0.5) {\texttt{x} 或者 \texttt{next}};
+                \draw[-{Stealth[angle'=45]}] (2.5,0.5) -- (4,1);
+                \begin{scope}[shift={(0,-1)}]
+                    \draw[draw=black] (0,0) rectangle ++(2.5,1);
+                    \node at (1.25,0.5) {\texttt{p} 或者 \texttt{y}};
+                    \draw[draw=black] (4,0) rectangle ++(2.5,1);
+                    \node at (5.25,0.5) {\texttt{p} 或者 \texttt{y}};
+                \end{scope}
+            \end{tikzpicture}
+        \end{figure}
+        
+        在第二行，我们对 \verb|%eax| 进行了一次解引用，得到了 \verb|up->e1.x| 或者 \verb|up->e2.next|，结果到 \verb|%ecx| 中。注意到第三行再次对结果进行了一次解引用，所以 \verb|%ecx = up->e2.next|。随后解引用 \verb|4(%ecx)|，可能得到 \verb|up->e2.next->e1.p| 或者 \verb|up->e2.next->e2.y|，结果在 \verb|%edx| 中。注意到下一行再次对其进行了一次解引用，所以 \verb|%edx = up->e2.next->e1.p|，进一步下一行中 \verb|%edx = *(up->e2.next->e1.p)|。
+
+        第五和第六行类似分析，因为要从 \verb|%edx| 中减去 \verb|4(%eax)|，所以它必须是整数，因此是 \verb|up->e2.y|，减法得到的 \verb|*(up->e2.next->e1.p) - up->e2.y| 是个整数，存入 \verb|%ecx| 指向的位置，所以是 \verb|up->next->e1.x|，故最终答案是
+        \begin{center}
+            \verb|up->next->e1.x = *(up->e2.next->e1.p) - up->e2.y|。
+        \end{center}
+
+        第(4)问也要画图分析，首先给出两个结构体的粗略布局（考虑对齐，注意 \verb|str2| 中的变量 \verb|s| 是自然对齐的），并结合汇编代码决定变量的偏移量。注意 \verb|8(%ebp)| 是第一个参数，\verb|12(%ebp)| 是第二个参数。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{rcr|c|}
+                \cline{2-2} \cline{4-4}
+                \multicolumn{1}{r|}{} & \multicolumn{1}{c|}{\texttt{x}: $2AB$} &  & \texttt{array}: $B$ \\ \cline{2-2} \cline{4-4} 
+                \multicolumn{1}{r|}{} & \multicolumn{1}{c|}{对齐 1} &  & 对齐2 \\ \cline{2-2} \cline{4-4} 
+                \multicolumn{1}{r|}{$+44 \to$} & \multicolumn{1}{c|}{\texttt{y}} & $+8 \to$ & \texttt{t} \\ \cline{2-2} \cline{4-4} 
+                &  &  & \texttt{s}: $2B$ \\ \cline{4-4} 
+                &  &  & 对齐 3 \\ \cline{4-4} 
+                &  & $+28 \to$ & \texttt{u} \\ \cline{4-4} 
+            \end{tabular}
+        \end{table}
+        根据对齐要求我们可列出方程
+        \[ \begin{cases}
+            41 \leq 2AB \leq 44, \\
+            5 \leq B \leq 8, \\
+            25 \leq 8+4+2B \leq 28, \\
+            A, B \in \mathbb N,
+        \end{cases} \]
+        解得 $A=3, B=7$。
         \proy{2014} 一个函数如下，其中部分代码被隐去。
         \begin{minted}[frame=single, fontsize=\small]{c}
     int f(int n, int m) {
