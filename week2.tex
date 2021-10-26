@@ -1177,7 +1177,53 @@
         
         第一步先通读 C 代码，确定代码大意，便于在汇编中找一些对应的片段。然后来填写汇编代码。主要难点在厘清 C 语言变量，内存和寄存器的映射关系，确定代码的用途。
 
-        本题的 C 代码基本没什么信息，先看汇编。我们可以发现汇编代码首先访问了栈指针以下的内容，再修改栈指针的，栈空间为 16 字节。此时我们暂时不知道 \verb|f+5| 位置应该做什么。接下来，我们知道 \verb|%edi| 中存储的是 \verb|n|，\verb|%esi| 中存储的是 \verb|m|。所以 \verb|f+16| 对应于 C 代码的 \verb|if (m > 0)|。之后两行使用了 \verb|%ebp, %ebx| 两个寄存器，注意这是被调用者保存寄存器，所以我们现在意识到 \verb|f+5| 的位置是保存 \verb|%rbp|。
+        本题的 C 代码基本没什么信息，先看汇编。我们可以发现汇编代码首先访问了栈指针以下的内容，再修改栈指针的，栈空间为 16 字节。此时我们暂时不知道 \verb|f+5| 位置应该做什么。接下来，我们知道 \verb|%edi| 中存储的是 \verb|n|，\verb|%esi| 中存储的是 \verb|m|。所以 \verb|f+16| 对应于 C 代码的 \verb|if (m > 0)|。之后两行使用了 \verb|%ebp, %ebx| 两个寄存器，注意这是被调用者保存寄存器，所以我们现在意识到 \verb|f+5| 的位置是保存 \verb|%rbp|。这样，保存寄存器和弹出寄存器的 \verb|f+51, f+55| 就能对应起来。不过我们需要注意的是，这两部分代码所对应的 \verb|%rsp| 值是不一样的！如下图的栈空间分析所示：
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{r|c|}
+                \cline{2-2}
+                old \verb|%rsp| $\to$ &  \\ \cline{2-2} 
+                & \verb|%rbp| \\ \cline{2-2} 
+                new \verb|%rsp| $\to$ & \verb|%rbx| \\ \cline{2-2} 
+            \end{tabular}
+        \end{table}
+        所以我们知道第一个空填 \verb|mov %rbp, -0x8(%rsp)|，第二个空填 \verb|mov (%rsp), %rbx|。
+
+        下面的分析主要是为了补全 C 语言代码。紧接着确定 \verb|m > 0| 的测试之后，\verb|n, m| 分别转入了 \verb|%ebp, %ebx| 中。若 \verb|m > 0| 不满足，会直接跳到 \verb|f+51| 并返回，注意 \verb|%eax| 一直是 0，所以这确实对应于 C 代码的最后一句。接下来的 \verb|f+24| 和 \verb|f+27| 又比较是否 \verb|n > 1|（所以 C 代码的一个空填此）。如果不满足，则跳转到 \verb|f+65|。这里 \verb|sete| 指令若 $\verb|n == 1|$ 则会将 \verb|%eax| 的低字节 \verb|%al| 设为 1，后面则进行零扩展，再跳到 \verb|f+51| 返回。这说明 \verb|else if| 句后面是 \verb|n == 1| 的判断。
+
+        最后确定中间的步骤。\verb|f+29| 处计算了 \verb|n - 1| 到 \verb|%rdi| 中并递归调用，说明返回了 \verb|f(n - 1, m)|。这个值接着在 \verb|f+37| 处和 \verb|%rbx| 存储的 \verb|m| 进行了 \verb|f(n - 1, m) + m - 1| 的算数运算，结果在 \verb|%ebx| 中。注意接下来复制 \verb|%ebx| 到 \verb|%eax| 并把 \verb|%ebx| 算术右移 31 位，相当于填满了 \verb|%ebx| 的符号位。我们知道指令 \verb|idiv| 的行为是这样，以 \verb|%ebx:%eax| 连接作为被除数，操作数作为除数，计算除法，商在 \verb|%eax| 中，余数在 \verb|%ebx| 中（这样的行为和计算机中除法器的实现方法有关，以后会学到）。于是这个填满符号位的操作相当于给 \verb|%eax| 作符号扩展。\verb|idiv| 之后的余数加 1 作为返回值返回了，因此递归主体的两空填写 \verb|int r = f(n - 1, m);|、\verb|return (r + m - 1) % n + 1|。
+
+        填写栈的分布依然是难点。首先我们知道，第一次 hit \verb|retq| 是在第一次遇到递归终止条件，也就是 \verb|f(4, 3) -> f(3, 3) -> f(2, 3) -> f(1, 3)| 的时候。其次划分栈帧，我们注意题目中给出的栈的增长间隔是 4（而不是 8），因此每次递归调用会产生高度 6 个空的栈帧（2 个是返回地址，都是 \verb|0x400505|，2 个保存 \verb|%rbp|，2 个保存 \verb|%rbx|）。再次注意题目中给出的栈指针是 \verb|..340|，而在返回前栈指针已经被加回去了，所以最后一个递归调用过程的栈帧在 \verb|..340| 的下面！根据汇编代码可以知道每次在栈上保存的就是\uwave{上次}调用的 \verb|n, m| 值。综上所述可很快填出栈的分布如下（注意小端法，低位填在低地址）。
+        \begin{compactdesc}
+            \item[\texttt{0x7fffffffe38c}] \verb|X|
+            \item[\texttt{0x7fffffffe388}] \verb|X|
+            \item[\texttt{0x7fffffffe384}] \verb|X|
+            \item[\texttt{0x7fffffffe380}] \verb|X|
+            \item[\texttt{0x7fffffffe37c}] \verb|X|
+            \item[\texttt{0x7fffffffe378}] \verb|X|
+            \item[\texttt{0x7fffffffe374}] \verb|0x0|
+            \item[\texttt{0x7fffffffe370}] \verb|0x400505|
+            \item[\texttt{0x7fffffffe36c}] \verb|0x0|
+            \item[\texttt{0x7fffffffe368}] \verb|0x4|
+            \item[\texttt{0x7fffffffe364}] \verb|0x0|
+            \item[\texttt{0x7fffffffe360}] \verb|0x3|
+            \item[\texttt{0x7fffffffe35c}] \verb|0x0|
+            \item[\texttt{0x7fffffffe358}] \verb|0x400505|
+            \item[\texttt{0x7fffffffe354}] \verb|0x0|
+            \item[\texttt{0x7fffffffe350}] \verb|0x3|
+            \item[\texttt{0x7fffffffe34c}] \verb|0x0|
+            \item[\texttt{0x7fffffffe348}] \verb|0x3|
+            \item[\texttt{0x7fffffffe344}] \verb|0x0|
+            \item[\texttt{0x7fffffffe340}] \verb|0x400505|
+            \item[\texttt{0x7fffffffe33c}] \verb|0x0|
+            \item[\texttt{0x7fffffffe338}] \verb|0x2|
+            \item[\texttt{0x7fffffffe334}] \verb|0x0|
+            \item[\texttt{0x7fffffffe330}] \verb|0x3|
+            \item[\texttt{0x7fffffffe32c}] \verb|X|
+            \item[\texttt{0x7fffffffe328}] \verb|X|
+            \item[\texttt{0x7fffffffe324}] \verb|X|
+            \item[\texttt{0x7fffffffe320}] \verb|X|
+        \end{compactdesc}
         \proy{2014} 阅读下面的汇编代码，根据汇编代码填写 C 代码中缺失的部分，然后描述该程序的功能。
         \begin{minted}[frame=single, fontsize=\small]{text}
         pushl    %ebp
