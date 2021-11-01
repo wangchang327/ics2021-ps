@@ -1,0 +1,93 @@
+\chapter{存储器层次结构}
+    \begin{summary}
+        \begin{compactitem}
+            \item 了解 SRAM、DRAM 等易失性存储器及其变种（如 DDR SDARM 等）的功能和历史；了解 PROM、EPROM 等非易失性存储器及其变种的功能和历史。
+            \item 知道传统旋转磁盘的结构相关概念和工作原理，会计算其存储容量和使用磁盘访问数据的延迟。了解固态硬盘的工作原理。
+            \item 了解计算机体系结构中总线的作用以及含总线的计算机基本结构。
+            \item 熟悉时间局部性和空间局部性的概念，会阅读程序判断局部性的概念。
+        \end{compactitem}
+    \end{summary}
+
+    \begin{problems}
+        \pro 对于下列描述，是 SRAM 更符合还是 DRAM 更符合，还是均符合？
+            \qn 访问速度更快
+            \qn 每比特需要的晶体管数目少
+            \qn 单位容量造价更便宜
+            \qn 常用作主存
+            \qn 需要定期刷新
+            \qn 断电后失去存储的信息
+            \qn 支持随机访问
+            \qn 一种变种是 SDRAM
+        \pro 下列存储器中，属于易失性存储介质的有：
+            \begin{choices}
+                \item DRAM
+                \item SRAM
+                \item ROM
+                \item 软盘
+                \item SSD
+                \item U 盘
+            \end{choices}
+        \pro 已知一个双面磁盘有 2 个盘片、10000 个柱面，每条磁道有 400 个扇区，每个扇区容量为 512 字节，则它的存储容量是 \rule{2.5cm}{0.25mm} GB。
+        \pro 已知一个磁盘的平均寻道时间为 \SI{6}{ms}，旋转速度为 \SI{7500}{RPM}，那么它的平均访问时间大约为 \rule{2.5cm}{0.25mm} ms。
+        \pro 已知一个磁盘每条磁道平均有 400 个扇区，旋转速度为 \SI{6000}{RPM}，那么它的平均传送时间大约为 \rule{2.5cm}{0.25mm} ms。
+        \pro 考虑如下程序：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    for (int i = 0; i < n; i++) {
+        B[i] = 0;
+        for (int j = 0; j < m; j++)
+            B[i] += A[i][j];
+    }
+        \end{minted}
+        判断下列说法的正确性。
+            \qn 对于数组 \verb|A| 的访问体现了时间局部性。
+            \qn 对于数组 \verb|A| 的访问体现了空间局部性。
+            \qn 对于数组 \verb|B| 的访问体现了时间局部性。
+            \qn 对于数组 \verb|B| 的访问体现了空间局部性。
+    \end{problems}
+
+\chapter{存储器层次结构{---}往年考题}
+    \begin{problems}
+        \proy{2018} 以下关于存储的叙述中，正确的是：
+        \begin{choices}
+            \item 由于基于 SRAM 的内存性能与 CPU 的性能有很大差距，因此现代计算机使用更快的基于 DRAM 的高速缓存，试图弥补 CPU 和内存间性能的差距。
+            \item SSD 相对于旋转磁盘而言具有更好的读性能，但是 SSD 写的速度通常比读的速度慢得多，而且 SSD 比旋转磁盘单位容量的价格更贵，此外 SSD 底层基于 EEPROM 的闪存会磨损。
+            \item 一个有 2 个盘片，10000 个柱面，每条磁道平均有 400 个扇区，每个扇区有 512 个字节的双面磁盘的容量为 \SI{8}{GB}。
+            \item 访问一个磁盘扇区的平均时间主要取决于寻道时间和旋转延迟，因此一个旋转速率为 \SI{6000}{RPM}、平均寻道时间为 \SI{9}{ms} 的磁盘的平均访问时间大约为 \SI{19}{ms}。
+        \end{choices}
+        \proy{2017} 以下计算机部件中，通常不用于存储器层次结构（Memory Hierarchy）的是：
+        \begin{choices}
+            \item 高速缓存
+            \item 内存
+            \item 硬盘
+            \item 优盘（U 盘）
+        \end{choices}
+        \proy{2017} 关于局部性（locality）的描述，正确的是：
+        \begin{choices}
+            \item 数据的时间局部性或数据空间局部性，在任何有意义的程序中都能体现。
+            \item 指令的时间局部性或数据空间局部性，在任何有意义的程序中都能体现。
+            \item 数据的时间局部性，在任何循环操作中都能体现。
+            \item 数据的空间局部性，在任何数组操作中都能体现。
+        \end{choices}
+        \proy{2016} 以下关于存储结构的讨论，哪个是正确的？
+        \begin{choices}
+            \item 增加额外一级存储，数据存取的延时一定不会下降。
+            \item 增加存储的容量，数据存取的延时一定不会下降。
+            \item 增加额外一级存储，数据存取的延时一定不会增加。
+            \item 以上选项都不正确。
+        \end{choices}
+        \proy{2016} 关于局部性（locality）的描述，不正确的是：
+        \begin{choices}
+            \item 循环通常具有很好的时间局部性。
+            \item 循环通常具有很好的空间局部性。
+            \item 数组通常具有很好的时间局部性。
+            \item 数组通常具有很好的空间局部性。
+        \end{choices}
+        \proy{2015} 下面关于存储器的说法，错误的是：
+        \begin{choices}
+            \item SDRAM 的速度比 FPM DRAM 快。
+            \item SDRAM 的 RAS 和 CAS 请求共享相同的地址引脚。
+            \item 磁盘的寻道时间和旋转延迟大致在一个数量级。
+            \item 固态硬盘的随机读写性能基本相当。
+        \end{choices}
+        \proy{2015} 某磁盘的旋转速率为 \SI{7200}{RPM}，每条磁道平均有 400 扇区，则一个扇区的平均传送时间为 \rule{2.5cm}{0.25mm} ms。
+    \end{problems}
