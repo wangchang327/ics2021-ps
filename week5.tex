@@ -1,0 +1,199 @@
+\chapter{链接}
+    \begin{summary}
+        \begin{compactitem}
+            \item 知道源代码编译为可执行文件的全过程，知道静态链接的概念，会正确书写含有多文件的代码的编译命令（顺序问题）。
+            \item 熟悉 Linux 下典型可执行文件格式 ELF 的各个部分，掌握符号表、局部符号、全局符号、强符号、弱符号等概念及其存储的区域。
+            \item 掌握符号解析的过程，会判断链接是否成功以及失败的原因。
+            \item 熟练掌握重定位的过程，会根据重定位条目来定位符号的相对引用和绝对引用。
+            \item 了解目标程序被加载到内存的过程，知道动态链接的概念及其和静态链接的区别和优劣，了解位置无关代码和库打桩的基本技术。
+        \end{compactitem}
+    \end{summary}
+
+    \begin{problems}
+        \pro 下图为一个典型的编译过程。将正确的过程填上，并补充缺失的拓展名。可供选择的过程有：汇编器 \verb|as|、预处理器 \verb|cpp|、编译器 \verb|cc1|。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{cc}
+                \texttt{\qquad \qquad main.c \qquad \qquad} & \texttt{\qquad \qquad \ lib.c \qquad \qquad} \\ \hline
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{} \\ \hline
+                \texttt{main.i} & \texttt{lib.i} \\ \hline
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{} \\ \hline
+                \verb|main.___| &  \\ \hline
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{} \\ \hline
+                \verb|main.___| & \verb|lib.___| \\ \cline{2-2} 
+                \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{创建静态库 \texttt{ar}} \\ \cline{2-2} 
+                & \verb|lib.___| \\ \hline
+                \multicolumn{2}{|c|}{链接器 \texttt{ld}} \\ \hline
+                \multicolumn{2}{c}{目标程序 \texttt{prog}}
+            \end{tabular}
+        \end{table}
+        \pro 判断下面关于静态链接的说法是否正确。
+            \qn 链接时，链接器会拷贝静态库（\verb|.a|）中的所有模块（\verb|.o|）。
+            \qn 链接时，链接器只会从每个模块（\verb|.o|）中拷贝出被用到的函数。
+            \qn 链接时，如果所有的输入文件都是 \verb|.o| 或 \verb|.c| 文件，那么任意交换输入文件的顺序，都不会影响链接是否成功。
+            \qn 链接时，通过合理地安排静态库和模块的顺序，每个静态库都可以在命令中出现至多一次。
+        \pro 有下面两个程序。将他们先分别编译为 \verb|.o| 文件，再链接为可执行文件。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    /* main.c */
+    #include <stdio.h>
+    __________A__________
+    int foo(int n) {
+        static int ans = 0;
+        ans = ans + x;
+        returnn + ans;
+    }
+    int bar(int n);
+    void op(void) { x = x + 1; }
+
+    int main() {
+        for (int i = 0; i < 3; i++) {
+            int a1 = foo(0);
+            int a2 = bar(0);
+            op();
+            printf("%d %d ", a1, a2);
+        } 
+        return 0;
+    }
+        \end{minted}
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    /* count.c */
+    __________B__________
+    int bar(int n) {
+        static int ans = 0;
+        ans = ans + x;
+        return n + ans;
+    }
+        \end{minted}
+        \qn 当 \verb|A| 处为 \verb|int x = 1;|，\verb|B| 处为 \verb|int x;| 时，完成下表。如果某个变量不在符号表中，那么在名字那一栏划 X；如果它在符号表中的名字含有随机数字，那么请用不同的四位数字区分多个不同的符号。对于局部符号，不需要填最后一栏。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|c|c|c|}
+                \hline
+                文件名 & 变量名 & 在符号表中的名字 & 是局部符号吗？ & 是强符号吗？ \\ \hline
+                \multirow{3}{*}{\texttt{main.c}} & \texttt{x} &  &  &  \\ \cline{2-5} 
+                & \texttt{bar} &  &  &  \\ \cline{2-5} 
+                & \texttt{ans} &  &  &  \\ \hline
+                \multirow{3}{*}{\texttt{count.c}} & \texttt{x} &  &  &  \\ \cline{2-5} 
+                & \texttt{bar} &  &  &  \\ \cline{2-5} 
+                & \texttt{ans} &  &  &  \\ \hline
+            \end{tabular}
+        \end{table}
+        程序能够链接成功吗？如果可以，程序的运行结果是什么？如果不可以，链接器报什么错？
+        \qn 当 \verb|A| 处为 \verb|static int x = 1;|，\verb|B| 处为 \verb|static int x = 1;| 时，完成下表。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|c|c|c|}
+                \hline
+                文件名 & 变量名 & 在符号表中的名字 & 是局部符号吗？ & 是强符号吗？ \\ \hline
+                \multirow{3}{*}{\texttt{main.c}} & \texttt{x} &  &  &  \\ \cline{2-5} 
+                & \texttt{bar} &  &  &  \\ \cline{2-5} 
+                & \texttt{ans} &  &  &  \\ \hline
+                \multirow{3}{*}{\texttt{count.c}} & \texttt{x} &  &  &  \\ \cline{2-5} 
+                & \texttt{bar} &  &  &  \\ \cline{2-5} 
+                & \texttt{ans} &  &  &  \\ \hline
+            \end{tabular}
+        \end{table}
+        程序能够链接成功吗？如果可以，程序的运行结果是什么？如果不可以，链接器报什么错？
+        \qn 当 \verb|A| 处为 \verb|int x = 1;|，\verb|B| 处为 \verb|int x = 1;| 时。程序能够链接成功吗？如果可以，程序的运行结果是什么？如果不可以，链接器报什么错？
+        \pro 有如下 C 代码：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    #define k 100
+    long foo(long n);
+    long bar(long n) {
+        static long ans = 0;
+        long acc = 0;
+        for (int i = 0; i < n; i++) {
+            ans += i;
+            acc += ans * n;
+        }
+        return ans + acc;
+    } 
+    long t;
+    static long y;
+    extern long z;
+    int main() {
+        long x;
+        myScanf("%ld%ld%ld", &x, &y, &z);
+        myPrintf("%ld %ld\n", foo(x + y + t), bar(z + k));
+        return 0;
+    }
+        \end{minted}
+        采用命令 \verb|gcc test.c –c –Og –no-pie -fno-pie| 与 \verb|readelf –a test.o > t.txt| 后得到解析文件。
+
+        \verb|t.txt| 中的部分节头部表信息如下：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|ccccc|}
+                \hline
+                号 & 名称 & 类型 & 地址 & 偏移量 \\
+                1 & .text & PROGBITS & 0000000000000000 & 00000040 \\
+                3 & .data & PROGBITS & 0000000000000000 & 000000ff \\
+                4 & .bss & NOBITS & 0000000000000000 & 00000100 \\
+                5 & .rodata.str1.1 & PROGBITS & 0000000000000000 & 00000100 \\
+                10 & .symtab & SYMTAB & 0000000000000000 & 00000190 \\ \hline
+            \end{tabular}
+        \end{table}
+
+        \verb|t.txt| 中的部分符号表如下：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{cccccccc}
+                \multicolumn{8}{l}{Symbol table '.symtab' contains ?? entries:} \\ \hline
+                \multicolumn{1}{|c}{Num} & Value & Size & Type & Bind & Vis & Ndx & \multicolumn{1}{c|}{Name} \\
+                \multicolumn{1}{|c}{5} & 0000000000000000 &  & OBJECT &  & DEFAULT &  & \multicolumn{1}{c|}{ans.1797} \\
+                \multicolumn{1}{|c}{7} & 0000000000000008 &  & OBJECT &  & DEFAULT &  & \multicolumn{1}{c|}{y} \\
+                \multicolumn{1}{|c}{11} & 0000000000000000 & 52 & FUNC &  & DEFAULT &  & \multicolumn{1}{c|}{bar} \\
+                \multicolumn{1}{|c}{12} & 0000000000000034 & 139 & FUNC & GLOBAL & DEFAULT &  & \multicolumn{1}{c|}{main} \\
+                \multicolumn{1}{|c}{13} & 0000000000000000 & 0 & NOTYPE &  & DEFAULT &  & \multicolumn{1}{c|}{z} \\
+                \multicolumn{1}{|c}{15} & 0000000000000008 &  & OBJECT &  & DEFAULT &  & \multicolumn{1}{c|}{t} \\ \hline
+            \end{tabular}
+        \end{table}
+        \qn 除了上述已经列出的符号外，判断下列名字是否在符号表中。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|c|c|c|}
+                \hline
+                名称 & k & ans & acc & foo & y.???? & x & n \\ \hline
+                是否出现 & {\qquad \qquad} & {\qquad \qquad} & {\qquad \qquad} & {\qquad \qquad} & {\qquad \qquad} & {\qquad \qquad} & {\qquad \qquad} \\ \hline
+            \end{tabular}
+        \end{table}
+        \qn 补全上述符号表中漏掉的信息。其中 \verb|Bind| 可以是 \verb|LOCAL| 或者 \verb|GLOBAL|，\verb|Ndx| 可以是表示节头标号的数字，也可以是 \verb|UND (undefined)| 或 \verb|COM (common)|。
+        \qn 字符串 \verb|"%ld %ld\n"| 位于哪个节中？
+        \qn 假设在全局区域定义 \verb|long A[1000000]|，那么在 \verb|test.o| 中，\verb|.bss| 节占用的空间为多少字节？
+        \qn 使用 \verb|objdump -dx test.o| 查看发现有如下的汇编代码：
+        \begin{minted}[frame=single, fontsize=\small]{text}
+    0000000000000000 <bar>: 
+        0: b9 00 00 00 00         mov    $0x0, %ecx
+    ... 
+    0000000000000034 <main>: 
+        34: 53                    push   %rbx
+    ... 
+        6b: e8 00 00 00 00        callq  70 <main+0x3c> 
+        6c: R_X86_64_PC32 bar-0x4 
+    ... 
+        90: bf 00 00 00 00        mov    $0x0,%edi 
+        91: R_X86_64_32 .rodata.str1.1+0xa 
+        \end{minted}
+        现在将若干个 \verb|.o| 文件链接成可执行文件 \verb|done|。假设链接器已经确定 \verb|test.o| 的 \verb|.text| 节在 \verb|done| 中的起始地址为 \verb|ADDR(.text) = 0x400517|。
+
+        \subqn 链接后，\verb|test.o| 中的 \verb|6b| 处的指令变为 \verb|done| 中如下的指令：
+        \begin{minted}[frame=single, fontsize=\small]{text}
+    ____________: e8 ___ ___ ___ ___         callq 400517 <bar>
+        \end{minted}
+        请补充以上五个空格（其中第一个空格是指令地址，之后四个空格是机器码）。
+        \subqn \verb|test.o| 中 \verb|90| 处的指令变为 \verb|done| 中如下的指令：
+        \begin{minted}[frame=single, fontsize=\small]{text}
+    4005a7: bf 9e 06 40 00         mov $0x40069e, %edi
+        \end{minted}
+        则可执行文件 \verb|done| 中，\verb|.rodata.str1.1| 的起始地址为 \verb|0x|\rule{2.5cm}{0.25mm}。
+        \qn 对 \verb|done| 使用 \verb|objdump|，发现有如下的函数：
+        \begin{minted}[frame=single, fontsize=\small]{text}
+    0000000000400430 <_start>
+    000000000040054b <main>
+    0000000000600ff0 <__libc_start_main@GLIBC_2.2.5>
+        \end{minted}
+        则 \verb|done| 的入口点地址是 \verb|0x|\rule{2.5cm}{0.25mm}。
+    \end{problems}
