@@ -118,7 +118,7 @@
         return 0;
     }
         \end{minted}
-        采用命令 \verb|gcc test.c –c –Og –no-pie -fno-pie| 与 \verb|readelf –a test.o > t.txt| 后得到解析文件。
+        采用命令 \verb|gcc test.c -c -Og -no-pie -fno-pie| 与 \verb|readelf -a test.o > t.txt| 后得到解析文件。
 
         \verb|t.txt| 中的部分节头部表信息如下：
         \begin{table}[H]
