@@ -22,5 +22,5 @@
 *.lot
 *.md5
 *.auxlock
-/*.pdf
+ics2021-ps.pdf
 _minted-ics2021-ps/
