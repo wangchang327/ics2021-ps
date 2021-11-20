@@ -1,10 +1,10 @@
 \chapter{链接}
     \begin{summary}
         \begin{compactitem}
-            \item 知道源代码编译为可执行文件的全过程，知道静态链接和动态链接的概念，会正确书写含有多文件的代码的编译命令（顺序问题）。
+            \item 知道源代码编译为可执行文件的全过程，知道静态链接和动态链接的概念，会正确书写含有多文件的代码的编译命令（静态库的顺序问题）。
             \item 熟悉 Linux 下典型目标文件格式 ELF 的各个部分，掌握符号表、局部符号、全局符号、强符号、弱符号等概念及其存储的区域。
             \item 掌握符号解析的过程，会判断链接是否成功以及失败的原因。
-            \item 熟练掌握重定位的过程，会根据重定位条目来定位符号的相对引用和绝对引用。
+            \item 熟练掌握重定位的条件和过程，会根据重定位条目计算相对引用和绝对引用。
             \item 了解目标程序被加载到内存的过程，知道动态链接的概念及其和静态链接的区别和优劣，了解位置无关代码和库打桩的基本技术。
         \end{compactitem}
     \end{summary}
@@ -33,6 +33,7 @@
             \qn 链接时，链接器只会从每个模块（\verb|.o|）中拷贝出被用到的函数。
             \qn 链接时，如果所有的输入文件都是 \verb|.o| 或 \verb|.c| 文件，那么任意交换输入文件的顺序，都不会影响链接是否成功。
             \qn 链接时，通过合理地安排静态库和模块的顺序，每个静态库都可以在命令中出现至多一次。
+        \sol (1)错误，处理静态库只会拷贝被用到的模块，特别地，只会解析当前用到的符号，因此其顺序很重要。(2)错误，对于模块文件，会把所有函数都拷贝，因此其顺序一般不重要。(3)正确，参见(2)的分析。(4)错误，例子可以参看书中练习 7.3 的 C。事实上，如果引用成环的话，至少有一个静态库要写两次。
         \pro 有下面两个程序。将他们先分别编译为 \verb|.o| 文件，再链接为可执行文件。
         \begin{minted}[frame=single, fontsize=\small]{c}
     /* main.c */
@@ -96,6 +97,45 @@
         \end{table}
         程序能够链接成功吗？如果可以，程序的运行结果是什么？如果不可以，链接器报什么错？
         \qn 当 \verb|A| 处为 \verb|int x = 1;|，\verb|B| 处为 \verb|int x = 1;| 时。程序能够链接成功吗？如果可以，程序的运行结果是什么？如果不可以，链接器报什么错？
+        \sol 第一问。对于 \verb|x|，它是全局符号，在 \verb|main.c| 中初始化了，为强符号，而在 \verb|count.c| 中则为弱符号。\verb|bar| 是强符号，但在 \verb|main.c| 中只是声明而不是定义，因此严格来说不能谈强弱，但一定要谈则认为是弱符号。\verb|ans| 在两个模块中均为过程中的静态变量，因此都要用随机数字进行区分；因为它是局部符号，所以无强弱符号的区分。答案为：
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|c|c|c|}
+                \hline
+                文件名 & 变量名 & 在符号表中的名字 & 是局部符号吗？ & 是强符号吗？ \\ \hline
+                \multirow{3}{*}{\texttt{main.c}} & \texttt{x} & \verb|x| & 全局 & 强符号 \\ \cline{2-5} 
+                & \texttt{bar} & \verb|bar| & 全局 & 弱符号 \\ \cline{2-5} 
+                & \texttt{ans} & \verb|ans.114| & 局部 & 不填 \\ \hline
+                \multirow{3}{*}{\texttt{count.c}} & \texttt{x} & \verb|x| & 全局 & 弱符号 \\ \cline{2-5} 
+                & \texttt{bar} & \verb|bar| & 全局 & 强符号 \\ \cline{2-5} 
+                & \texttt{ans} & \verb|ans.514| & 局部 & 不填 \\ \hline
+            \end{tabular}
+        \end{table}
+        阅读程序可知，代码的工作是维护两个累加器，一个是 \verb|foo| 中的，一个是 \verb|bar| 中的，每次 \verb|x| 都会加一。注意链接时选用强符号，所以两个模块共用同一个初始化为 1 的 \verb|x|，从而两个 \verb|a1, a2| 输出相同，答案为 \verb|1, 1, 3, 3, 6, 6|。
+
+        第二问类似，但是 \verb|x| 都是各模块中过程外的静态变量，对于编译器来说，过程外静态变量不需要区分，因此此时 \verb|x| 无需加随机数字，其他都和上一问一样。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|c|c|c|}
+                \hline
+                文件名 & 变量名 & 在符号表中的名字 & 是局部符号吗？ & 是强符号吗？ \\ \hline
+                \multirow{3}{*}{\texttt{main.c}} & \texttt{x} & \verb|x| & 局部 & 不填 \\ \cline{2-5} 
+                & \texttt{bar} & \verb|bar| & 全局 & 弱符号 \\ \cline{2-5} 
+                & \texttt{ans} & \verb|ans.114| & 局部 & 不填 \\ \hline
+                \multirow{3}{*}{\texttt{count.c}} & \texttt{x} & \verb|x| & 局部 & 不填 \\ \cline{2-5} 
+                & \texttt{bar} & \verb|bar| & 全局 & 强符号 \\ \cline{2-5} 
+                & \texttt{ans} & \verb|ans.514| & 局部 & 不填 \\ \hline
+            \end{tabular}
+        \end{table}
+        对于这一情形，两个模块使用的 \verb|x| 是独立的了，所以唯一的变化时 \verb|x| 的自增 \verb|op| 只作用于 \verb|main.c| 中的 \verb|x|，所以答案为 \verb|1, 1, 3, 2, 6, 3|。第三问显然会发生链接错误，因为有两个强符号。
+        \pro 在链接时，哪类符号一定不需要重定位？
+        \begin{choices}
+            \item 不同 C 语言源文件中定义的函数
+            \item 同一 C 语言源文件中定义的全局变量
+            \item 同一函数中定义的不带 \verb|static| 的变量
+            \item 同一函数中定义的带 \verb|static| 的变量
+        \end{choices}
+        \sol C，即局部变量。请注意这里说的是一定不需要，有一些非局部变量或者指令是可能需要重定位也可能不需要重定位的。当然，此题的说法不妥，重定位都是针对一条引用，而不是针对符号本身。说一个符号不需要重定位，应当是指其任何引用都不可能要重定位。
         \pro 有如下 C 代码：
         \begin{minted}[frame=single, fontsize=\small]{c}
     #define k 100
@@ -197,15 +237,532 @@
     0000000000600ff0 <__libc_start_main@GLIBC_2.2.5>
         \end{minted}
         则 \verb|done| 的入口点地址是 \verb|0x|\rule{2.5cm}{0.25mm}。
+        \sol 第一问。\verb|k| 是宏定义，在预处理过后就会被展开，不会出现；\verb|ans| 是一个过程内静态变量，因此符号表中出现的是形如 \verb|ans.????| 的符号，\verb|ans| 不会出现，类似可知 \verb|y.????| 不会出现，因为 \verb|y| 是过程外静态变量；局部变量 \verb|acc, x, n| 都不会出现；\verb|foo| 是全局符号，需要出现。答案为：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|c|c|c|}
+                \hline
+                名称 & k & ans & acc & foo & y.???? & x & n \\ \hline
+                是否出现 & 否 & 否 & 否 & 是 & 否 & 否 & 否 \\ \hline
+            \end{tabular}
+        \end{table}
+
+        第二问。\verb|Size| 栏就是填数据大小，是容易的。对于 \verb|ans| 和 \verb|y|，它们都是静态变量，因此都是局部符号，进入 \verb|.bss| 节（即 4）。对于 \verb|z|，它是一个外部变量，只有声明而没有定义，所以是全局符号且归入 \verb|UND| 伪节。对于 \verb|t|，它是一个未初始化的全局变量，只有这类符号会进入 \verb|COM| 伪节，它当然是全局符号。\verb|bar, main| 都是全局函数，是全局符号，属于代码，所以进入 \verb|.text| 节（即 1）。答案如下：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{cccccccc}
+                \hline
+                \multicolumn{1}{|c}{Num} & Value & Size & Type & Bind & Vis & Ndx & \multicolumn{1}{c|}{Name} \\
+                \multicolumn{1}{|c}{5} & 0000000000000000 & 8 & OBJECT & LOCAL & DEFAULT & 4 & \multicolumn{1}{c|}{ans.1797} \\
+                \multicolumn{1}{|c}{7} & 0000000000000008 & 8 & OBJECT & LOCAL & DEFAULT & 4 & \multicolumn{1}{c|}{y} \\
+                \multicolumn{1}{|c}{11} & 0000000000000000 & 52 & FUNC & GLOBAL & DEFAULT & 1 & \multicolumn{1}{c|}{bar} \\
+                \multicolumn{1}{|c}{12} & 0000000000000034 & 139 & FUNC & GLOBAL & DEFAULT & 1 & \multicolumn{1}{c|}{main} \\
+                \multicolumn{1}{|c}{13} & 0000000000000000 & 0 & NOTYPE & GLOBAL & DEFAULT & UND & \multicolumn{1}{c|}{z} \\
+                \multicolumn{1}{|c}{15} & 0000000000000008 & 8 & OBJECT & GLOBAL & DEFAULT & COM & \multicolumn{1}{c|}{t} \\ \hline
+            \end{tabular}
+        \end{table}
+
+        第三问和第四问都是简单概念。诸如 \verb|printf| 中的常量字符串进入 \verb|.rodata| 节，而 \verb|.bss| 不占空间，因此为 0 字节。
+
+        第五问为重定位，通用方法为：
+        \begin{compactdesc}
+            \item[相对] 计算当前引用的绝对地址（基址加上 \verb|offset|），知道目标位置的绝对地址，后者减前者计算相对地址，然后补上 \verb|addend| 得到答案。
+            \item[绝对] 直接用目标的绝对地址并补上 \verb|addend| 即可。
+        \end{compactdesc}
+        根据题给信息，该重定位条目为相对引用类型，\verb|offset| 为 \verb|6c|，\verb|addend| 为 \verb|-0x4|。又代码段起始地址为 \verb|0x400517|，所以当前位置是 \verb|0x400517 + 0x6c|，目标地址刚好是 \verb|.text| 开头的 \verb|bar|，所以结果为 \verb|0x400517 - (0x400517 + 0x6c) + (-0x4)|，其绝对值是 \verb|0x70|，转换为负数得到 \verb|1001 0000|，所以符号扩展得到 \verb|0xffffff90|。而此时 \verb|callq| 的地址是 \verb|0x400517 + 6b = 0x400582|，所以答案填
+        \begin{minted}[frame=single, fontsize=\small]{text}
+    0x400582: e8 90 ff ff ff         callq 400517 <bar>
+        \end{minted}
+        第六问绝对重定位比较简单，由题意得到 \verb|.rodata.str.1.1+0xa| 的地址是 \verb|0x40069e|，所以其起始地址是 \verb|0x400694|。
+
+        第七问考察程序加载，先执行的是 \verb|_start| 函数，所以地址为 \verb|0x400430|。
     \end{problems}
 
 \chapter{链接{---}往年考题}
     \begin{problems}
-        \pro 下列关于链接技术的描述，错误的是：
+        \proy{2018} 下列关于链接技术的描述，错误的是：
         \begin{choices}
             \item 在 Linux 系统中，对程序中全局符号的不当定义，会在链接时刻进行报告。
             \item 在使用 Linux 的默认链接器时，如果有多个弱符号同名，那么会从这些弱符号中任选一个占用空间最大的符号。
             \item 编译时打桩需要能够访问程序的源代码，链接时打桩需要能够访问程序的可重定位对象文件，运行时打桩只需要能访问可执行目标文件。
             \item 链接器的两个主要任务是符号解析和重定位。符号解析将目标文件中的全局符号都绑定到唯一的定义，重定位确定每个符号的最终内存地址，并修改对那些目标的引用。
         \end{choices}
+        \sol A，可能不报告，例如多个弱符号任选一个，于是有造成非预期行为或者运行时错误的风险。
+        \proy{2018} 本题基于下列 \verb|m.c| 及 \verb|foo.c| 文件所编译生成的 \verb|m.o| 和 \verb|foo.o|，编译未加优化选项。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    // m.c
+    void foo();
+    int buf[2] = {1, 2};
+    int main() {
+        foo();
+        return 0;
+    }
+    // foo.c
+    extern int buf[];
+    int *bufp0 = &buf[0];
+    int *bufp1;
+    void foo() {
+        static int count = 0;
+        int temp;
+        bufp1 = &buf[1];
+        temp = *bufp0;
+        *bufp0 = *bufp1;
+        *bufp1 = temp;
+        count++;
+    }
+        \end{minted}
+        \qn 对于每个 \verb|foo.o| 中定义和引用的符号，请用“是”或“否”指出它是否在模块 \verb|foo.o| 的 \verb|.symtab| 节中有符号表条目。如果存在条目，则请指出定义该符号的模块（\verb|foo.o| 或 \verb|m.o|）、符号类型（局部、全局或外部）以及它在模块中所处的节；如果不存在条目，则请将该行后继空白处标记为“/”。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|}
+                \hline
+                符号 & 是否为 .symtab 条目 & 符号类型 & 定义符号的模块 & 节 \\ \hline
+                bufp0 & 是 & 全局 & foo.o & .data \\ \hline
+                buf &  &  &  &  \\ \hline
+                bufp1 &  &  &  &  \\ \hline
+                foo &  &  &  &  \\ \hline
+                temp &  &  &  &  \\ \hline
+                count &  &  &  &  \\ \hline
+            \end{tabular}
+        \end{table}
+        \begin{table}[H]
+            \tt
+            \scriptsize
+            \centering
+            \begin{tabular}{ll|ll|}
+                \hline
+                \multicolumn{1}{|l}{0000... <main>:} &  & 0000...fe8 <main>: &  \\
+                \multicolumn{1}{|l}{55} & push \%rbp & fe8: 55 & push \%rbp \\
+                \multicolumn{1}{|l}{48 89 e5} & mov \%rsp, \%rbp & fe9: 48 89 e5 & mov \%rsp, \%rbp \\
+                \multicolumn{1}{|l}{b8 00 00 00 00} & mov 0x0, \%eax & fec: b8 00 00 00 00 & mov 0x0, \%eax \\
+                \multicolumn{1}{|l}{e8 00 00 00 00} & callq e <main+0xe> & ff1: e8 \circled{1} & callq 1000 <foo> \\
+                \multicolumn{1}{|l}{b8 00 00 00 00} & mov 0x0, \%eax & fe6: b8 00 00 00 00 & mov 0x0, \%eax \\
+                \multicolumn{1}{|l}{5d} & pop \%rbp & ffb: 5d & pop \%rbp \\
+                \multicolumn{1}{|l}{c3} & retq & ffc: c3 & retq \\
+                \multicolumn{1}{|l}{} &  & \multicolumn{2}{c|}{...略去和答题无关的部分信息\ ...} \\ \hline
+                \multicolumn{1}{|l}{0000... <foo>:} &  & 0000...1000 <foo>: &  \\
+                \multicolumn{1}{|l}{55} & push \%rbp & 1000: 55 & push \%rbp \\
+                \multicolumn{1}{|l}{48 89 e5} & mov \%rsp, \%rbp & 1001: 48 89 e5 & mov \%rsp, \%rbp \\
+                \multicolumn{2}{|l|}{48 c7 05 00 00 00 00 00 00 00 00} & \multicolumn{2}{l|}{1004: 48 c7 05 ...} \\
+                \multicolumn{1}{|r}{} & movq 0x0, 0x0(\%rip) & \multicolumn{1}{r}{} & movq \circled{2}, \circled{3}(\%rip) \\
+                \multicolumn{2}{|l|}{48 8b 05 00 00 00 00 00 00 00 00} & \multicolumn{2}{l|}{100f: 48 8b 05 ...} \\
+                \multicolumn{1}{|r}{} & movq 0x0(\%rip), \%rax & \multicolumn{1}{r}{} & movq \_\_\_(\%rip), \%rax \\
+                \multicolumn{1}{|l}{8b 00} & mov (\%rax), \%eax & 1016: 8b 00 & mov (\%rax), \%eax \\
+                \multicolumn{1}{|l}{89 45 fc} & mov \%eax, -0x4(\%rbp) & 1018: 89 45 fc & mov \%eax, -0x4(\%rbp) \\
+                \multicolumn{2}{|l|}{48 8b 05 00 00 00 00 00 00 00 00} & \multicolumn{2}{l|}{101b: 48 8b 05 ...} \\
+                \multicolumn{1}{|r}{} & \multicolumn{1}{r|}{movq 0x0(\%rip), \%rax} & \multicolumn{1}{r}{} & movq \circled{4}(\%rip), \%rax \\
+                \multicolumn{2}{|l|}{48 8b 15 00 00 00 00 00 00 00 00} & \multicolumn{2}{l|}{1022: 48 8b 15 ...} \\
+                \multicolumn{1}{|r}{} & movq 0x0(\%rip), \%rdx & \multicolumn{1}{r}{} & movq \_\_\_(\%rip), \%rdx \\
+                \multicolumn{1}{|l}{8b 12} & mov (\%rdx), \%edx & 1029: 8b 12 & mov (\%rdx), \%edx \\
+                \multicolumn{1}{|l}{89 10} & mov \%edx, (\%rax) & 102b: 89 10 & mov \%edx, (\%rax) \\
+                \multicolumn{2}{|l|}{48 8b 05 00 00 00 00 00 00 00 00} & \multicolumn{2}{l|}{102d: 48 8b 05 ...} \\
+                \multicolumn{1}{|r}{} & movq 0x0(\%rip), \%rax &  & movq \_\_\_(\%rip), \%rax \\
+                \multicolumn{1}{|l}{8b 55 fc} & mov -0x4(\%rbp), \%edx & 1034: 8b 55 fc & mov -0x4(\%rbp), \%edx \\
+                \multicolumn{1}{|l}{89 10} & mov \%edx, (\%rax) & 1037: 89 10 & mov \%edx, (\%rax) \\
+                \multicolumn{2}{|l|}{8b 05 00 00 00 00 00 00 00 00} & \multicolumn{2}{l|}{1039: 8b 05 ...} \\
+                \multicolumn{1}{|r}{} & movq 0x0(\%rip), \%eax & \multicolumn{1}{r}{} & movq \_\_\_(\%rip), \%eax \\
+                \multicolumn{1}{|l}{83 c0 01} & add 0x1, \%eax & 103f: 83 c0 01 & add 0x1, \%eax \\
+                \multicolumn{2}{|l|}{89 05 00 00 00 00 00 00 00 00} & \multicolumn{2}{l|}{1042: 89 05 ...} \\
+                \multicolumn{1}{|r}{} & mov \%eax, 0x0(\%rip) & \multicolumn{1}{r}{} & mov \%eax, \circled{5}(\%rip) \\
+                \multicolumn{1}{|l}{90} & nop & 1048: 90 & nop \\
+                \multicolumn{1}{|l}{5d} & pop \%rbp & 1049: 5d & pop \%rbp \\
+                \multicolumn{1}{|l}{c3} & retq & 1050: c3 & retq \\ \cline{1-2}
+                &  & \multicolumn{2}{c|}{...略去和答题无关的部分信息\ ...} \\
+                &  & 0000...2330 <buf>: &  \\
+                &  & \multicolumn{2}{c|}{...略去和答题无关的部分信息\ ...} \\
+                &  & 0000...2338 <bufp0>: &  \\
+                &  & \multicolumn{2}{c|}{...略去和答题无关的部分信息\ ...} \\
+                &  & 0000...3024 <count.1837>: &  \\
+                &  & \multicolumn{2}{c|}{...略去和答题无关的部分信息\ ...} \\
+                &  & 0000...3028 <bufp1>: &  \\ \cline{3-4} 
+            \end{tabular}
+        \end{table}
+        \qn 上图左边给出了 \verb|m.o| 和 \verb|foo.o| 的反汇编文件，右边给出了采用某个配置链接成可执行程序后再反汇编出来的文件。根据答题需要，其中的信息略有删减。图中对所涉及到的重定位条目用带圈数字或者省略的方式进行了标记，请根据下表所提供的重定位条目信息，计算相应的重定位引用值并填写下表（只需要填写有标号的重定位条目）。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|l|c|}
+                \hline
+                编号 & \multicolumn{1}{c|}{重定位条目信息} & {\qquad \qquad 应填入的重定位引用值 \qquad \qquad} \\ \hline
+                \circled{1} & \begin{tabular}[c]{@{}l@{}}r.offset = 0xa\\ r.symbol = ???\\ r.type = R\_X86\_64\_PC32\\ r.addend = -4\end{tabular} &  \\ \hline
+                \circled{2} & \begin{tabular}[c]{@{}l@{}}r.offset = 0xb\\ r.symbol = buf\\ r.type = R\_X86\_64\_32\\ r.addend = +4\end{tabular} &  \\ \hline
+                \circled{3} & \begin{tabular}[c]{@{}l@{}}r.offset = 0x7\\ r.symbol = bufp1\\ r.type = R\_X86\_64\_PC32\\ r.addend = -8\end{tabular} &  \\ \hline
+                \circled{4} & \begin{tabular}[c]{@{}l@{}}r.offset = 0x1e\\ r.symbol = bufp0\\ r.type = R\_X86\_64\_PC32\\ r.addend = -4\end{tabular} &  \\ \hline
+                \circled{5} & \begin{tabular}[c]{@{}l@{}}r.offset = 0x44\\ r.symbol = ???\\ r.type = R\_X86\_64\_PC32\\ r.addend = -4\end{tabular} &  \\ \hline
+            \end{tabular}
+        \end{table}
+        \proy{2016} C 源文件 \verb|f1.c| 和 \verb|f2.c| 的代码分别如下所示，编译链接生成可执行文件后执行，输出结果为：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    // f1.c
+    #include <stdio.h>
+    static int var = 100;
+    int main(void) {
+        extern int var;
+        extern void f();
+        f();
+        printf("%d\n", var);
+        return 0;
+    }
+    // f2.c
+    int var = 200;
+    void f() { var++; }
+        \end{minted}
+        \begin{choices}
+            \item 100
+            \item 200
+            \item 201
+            \item 链接错误
+        \end{choices}
+        \proy{2016} C 源文件 \verb|m1.c| 和 \verb|m2.c| 的代码分别如下所示，
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    // m1.c
+    #include <stdio.h>
+    int a1;
+    int a2 = 2;
+    extern int a4;
+    void hello() {
+        printf("%p ", &a1);
+        printf("%p ", &a2);
+        printf("%p\n", &a4);
+    }
+    // m2.c
+    int a4 = 10 ;
+    int main() {
+        extern void hello();
+        hello();
+        return 0; 
+    }
+        \end{minted}
+        编译链接生成可执行文件后执行：\verb|$ gcc -o a.out m2.c m1.c; ./a.out|，其结果最可能为：
+        \begin{choices}
+            \item \verb|0x1083018, 0x108301c|
+            \item \verb|0x1083028, 0x1083024|
+            \item \verb|0x1083024, 0x1083028|
+            \item \verb|0x108301c, 0x1083018|
+        \end{choices}
+        \proy{2016} 在 x86-64 环境下，考虑如下 4 个文件（\verb|main.c, value.c, f1.c, f2.c|）：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    /* main.c */
+    #include <stdio.h>
+    extern void f_void_void();
+    extern int f_int_void();
+    void *f;
+    int main() {
+        int a = 1, b, c;
+
+        f = (void *)f_void_void;
+        ((void (*)(int))f)(a);
+        b = ((int (*)())f)();
+        printf("b = %d\n", b);
+
+        f = (void *)f_int_void;
+        ((void (*)())f)(a);
+        c = ((int (*)(int))f)(a);
+        printf("c = %d\n", c);
+        return 0;
+    }
+
+    /* value.c */
+    int BIG;
+
+    /* f1.c */
+    #include <stdio.h>
+    extern int BIG;
+    int small = 1;
+    void f_void_void() {
+        small += 1;
+        BIG += 1;
+        printf("small = %d, BIG = %d\n", small, BIG);
+    }
+
+    /* f2.c*/
+    #include <stdio.h>
+    extern int BIG;
+    static int small;
+    int f_int_void() {
+        small += 1;
+        BIG += 1;
+        printf("small = %d, BIG = %d\n", small, BIG);
+        return small + 1;
+    }
+        \end{minted}
+        使用命令 \verb|gcc -o main main.c f1.c f2.c value.c| 编译这四个文件，再使用 \verb|./main| 运行编译好的程序。
+        \qn 请在下表中给出程序中相关符号的属性（局部或全局、强符号或弱符号），其中不确定的请在表格中填 X。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|}
+                \hline
+                源文件 & 符号名 & {\qquad \qquad 局部/全局 \qquad \qquad} & {\qquad \qquad 强符号/弱符号 \qquad \qquad} \\ \hline
+                main.c & f &  &  \\ \hline
+                value.c & BIG &  &  \\ \hline
+                f1.c & small &  &  \\ \hline
+                f2.c & small &  &  \\ \hline
+            \end{tabular}
+        \end{table}
+        \qn 请补全程序运行的输出，对于不确定的空请填 X。
+        \begin{minted}[frame=single, fontsize=\small]{text}
+    small = _____, BIG = _____
+    small = _____, BIG = _____
+    b = _____
+    small = _____, BIG = _____
+    small = _____, BIG = _____
+    c = _____
+        \end{minted}
+        \proy{2015} 在 \verb|foo.c| 文件中包含如下代码：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int foo(void) {
+        int error = printf("You ran into a problem!\n");
+        return error;
+    }
+        \end{minted}
+        经过编译和链接之后，字符串 \verb|"You ran into a problem!\n"| 会出现在哪个段中？
+        \begin{choices}
+            \item \verb|.bss|
+            \item \verb|.data|
+            \item \verb|.rodata|
+            \item \verb|.text|
+        \end{choices}
+        \proy{2015} 在 x86-64 环境下，考虑如下 2 个文件 \verb|main.c| 和 \verb|foo.c|：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    /* main.c */
+    #include <stdio.h>
+    long long ________________________;
+    const char* foo(int);
+    int main(int argc, char **argv){
+        int n = 0;
+        sscanf(argv[1], "%d", &n);
+        printf(foo(n));
+        printf("%llx\n", a);
+    }
+
+    /* foo.c */
+    #include <stdio.h>
+    int a[2];
+    static void swapper(int num){
+        int swapper;
+        if (num % 2){
+            swapper = a[0];
+            a[0] = a[1];
+            a[1] = swapper;
+        }
+    }
+
+    const char* foo(int num){
+        static char out_buf[50];
+        swapper(num);
+        sprintf(out_buf, "%x\n", ________________________);
+        return out_buf;
+    }
+        \end{minted}
+        \qn 请在下表中给出程序中相关符号的属性（局部或全局、强符号或弱符号），其中不确定的请在表格中填 X。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|}
+                \hline
+                源文件 & 符号名 & {\qquad \qquad 局部/全局 \qquad \qquad} & {\qquad \qquad 强符号/弱符号 \qquad \qquad} \\ \hline
+                \multirow{2}{*}{main.c} & a &  &  \\ \cline{2-4} 
+                & foo &  &  \\ \hline
+                \multirow{3}{*}{foo.c} & a &  &  \\ \cline{2-4} 
+                & foo &  &  \\ \cline{2-4} 
+                & out\_buf &  &  \\ \hline
+            \end{tabular}
+        \end{table}
+        \qn 根据如下的程序运行结果，补全代码（在上面源代码的空白处填空即可）。
+        \begin{minted}[frame=single, fontsize=\small]{shell-session}
+    $ gcc -o test main.c foo.c
+    $ ./test 1
+    bffedead
+    cafebffedeadbeef
+    
+    $ ./test 2
+    beefcafe
+    deadbeefcafebffe
+        \end{minted}
+        \qn 现在有一位程序员要为这个程序编写头文件。假设新的头文件名称为 \verb|foo.h|， 内容如下：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    extern long long a;
+    extern char *foo(int);
+        \end{minted}
+        然后在 \verb|main.c| 和 \verb|foo.c| 中分别引用该头文件，请问编译链接能通过吗？说明理由。
+        \proy{2014} 下列关于静态库链接的描述中，错误的是：
+        \begin{choices}
+            \item 链接时，链接器只拷贝静态库中被程序引用的目标模块。
+            \item 使用库的一般准则是将它们放在命令行的结尾。
+            \item 如果库不是相互独立的，那么它们必须排序。
+            \item 每个库在命令行只须出现一次即可。
+        \end{choices}
+        \proy{2014} 已知有源文件 \verb|foo.c|，在该文件中的函数外，如果添加语句
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    static int count = 0xdeadbeef;
+        \end{minted}
+        那么它在编译为 \verb|foo.o| 后，会影响到 ELF 可重定位目标文件中的除 \verb|.text| 以外的哪些 section？
+        \begin{choices}
+            \item \verb|.rodata|
+            \item \verb|.data, .symtab,|
+            \item \verb|.data, .symtab, .rel.data|
+            \item \verb|.rodata, .symtab, .rel.data|
+        \end{choices}
+        \sol B，显然初始化的静态变量要出现在 \verb|.data| 中，符号表自然也要修改。但注意不要误解了 \verb|.rel.data| 的含义，这里 \verb|.rel.data| 是不会发生变化的，因为 \verb|count| 初始化时，不需要引用别的非局部变量的地址，换言之它作为一个数据，初始化时不涉及重定位问题。别的位置引用它可能涉及重定位问题，但那是 \verb|.rel.text| 的事情。另一方面，如果题目改为 \verb|static int *count = &x;|，其中 \verb|x| 为一个全局变量，那么 \verb|.rel.data| 是会发生改变的。或者，再加一条 \verb|int y = count;|，那么 \verb|.rel.data| 也会改变，但这个条目对应的是 \verb|y|。\verb|.rel.text| 也不会发生变化，除非增加一条引用 \verb|count| 的指令，例如 \verb|count = 3;|，那么这条指令需要重定位，会在 \verb|.rel.text| 中对应重定位条目。原则上 \verb|.strtab| 也会发生改变（但我们一般不考虑这个）。
+        \proy{2014} 考虑如下 3 个文件：\verb|main.c|、\verb|fib.c| 和 \verb|bignat.c|：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    /* main.c */
+    void fib (int n);
+    int main (int argc, char** argv) {
+        int n = 0;
+        sscanf(argv[1], "%d", &n);
+        fib(n);
+    }
+
+    /* fib.c */
+    #define N 16
+    static unsigned int ring[3][N];
+
+    static void print_bignat(unsigned int* a) {
+        int i;
+        for (i = N-1; i >= 0; i--)
+        printf("%u ", a[i]); /* print a[i] as unsigned int */
+        printf("\n");
+    }
+
+    void fib (int n) {
+        int i, carry;
+        from_int(N, 0, ring[0]); /* fib(0) = 0 */
+        from_int(N, 1, ring[1]); /* fib(1) = 1 */
+        for (i = 0; i <= n - 2; i++) {
+            carry = plus(N, ring[i % 3],
+                                    ring[(i + 1) % 3], ring[(i + 2) % 3]);
+            if (carry) {
+                printf("Overflow at fib(%d)\n", i + 2);
+                exit(0);
+            }
+        }
+        print_bignat(ring[n%3]);
+    }
+        \end{minted}
+        另外，假设在文件 \verb|bignat.c| 中定义了如下两个函数 \verb|plus| 和 \verb|from_int|（定义的具体内容略）：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int plus (int n, unsigned int* a, unsigned int* b, unsigned int* c);
+    void from_int (int n, unsigned int k, unsigned int* a);
+        \end{minted}
+        \qn 请在下表中给出程序中相关符号的属性（局部或全局、强符号或弱符号），其中不确定的请在表格中填 X。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|}
+                \hline
+                源文件 & 符号名 & {\qquad \qquad 局部/全局 \qquad \qquad} & {\qquad \qquad 强符号/弱符号 \qquad \qquad} \\ \hline
+                \multirow{2}{*}{main.c} & fib &  &  \\ \cline{2-4} 
+                & main &  &  \\ \hline
+                \multirow{3}{*}{foo.c} & ring &  &  \\ \cline{2-4} 
+                & fib &  &  \\ \cline{2-4} 
+                & plus &  &  \\ \hline
+            \end{tabular}
+        \end{table}
+        \qn 假设文件 \verb|bignat.c| 被编译为一个静态库 \verb|bignat.a|，对于如下的 \verb|gcc| 调用，会得到什么样的结果？请用下面的 A、B、C 三个选项填空。
+        \begin{choices}
+            \item 编译和链接都正确
+            \item 链接失败（原因是包含未定义的引用）
+            \item 链接失败（原因是包含重复定义）
+        \end{choices}
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|}
+                \hline
+                命令 & {\qquad \qquad 结果（填选项）\qquad \qquad} \\ \hline
+                gcc -o fib main.c fib.c bignat.a &  \\ \hline
+                gcc -o fib bignat.a main.c fib.c &  \\ \hline
+                gcc -o fib fib.c main.c bignat.a &  \\ \hline
+            \end{tabular}
+        \end{table}
+        \qn 若在 \verb|fib.c| 中，程序员在声明变量 \verb|ring| 时把它写成了 \verb|static int ring[3][N];|，会不会影响这些文件的编译、链接和运行结果？说明理由。
+        \proy{2013} 下列程序运行的结果是什么？
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    /* main.c */
+    int i = 0;
+    int main() {
+        foo();
+        return 0;
+    }
+    
+    /* foo.c */
+    int i = 1;
+    void foo() { printf("%d", i); }
+        \end{minted}
+        \begin{choices}
+            \item 编译错误
+            \item 链接错误
+            \item 段错误
+            \item 有时打印输出 1，有时打印输出 0
+        \end{choices}
+        \proy{2013} 考虑如下两个程序 \verb|fact1.c| 和 \verb|fact.c|：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    /* fact1.c */
+    #define MAXNUM 12
+    int table[MAXNUM];
+    int fact(int n);
+    int main(int argc, char **argv) {
+        int n;
+        table[0] = 0;
+        table[1] = 1;
+        if (argc == 1) {
+            printf("Error: missing argument\n");
+            exit(0);
+        }
+        argv++;
+        if (sscanf(*argv, "%d", &n) != 1 || n < 0 || n >= MAXNUM) {
+            printf ("Error: %s not an int or out of range\n", *argv);
+            exit (0);
+        }
+        printf("fact(%d) = %d\n", n, fact(n));
+    }
+
+    /* fact2.c */
+    int* table;
+    int fact(int n) {
+        static int num = 2;
+        if (n >= num) {
+            int i = num;
+            while (i <= n) {
+                table[i] = table[i-1] * i;
+                i++;
+            }
+            num = i;
+        }
+        return table[n];
+    }
+        \end{minted}
+        \qn 请在下表中给出程序中相关符号的属性（局部符号、强全局符号或弱全局符号），并给出它们在链接后 ELF 文件中所属的 section 名，其中不确定的请在表格中填 X。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|}
+                \hline
+                源文件 & 符号名 & {\qquad \qquad 属性 \qquad \qquad} & {\qquad \qquad ELF Section \qquad \qquad} \\ \hline
+                \multirow{3}{*}{fact1.c} & table &  &  \\ \cline{2-4} 
+                & fact &  &  \\ \cline{2-4} 
+                & num &  &  \\ \hline
+                \multirow{3}{*}{fact2.c} & table &  &  \\ \cline{2-4} 
+                & fact &  &  \\ \cline{2-4} 
+                & num &  &  \\ \hline
+            \end{tabular}
+        \end{table}
+        \qn 对上述两个文件进行链接之后，会对每个符号进行解析。请给出链接后下列符号分别被定义的模块（\verb|fact1.c/fact2.c|）。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|}
+                \hline
+                符号 & {\qquad \qquad 定义模块 \qquad \qquad} \\ \hline
+                table &  \\ \hline
+                fact &  \\ \hline
+                num &  \\ \hline
+            \end{tabular}
+        \end{table}
+        \qn 使用 \verb|gcc -o fact fact1.c fact2.c| 编译之后得到的可执行文件是否能够正确执行？说明理由。
     \end{problems}

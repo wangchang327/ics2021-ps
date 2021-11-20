@@ -173,6 +173,7 @@
     subq     %rbx, %rcx
     halt
             \end{minted}
+        \sol (1)为 2 个。第 5 个时钟周期结束以后，第 3 行代码才能开始译码。而原来第 3 行在第 4 个时钟周期开始译码，因此需要 2 周期停顿。(2)为 3 个。1、3 两行，2、3 两行均有数据相关。为了解决 1、3 两行的数据相关，需要额外的 2 个停顿；为了解决 2、3 两行的数据相关，需要额外 3 个停顿，因此需要将第 3 行的指令停顿 3 个周期。(3)为 6 个。1、2 两行的数据相关，需要额外 3 个停顿才能解决；2、3 两行的数据相关，需要额外 3 个停顿才能解决，因此需要将 2、3 行的指令各停顿 3 个周期，共 6 个周期。
         \pro 考虑 Y86-64 中的 \verb|ret| 与 \verb|jXX| 指令。\verb|jXX| 总是预测分支跳转。
             \qn 写出流水线需要处理 \verb|ret| 的条件（\verb|ret| 对应的常量为 \verb|IRET|）。
             \qn 写出发现上述条件以后，各阶段的流水线寄存器应设置的状态。
@@ -198,6 +199,39 @@
         1 : d_rvalA; # Use value read from register file
     ]; 
             \end{minted}
+        \sol 此题帮助你理解并记忆 \verb|pipe.hcl| 的实现。
+        
+        第一问。\verb|ret| 指令在通过 D、E、M 三个阶段时，流水线都有问题（都在取错指令）：其中 D 阶段开始取错指令，M 阶段行将结束时才能拿到返回地址，进行转发。所以应该填写 \verb|IRET in {D_icode, E_icode, M_icode}|。顺便一提，\verb|load-use| 的访存指令通过 E 时，前一阶
+        段的 D 才出现问题，而访存通过 M 之后才能转发信号。\verb|mispredicted jXX| 影响最短，E 时可能发现预测错误，E 结束之后也就能确定下一条指令位置了。所以 \verb|load-use| 的检测条件是 \verb|E_icode in { IMRMOVQ, IPOPQ }|，等等。
+
+        第二问为 \verb|ret| 的处理方法。它在 D 时，前面处于 F 阶段的指令已经出现了问题。那 F 阶段是 stall 还是bubble 呢？我们指出 F 阶段是不可以 bubble 的（Y86-64 实现中的 bubble 是将寄存器设为 reset 状态；F 仅仅是预测的 PC，无法模拟出 \verb|nop| 的状态）。这样我们令 F 阶段stall（反复地尝试取指），根据暂停规律\footnote{若某阶段是 stall，则下一阶段如无暂停必要就是 bubble，最后一个暂停后一定是 bubble；stall 的前一阶段一定是 stall。}，后一阶段应该是 bubble，其余 normal。这样一来 \verb|ret| 到 E、M 两个阶段时，都是让 F stall，D bubble，实际上连续产生了三个气泡。等 M 结束后，下一次取指才能正常，冒险结束。所以答案为（注意对于 \verb|ret|，这个表实际上是三个一样的表）
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|c|c|c|}
+                \hline
+                F & D & E & M & W \\ \hline
+                stall & bubble & normal & normal & normal \\ \hline
+            \end{tabular}
+        \end{table}
+
+        根据第一问的补充分析，第三问应该填 \verb|E_icode == IJXX && !e_Cnd|。第四问的处理：\verb|mispredicted jXX| 在 E 时，可能发现前两条指令都取错了。这时，我们需要让这两条指令消失，这两条指令即将（“下个瞬间”）分别进入 D、E 阶段，因此 D、E 设为 bubble，其他均为 normal。接下来正确指令的地址就知道了，冒险结束，F 可以正常进行。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|c|c|c|}
+                \hline
+                F & D & E & M & W \\ \hline
+                normal & bubble & bubble & normal & normal \\ \hline
+            \end{tabular}
+        \end{table}
+
+        最后一问基本由上面的分析可得（冒险最早什么时候结束）。对于 \verb|mispredicted jXX|，在 D 阶段，\verb|valP| 进入 \verb|d_valA|，在 E 结束以后就可以将正确的 PC（自增）转发，此时它在 \verb|M_valA| 中。对于 \verb|ret|，当 M 阶段结束以后，\verb|ret| 才能从内存中取出正确的地址，因此所需要的数据在 \verb|W_valM| 中。答案为
+        \begin{minted}[frame=single, fontsize=\small]{text}
+    int f_pc = [
+        M_icode == IJXX && !M_Cnd : M_valA;
+        W_icode == IRET : W_valM;
+        1 : F_predPC;
+    ];
+        \end{minted}
         \pro 有如下定义：
         \begin{minted}[frame=single, fontsize=\small]{c}
     // 以下都是局部变量
@@ -250,6 +284,7 @@
     temp = *q + *r
     *p += temp;
         \end{minted}
+        \sol (2)、(3)、(4)都不会，理由分别是浮点数加法运算没有结合律、\verb|foo| 函数可能有额外副作用和别名问题（例如若 \verb|p, q, r| 都指向同一个元素，那么两段代码行为不等价）。
         \pro 阅读下列 C 代码以及它编译生成的汇编语言。
         \begin{minted}[frame=single, fontsize=\small]{c}
     long func() {
@@ -278,6 +313,7 @@
         该程序每轮循环处理两个元素。在理想的机器上（执行单元足够多），每条指令消耗的时间周期如右边所示。
             \qn 当问号处为乘法时，$k=8$。此时这段程序的 CPE 为多少？
             \qn 当问号处为加法时，$k=1$。此时这段程序的 CPE 为多少？
+        \sol 循环中产生数据相关的寄存器为累加器 \verb|%rax| 和计数器 \verb|%rdx|。由于每次 \verb|%rax| 更新都需要等待一次较慢的加法或乘法，其所在的数据相关路径为关键路径，需要 $k$ 个周期。因为循环每次处理 2 个元素，从而数据相关给出的 CPE 下界分别是 4 和 0.5。
     \end{problems}
 
 \chapter{体系结构初步{---}往年考题}

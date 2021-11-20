@@ -18,6 +18,7 @@
             \qn 断电后失去存储的信息
             \qn 支持随机访问
             \qn 一种变种是 SDRAM
+        \sol SRAM 较快，复杂且贵，而 DRAM 相对反之。所以 1 属于 SRAM 而 2、3、4、5 都是 DRAM。6、7 都是 RAM 的属性，而 SDRAM 是一种 DRAM 的变种（SDRAM 是同步动态随机存取存储器的缩写）。
         \pro 下列存储器中，属于易失性存储介质的有：
             \begin{choices}
                 \item DRAM
@@ -27,9 +28,13 @@
                 \item SSD
                 \item U 盘
             \end{choices}
+        \sol AB，属于基本常识题。
         \pro 已知一个双面磁盘有 2 个盘片、10000 个柱面，每条磁道有 400 个扇区，每个扇区容量为 512 字节，则它的存储容量是 \rule{2.5cm}{0.25mm} GB。
+        \sol 因为是双面磁盘，所以计算 $2 \times 2 \times 10000 \times 400 \times 512 = \SI{8192000000}{Byte} = \SI{8.192}{GB}$，注意一般较慢的存储介质（例如磁盘容量、网速等）都是用十进制的数前缀。
         \pro 已知一个磁盘的平均寻道时间为 \SI{6}{ms}，旋转速度为 \SI{7500}{RPM}，那么它的平均访问时间大约为 \rule{2.5cm}{0.25mm} ms。
+        \sol 平均地看，需要旋转半周。又磁盘主要的延迟来源于寻道和旋转，所以结果为 $6 + 0.5 \times (60/7500 \times 1000) = \SI{10}{ms}$。
         \pro 已知一个磁盘每条磁道平均有 400 个扇区，旋转速度为 \SI{6000}{RPM}，那么它的平均传送时间大约为 \rule{2.5cm}{0.25mm} ms。
+        \sol 答案为 $60/6000 \text{ （转一圈的时间）} \times 1/400 \text{ （转过一个磁道的时间）} \times 1000 = \SI{0.025}{ms}$。
         \pro 考虑如下程序：
         \begin{minted}[frame=single, fontsize=\small]{c}
     for (int i = 0; i < n; i++) {
@@ -43,6 +48,65 @@
             \qn 对于数组 \verb|A| 的访问体现了空间局部性。
             \qn 对于数组 \verb|B| 的访问体现了时间局部性。
             \qn 对于数组 \verb|B| 的访问体现了空间局部性。
+        \sol 数组 \verb|A, B| 都存在逐元素访问的过程，因此都体现了空间局部性。但 \verb|B| 存在同一个元素反复访问而 \verb|A| 没有。因此 1 错误而 2、3、4 均正确。顺便一提：任何一个有意义的程序的指令都体现时间局部性（程序计数器）和空间局部性（顺序执行）。
+        \pro 回答下列有关缓存结构的问题：
+            \qn 一个容量为 \SI{8}{K} 的直接映射高速缓存，每一行的容量为 \SI{32}{B}，那么它有 \rule{2.5cm}{0.25mm} 组，每组有 \rule{2.5cm}{0.25mm} 行。
+            \qn 一个容量为 \SI{8}{K} 的全相联高速缓存，每一行的容量为 \SI{32}{B}，那么它有 \rule{2.5cm}{0.25mm} 组，每组有 \rule{2.5cm}{0.25mm} 行。
+            \qn 一个容量为 \SI{16}{K} 的 4 路组相联告诉缓存，每一行的容量为 \SI{64}{B}，那么一个 16 位地址 \verb|0xCAFE| 应映射在第 \rule{2.5cm}{0.25mm} 组内。
+        \sol 总容量等于组数乘以路数（行数）乘以块大小，其中直接映射高速缓存路数为 1，而全相联高速缓存的组数为 1。因此第一问为 $2^3 \times 2^10/2^5=256$ 组，1 行；第二问为 1 组，$2^3 \times 2^10/32=256$ 行。对于第三问，组数为 $2^4 \times 2^10/(2^6 \times 4)=64$ 组，所以组索引占据 6 位，偏移量占据 6。所给出的地址为 \verb|1100 1010 1111 1110|，即组索引是 \verb|101011|，即 43。
+        \pro 判断下列说法的正确性。
+            \qn 保持块大小与路数不变，增大组数，命中率一定不会降低。
+            \qn 保持总容量与块大小不变，增大路数，命中率一定不会降低。
+            \qn 保持总容量与路数不变，增大块大小，命中率一定不会降低。
+            \qn 使用随机替换代替 LRU，期望命中率可能会提高。
+        \sol 1 正确，相当于在 cache 中直接增加一组空间。2、3 都错误，由于总容量不变，所以组数都会降低，命中率都可能降低。实际上实验表明，增大路数一般会导致命中率降低，而增大块大小对于不同的访存步长可能造成命中率升高或降低。4 正确，对于某些特定的程序，LRU 的期望性能可能不如随机替换（采看 2018 年期中第 13 题的构造），实验表明在较小的 cache 中随机策略更优。
+        \pro 考虑如下程序：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int A[MAXN];
+    for (int i = 0; i < 25; i++) {
+        int x = A[i];
+        int y = A[i + 1];
+        int z = A[i + 2];
+        A[i + 3] = x + y + z;
+    }
+        \end{minted}
+        假设编译成汇编语言的时候没有任何优化，变量 \verb|x|、\verb|y|、\verb|z| 均放在寄存器中，运行之前 cache 所有行都是无效的。\verb|A| 的起始地址为 \verb|0|，且 \verb|MAXN| 充分大，保证没有越界问题。
+        \qn 假设 cache 的容量为 8 字节，每一行的容量为 4 字节，替换策略为 LRU，组策略为直接映射高速缓存。在这个 cache 上运行上述代码，得到的 cache 命中率是 \rule{2.5cm}{0.25mm}\%。
+        \qn 假设 cache 的容量为 8 字节，每一行的容量为 4 字节，替换策略为 LRU，组策略为全相联高速缓存。在这个 cache 上运行上述代码，得到的 cache 命中率是 \rule{2.5cm}{0.25mm}\%。
+        \qn 假设 cache 的容量为 32 字节，每一行的容量为 8 字节，替换策略为 LRU，组策略为 2 路组相联。画出程序运行结束时 cache 的情况（用 \verb|M[0-7]| 表示第 \verb|0| 到第 \verb|7| 字节的地址）；cache 命中率是 \rule{2.5cm}{0.25mm}\%。
+        \qn 假设 cache 的每一行的容量为 4 字节，运行该程序，得到的 cache 命中率的可能最大值为 \rule{2.5cm}{0.25mm}\%。
+        \sol 处理 cache 命中率的题，首先确定 tag, index 和 offset 的分布，然后先尝试通过组索引简化分析，\emph{获得各地址放置位置的规律}，最后再直接模拟。对于本题，首先知道每次访问 4 个整数，cache 的每行（路）都能容纳 1 个元素或者 2 个元素（视小问而不同）。一共访存 100 次，只需要计算命中的次数。我们下面用下标 0、1、2、3... 来代指数组中的元素。
+
+        第一问。计算得一共 2 组，每组 1 行，所以最低三位中，高 1 位是组索引，剩下 2 位是偏移。因为是直接映射，且每行只能容纳一个整数，所以组索引其实也代表了元素在数组的下标，因此实际上两行分别存储下标为奇数和偶数的元素。第一次 0、1、2、3 均不命中，此时 2、3 留在缓存中。接着访问 1、2、3、4，但 3 会被 1 替换，只有 2 能命中，结束时 3、4 留在缓存中。再次访问 2、3、4、5，但 4 会被 2 替换，只有 3 能命中。由此发现后 24 组访问各恰有一次命中，命中率为 24\%。
+
+        第二问。计算得只有 1 组，组内有 2 行，因此只有最低 2 位代表组内偏移，每行只能容纳一个整数，因此是依次填满并 LRU 替换。第一次 0、1、2、3 均不命中，此时 2、3 留在缓存中。接着访问 1、2、3、4 时，首先 1 不命中，替换 2，然后 2 不命中，替换 3，最后 4 不命中，替换 2，以此类推。由此发现这个访存序列发生了抖动，每次都不命中，命中率为 0\%。
+
+        第三问需要一些细致的模拟。计算得有 2 组，每组 2 行，每行都能容纳两个连续的整数。在这里，组索引表示的是下标模 4 的结果，也就是说 0、1、4、5... 会进入一组，而 2、3、6、7... 进入另一组。我们预期访存序列模 4 会有某种规律。模拟过程如下（你可能没必要模拟这么长）：
+        \begin{compactenum}[(i)]
+            \item\ 0、1、2、3，其中 0、2 不命中，结束时第一组有 0、1，第二组有 2、3。
+            \item\ 1、2、3、4，其中 4 不命中，结束时第一组有 0、1、4、5，第二组有 2、3。
+            \item\ 2、3、4、5，全部命中。
+            \item\ 3、4、5、6，只有 6 不命中，结束时第一组有 0、1、4、5，第二组有 2、3、6、7。
+            \item\ 4、5、6、7，全部命中。
+            \item\ 5、6、7、8，只有 8 不命中，此时开始替换，第一组有 8、9、4、5，第二组有 2、3、6、7。
+            \item\ 6、7、8、9，全部命中。
+            \item\ 7、8、9、10，只有 10 不命中，再次替换，第一组有 8、9、4、5，第二组有 10、11、6、7。
+            \item\ 8、9、10、11，全部命中。
+            \item\ 9、10、11、12，只有 12 不命中，替换得到第一组有 8、9、12、13，第二组有 10、11、6、7。
+        \end{compactenum}
+        这样就大致找到规律了，不命中只可能是在 $0, 2, \dotsc, 24, 26$ 时发生，这里一共有 14 次，因此命中率为 86\%。最后一次访存是 24、25、26、27，是全部命中的，根据(iv)、(vi)、(ix)的规律，其中剩下 cache 的部分应该对应前四个元素，即 20 \textasciitilde23 都在缓存中。综上所述，地址 \verb|80| 起的 8 个字节都在缓存中，所以缓存可以画为
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|}
+                \hline
+                & 有效位 & 内容 & 有效位 & 内容 \\ \hline
+                组 0 & 1 & M[96-103] & 1 & M[80-87] \\ \hline
+                组 1 & 1 & M[88-95] & 1 & M[104-111] \\ \hline
+            \end{tabular}
+        \end{table}
+
+        第四问考察冷不命中。当缓存充分大时，至少第一次访问该元素时是要发生不命中的，而这里一共有 28 个元素要访问，所以最高命中率是 72\%。
     \end{problems}
 
 \chapter{存储器层次结构{---}往年考题}
@@ -90,4 +154,251 @@
             \item 固态硬盘的随机读写性能基本相当。
         \end{choices}
         \proy{2015} 某磁盘的旋转速率为 \SI{7200}{RPM}，每条磁道平均有 400 扇区，则一个扇区的平均传送时间为 \rule{2.5cm}{0.25mm} ms。
+        \proy{2018} 一缓存共包含 4 个缓存块，每个块 32 字节，采用 LRU 替换算法。设缓存初始为空，对其进行下列 \verb|char| 型内存地址序列访存：\verb|0x5a7, 0x5b7, 0x6a6, 0x5b8, 0x7a5, 0x5b9|。对于直接映射缓存和 2 路组相联缓存，分别能产生几次命中？
+        \begin{choices}
+            \item 1, 3
+            \item 1, 4
+            \item 2, 3
+            \item 2, 4
+        \end{choices}
+        \proy{2018} 设一种全相联缓存共包含 4 个缓存块，如果循环地顺序访问 5 个不同的内存块（大小和一个缓存块一样），下列哪种替换算法会产生最多的命中？（考虑渐近值即可）
+        \begin{choices}
+            \item 最近最少使用替换策略 LRU
+            \item 先入先出替换策略 FIFO
+            \item 随机替换策略 Random
+            \item 后入先出替换策略 LIFO
+        \end{choices}
+        \sol CD。对于全相联缓存，操作主要和替换策略有关。LRU 和 FIFO 的行为是一样的，并且发生抖动（第 $n$ 次访问会替换第 $n+1$ 次访问需要的块），因此不会发生任何命中。随机替换策略中，每次新来一个块，随机换出的块会导致之后的四次访存有一次 miss，且是等概率地有一次。因而平均 2.5 次访存会发生一次 miss，所以命中率是 60\%。LIFO 策略中，前 3 个内存块的访问一直会命中，而最后两个块交替发生 miss，所以命中率也是 60\%。
+        \proy{2018} 某计算机地址空间 12 位，L1 cache 大小为 256 字节，组数 $S=4$，路数 $E=2$，现在在地址 \verb|0x0| 处开始有一个 $N$ 行 $M$ 列的 \verb|int| 类型的数组 \verb|int A[N][M]|，有如下 C 代码：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int ans = 0;
+    for(int j = 0; j < M; ++j)
+        for(int i = 0; i < N; ++i) ans += A[i][j];
+        \end{minted}
+        不考虑并行、编译优化等等会影响访问数组元素顺序的因素，只使用 L1 cache，则如下 $(N, M)$ 对中会导致全部 cache miss 的有几个？$(64, 4), (32, 8), (16, 16), (2, 128)$
+        \begin{choices}
+            \item 4 个
+            \item 3 个
+            \item 2 个
+            \item 1 个
+        \end{choices}
+        \sol C。计算得到每个缓存块可以存放 $256/(4SE)=8$ 个整数 $(N, M)=(64, 4)$ 时，访问数组第一行元素会将第一、二行元素都放入缓存，因此在访问数组第二行元素 \verb|A[1][0]| 时不会 miss；而 $(N, M)=(2, 128)$ 时，同理可得访问 \verb|A[0][1]| 时不会 miss。利用组索引简化分析，可以验证 $(N, M)=(32, 8), (16, 16)$ 时都会发生全部 miss。
+        \proy{2018} Cache 为处理器提供了一个高性能的存储器层次框架。下面是一个 8 位存储器地址引用的列表（地址单位为字节，数字为 10 进制）：\texttt{3, 180, 43, 2, 191, 88, 190, 14, 181, 44}。
+        \qn 考虑如下 cache：$S=2, E=2$，块大小为 2 字节；初始状态为空，替换策略为 LRU。经历上面的访问序列后，请在下表中填写缓存的状态。格式要求：tag 使用二进制；data 使用十进制，例如 \verb|M[6-7]| 表示地址 6 和 7 对应的数据。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|c|c|}
+                \hline
+                & {\quad V \quad} & {\quad Tag \quad} & {\quad Data \quad} & {\quad V \quad} & {\quad Tag \quad} & {\quad Data \quad} \\ \hline
+                SET 0 &  &  &  &  &  &  \\ \hline
+                SET 1 &  &  &  &  &  &  \\ \hline
+            \end{tabular}
+        \end{table}
+        \qn 现在有另外两种直接映射的 cache 设计方案 C1 和 C2，每种方案的 cache 总大小都为 8 字节，C1 块大小为 2 字节，C2 块大小为 4 字节。假设从内存加载一次数据到 cache 的时间为 25 个周期，访问一次 C1 的时间为 3 个周期，访问一次 C2 的时间为 5 个周期。针对(1)的地址访问序列，哪一种 cache 的设计更好？请分别给出两种 cache 访问第一问地址序列的总时间以及 miss rate。
+        \qn 现在考虑另外一个计算机系统。在该系统中，存储器地址为 32 位，并采用容量 \SI{32}{KB}、块大小 8 字节的直接映射高速缓存，则此 cache 实际至少要占用 \rule{2.5cm}{0.25mm} 字节的空间。（$\text{datasize} + (\text{valid bit size} + \text{tag size}) \times \text{blocks}$）
+        \proy{2017} 在高速缓存存储器中，关于全相联和直接映射结构，以下论述正确的是：
+        \begin{choices}
+            \item 如果配备同样容量、技术的高速缓存，配备全相联高速缓存的计算机总是比配备直接映射高速缓存的计算机性能低。
+            \item 如果配备同样容量、技术的高速缓存，配备全相联高速缓存的计算机总是比配备直接映射高速缓存的计算机性能高。
+            \item 如果配备同样容量、技术的高速缓存，当数据在缓存中时，配备全相联高速缓存的计算机总是比配备直接映射高速缓存的计算机读数据慢。
+            \item 如果配备同样容量、技术的高速缓存，当数据在缓存中时，配备全相联高速缓存的计算机总是比配备直接映射高速缓存的计算机读数据快。
+        \end{choices}
+        \proy{2017} 现有一个能够存储 4 个 block 的 cache，每一个 cache block 的大小为 \SI{2}{Byte}（$B=2$）。内存空间的大小是 \SI{32}{Byte}，即其地址范围为 \texttt{0\textsubscript{10} (00000\textsubscript{2}) --- 31\textsubscript{10} (11111\textsubscript{2})}。此设定下一程序的访问内存地址序列如下所示，单位是 Byte，数字为十进制：
+        \begin{center}
+            \tt 0, 3, 4, 7, 16, 19, 21, 22, 8, 10, 13, 14, 24, 26, 29, 30.
+        \end{center}
+        \qn 若 cache 的结构如下图所示（$S=2, E=2$），初始状态为空，替换策略为 LRU。请在下图空白处填入上述数据访问后 cache 的状态。格式要求：tag 使用二进制；data 使用十进制，例如 \verb|M[6-7]| 表示地址 6 和 7 对应的数据。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|c|c|}
+                \hline
+                & {\quad V \quad} & {\quad Tag \quad} & {\quad Data \quad} & {\quad V \quad} & {\quad Tag \quad} & {\quad Data \quad} \\ \hline
+                SET 0 &  &  &  &  &  &  \\ \hline
+                SET 1 &  &  &  &  &  &  \\ \hline
+            \end{tabular}
+        \end{table}
+        上述数据访问一共产生了 \rule{2.5cm}{0.25mm} 次命中。
+        \qn 在(1)的基础上增加一条数据预取规则：每当 cache 访问出现 miss 时，被访问地址及其后续的一个 cache block 都会被放入缓存，例如当 \verb|M[0-1]| 访问发生 miss，则把 \verb|M[0-1]| 和 \verb|M[2-3]| 都放入缓存中。此时这 16 次数据访问一共产生了 \rule{2.5cm}{0.25mm} 次命中。
+        \qn 在(1)的基础上将每一个 cache block 的大小扩大为 \SI{4}{Byte}（即 $B=4$，cache 大小变为原来的 2 倍），此时这 16 次数据访问一共产生了 \rule{2.5cm}{0.25mm} 次命中。
+        \qn 在(3)的基础上，考虑增加(2)中的数据预取规则，则这 16 次数据访问一共产生了 \rule{2.5cm}{0.25mm} 次命中。
+        \proy{2016} 现有一个能够存储 4 个 block 的 cache，每一个 cache block 的大小为 \SI{2}{Byte}（$B=2$）。内存空间的大小是 \SI{32}{Byte}，即其地址范围为 \texttt{0\textsubscript{10} (00000\textsubscript{2}) --- 31\textsubscript{10} (11111\textsubscript{2})}。此设定下一程序的访问内存地址序列如下所示，单位是 Byte，数字为十进制：
+        \begin{center}
+            \tt 2, 23, 10, 9, 9, 11, 3.
+        \end{center}
+        \qn 若 cache 的结构如下图所示（$S=2, E=2$），初始状态为空，替换策略为 LRU。请在下图空白处填入上述数据访问后 cache 的状态。格式要求：tag 使用二进制；data 使用十进制，例如 \verb|M[6-7]| 表示地址 6 和 7 对应的数据。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|c|c|}
+                \hline
+                & {\quad V \quad} & {\quad Tag \quad} & {\quad Data \quad} & {\quad V \quad} & {\quad Tag \quad} & {\quad Data \quad} \\ \hline
+                SET 0 &  &  &  &  &  &  \\ \hline
+                SET 1 &  &  &  &  &  &  \\ \hline
+            \end{tabular}
+        \end{table}
+        上述数据访问一共产生了 \rule{2.5cm}{0.25mm} 次命中。
+        \qn 若替换策略为 MRU，其余和(1)相同，请在下图空白处填入上述数据访问后 cache 的状态。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|c|c|}
+                \hline
+                & {\quad V \quad} & {\quad Tag \quad} & {\quad Data \quad} & {\quad V \quad} & {\quad Tag \quad} & {\quad Data \quad} \\ \hline
+                SET 0 &  &  &  &  &  &  \\ \hline
+                SET 1 &  &  &  &  &  &  \\ \hline
+            \end{tabular}
+        \end{table}
+        上述数据访问一共产生了 \rule{2.5cm}{0.25mm} 次命中。
+        \qn 在(2)的基础上增加一条新规则：地址区间包含 5 的倍数的 block 将不会被缓存。仍使用 MRU 替换策略，上述数据访问一共产生了 \rule{2.5cm}{0.25mm} 次命中。
+        \qn 在(3)的基础上又增加一条数据预取规则：每当地址为 \verb|10| 的数据被访问时，地址为 \verb|8| 的数据将会被放入缓存，上述数据访问一共产生了 \rule{2.5cm}{0.25mm} 次命中。
+        \proy{2015} 某高速缓存满足 $E=2, B=4, S=16$，地址宽度为 14。当引用地址 \verb|0x9D28| 起始的 1 个字节时，tag 位为：
+        \begin{choices}
+            \item \verb|01110100|
+            \item \verb|001110000|
+            \item \verb|1110000|
+            \item \verb|10011100|
+        \end{choices}
+        \proy{2015} 关于高速缓存的说法正确的是：
+        \begin{choices}
+            \item 直写（write through）比写回（write back）在电路实现上更复杂。
+            \item 固定的高速缓存大小，较大的块可提高时间局部性好的程序的命中率。
+            \item 随着高速缓存组相联度的不断增大，失效率不断下降。
+            \item 以上说法全不正确。
+        \end{choices}
+        \proy{2015} 考虑下面的程序：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    #define LENGTH 8
+    void clear4x4 (char array[LENGTH][LENGTH]) {
+        int row, col;
+        for (col = 0; col < 4; col++)
+            for (row = 0; row < 4; row++)
+                array[row][col] = 0;
+    }
+        \end{minted}
+        \qn 设机器的地址宽度为 7，传入的数组 \verb|array| 的起始地址为 \verb|0x1000000|。两路组相联高速缓存的块大小为 4 字节，一共 4 组，替换算法使用的是 LRU。
+            \subqn 以上程序执行会引起多少次失效？
+            \subqn 如果 \verb|LENGTH| 改为 16，会引起多少次失效？
+            \subqn 如果 \verb|LENGTH| 变为 17，与 b) 相比，下面描述正确的是：\rule{1cm}{0.25mm}，会引起 \rule{2.5cm}{0.25mm} 次失效。
+            \begin{choices}
+                \item $16 \times 16$ 比 $17 \times 17$ 产生更多的失效次数。
+                \item $16 \times 16$ 和 $17 \times 17$ 产生的失效次数相同。
+                \item $16 \times 16$ 比 $17 \times 17$ 产生更少的失效次数。
+            \end{choices}
+            \subqn 请画出 c) 运行后 cache 的最终状态。格式要求：tag 使用二进制；data 使用十进制，例如 \verb|M[6-7]| 表示地址 6 和 7 对应的数据。
+            \begin{table}[H]
+                \tt
+                \centering
+                \begin{tabular}{|c|c|c|c|c|c|c|}
+                    \hline
+                    & {\quad V \quad} & {\quad Tag \quad} & {\quad Data \quad} & {\quad V \quad} & {\quad Tag \quad} & {\quad Data \quad} \\ \hline
+                    SET 0 &  &  &  &  &  &  \\ \hline
+                    SET 1 &  &  &  &  &  &  \\ \hline
+                \end{tabular}
+            \end{table}
+        \qn 设机器的地址宽度为 8，传入的数组 \verb|array| 的起始地址为 \verb|0x10000000|。全相联高速缓存的块大小为 4 字节，总容量 16 字节，替换算法使用的是 LRU。
+            \subqn Tag 字段的位数是 \rule{2.5cm}{0.25mm}。
+            \subqn 以上程序执行会引起多少次失效？
+            \subqn 如果 \verb|LENGTH| 改为 16，会引起多少次失效？
+            \subqn 如果 \verb|LENGTH| 变为 17，与 c) 相比，下面描述正确的是：\rule{1cm}{0.25mm}。
+            \begin{choices}
+                \item $16 \times 16$ 比 $17 \times 17$ 产生更多的失效次数。
+                \item $16 \times 16$ 和 $17 \times 17$ 产生的失效次数相同。
+                \item $16 \times 16$ 比 $17 \times 17$ 产生更少的失效次数。
+            \end{choices}
+            \subqn 请画出 d) 运行后 cache 的最终状态。格式要求：tag 使用二进制；data 使用十进制，例如 \verb|M[6-7]| 表示地址 6 和 7 对应的数据。
+            \begin{table}[H]
+                \tt
+                \centering
+                \begin{tabular}{|c|c|c|}
+                    \hline
+                    V & {\qquad \qquad Tag \qquad \qquad} & {\qquad \qquad Data \qquad \qquad} \\ \hline
+                    1 &  &  \\ \hline \hline
+                    V & Tag & Data \\ \hline
+                    1 &  &  \\ \hline \hline
+                    V & Tag & Data \\ \hline
+                    1 &  &  \\ \hline \hline
+                    V & Tag & Data \\ \hline
+                    1 &  &  \\ \hline
+                \end{tabular}
+            \end{table}
+        \proy{2014} 关于 cache 的 miss rate，下面哪些说法是错误的？ 
+        \begin{choices}
+            \item 保持 $E$ 和 $B$ 不变，增大 $S$，miss rate 一定不会增加。
+            \item 保持总容量和 $B$ 不变，增大 $E$，miss rate 一定不会增加。
+            \item 保持总容量和 $E$ 不变，增大 $B$，miss rate 一定不会增加。
+            \item 如果不采用 LRU，使用随机替换策略，miss rate 可能会降低。
+        \end{choices}
+        \proy{2014} 现有一个能够存储 4 个 block 的 cache，每一个 cache block 的大小为 \SI{2}{Byte}（$B=2$）。内存空间的大小是 \SI{16}{Byte}，即其地址范围为 \texttt{0\textsubscript{10} (0000\textsubscript{2}) --- 15\textsubscript{10} (1111\textsubscript{2})}。此设定下一程序的访问内存地址序列如下所示，单位是 Byte，数字为十进制：
+        \begin{center}
+            \tt 2, 3, 10, 9, 6, 8.
+        \end{center}
+        \qn 若 cache 的结构如下图所示（$S=2, E=2$），初始状态为空，替换策略为 LRU。请在下图空白处填入上述数据访问后 cache 的状态。格式要求：tag 使用二进制；data 使用十进制，例如 \verb|M[6-7]| 表示地址 6 和 7 对应的数据。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|c|c|}
+                \hline
+                & {\quad V \quad} & {\quad Tag \quad} & {\quad Data \quad} & {\quad V \quad} & {\quad Tag \quad} & {\quad Data \quad} \\ \hline
+                SET 0 &  &  &  &  &  &  \\ \hline
+                SET 1 &  &  &  &  &  &  \\ \hline
+            \end{tabular}
+        \end{table}
+        上述数据访问一共产生了 \rule{2.5cm}{0.25mm} 次 miss。
+        \qn 若替换策略为 MRU，其余和(1)相同，请在下图空白处填入上述数据访问后 cache 的状态。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|c|c|}
+                \hline
+                & {\quad V \quad} & {\quad Tag \quad} & {\quad Data \quad} & {\quad V \quad} & {\quad Tag \quad} & {\quad Data \quad} \\ \hline
+                SET 0 &  &  &  &  &  &  \\ \hline
+                SET 1 &  &  &  &  &  &  \\ \hline
+            \end{tabular}
+        \end{table}
+        上述数据访问一共产生了 \rule{2.5cm}{0.25mm} 次 miss。
+        \proy{2013} 如果直接映射高速缓存大小是 \SI{4}{KB}，块大小为 32 字节，则它每组有多少行？
+        \begin{choices}
+            \item 128
+            \item 68
+            \item 32
+            \item 1
+        \end{choices}
+        \proy{2013} 现有一个能够存储 4 个 block 的 cache，每一个 cache block 的大小为 \SI{2}{Byte}（$B=2$）。内存空间的大小是 \SI{32}{Byte}，即其地址范围为 \texttt{0\textsubscript{10} (00000\textsubscript{2}) --- 31\textsubscript{10} (11111\textsubscript{2})}。此设定下一程序的访问内存地址序列如下所示，单位是 Byte，数字为十进制：
+        \begin{center}
+            \tt 1, 4, 17, 2, 8, 16, 9, 0.
+        \end{center}
+        \qn 如果 cache 的结构是直接映射，满足 $S=4, E=1$，请在下表空白处填入访问上述数据序列访问后 cache 的状态。格式要求：tag 使用二进制；data 使用十进制，例如 \verb|M[6-7]| 表示地址 6 和 7 对应的数据。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|}
+                \hline
+                V & {\qquad \qquad Tag \qquad \qquad} & {\qquad \qquad Data \qquad \qquad} \\ \hline
+                1 &  &  \\ \hline \hline
+                V & Tag & Data \\ \hline
+                1 &  &  \\ \hline \hline
+                V & Tag & Data \\ \hline
+                1 &  &  \\ \hline \hline
+                V & Tag & Data \\ \hline
+                1 &  &  \\ \hline
+            \end{tabular}
+        \end{table}
+        \qn 如果 cache 的结构如下表所示，满足 $S=2, E=2$，请在下表空白处填入访问上述数据序列访问后 cache 的状态。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|c|c|}
+                \hline
+                & {\quad V \quad} & {\quad Tag \quad} & {\quad Data \quad} & {\quad V \quad} & {\quad Tag \quad} & {\quad Data \quad} \\ \hline
+                SET 0 &  &  &  &  &  &  \\ \hline
+                SET 1 &  &  &  &  &  &  \\ \hline
+            \end{tabular}
+        \end{table}
+        上述数据访问一共产生了 \rule{2.5cm}{0.25mm} 次 miss。
+        \qn 如果 cache 的结构改为 $S=1, E=4$，最终存储在 cache 里面的数据有哪些？只需要填写数据部分，顺序不限。
+        \begin{center}
+            \rule{2.5cm}{0.25mm}、\quad \rule{2.5cm}{0.25mm}、\quad \rule{2.5cm}{0.25mm}、\quad \rule{2.5cm}{0.25mm}。
+        \end{center}
     \end{problems}
