@@ -339,7 +339,7 @@
                 \multicolumn{1}{|l}{48 89 e5} & mov \%rsp, \%rbp & fe9: 48 89 e5 & mov \%rsp, \%rbp \\
                 \multicolumn{1}{|l}{b8 00 00 00 00} & mov 0x0, \%eax & fec: b8 00 00 00 00 & mov 0x0, \%eax \\
                 \multicolumn{1}{|l}{e8 00 00 00 00} & callq e <main+0xe> & ff1: e8 \circled{1} & callq 1000 <foo> \\
-                \multicolumn{1}{|l}{b8 00 00 00 00} & mov 0x0, \%eax & fe6: b8 00 00 00 00 & mov 0x0, \%eax \\
+                \multicolumn{1}{|l}{b8 00 00 00 00} & mov 0x0, \%eax & ff6: b8 00 00 00 00 & mov 0x0, \%eax \\
                 \multicolumn{1}{|l}{5d} & pop \%rbp & ffb: 5d & pop \%rbp \\
                 \multicolumn{1}{|l}{c3} & retq & ffc: c3 & retq \\
                 \multicolumn{1}{|l}{} &  & \multicolumn{2}{c|}{...略去和答题无关的部分信息\ ...} \\ \hline
@@ -348,24 +348,24 @@
                 \multicolumn{1}{|l}{48 89 e5} & mov \%rsp, \%rbp & 1001: 48 89 e5 & mov \%rsp, \%rbp \\
                 \multicolumn{2}{|l|}{48 c7 05 00 00 00 00 00 00 00 00} & \multicolumn{2}{l|}{1004: 48 c7 05 ...} \\
                 \multicolumn{1}{|r}{} & movq 0x0, 0x0(\%rip) & \multicolumn{1}{r}{} & movq \circled{2}, \circled{3}(\%rip) \\
-                \multicolumn{2}{|l|}{48 8b 05 00 00 00 00 00 00 00 00} & \multicolumn{2}{l|}{100f: 48 8b 05 ...} \\
+                \multicolumn{2}{|l|}{48 8b 05 00 00 00 00} & \multicolumn{2}{l|}{100f: 48 8b 05 ...} \\
                 \multicolumn{1}{|r}{} & movq 0x0(\%rip), \%rax & \multicolumn{1}{r}{} & movq \_\_\_(\%rip), \%rax \\
                 \multicolumn{1}{|l}{8b 00} & mov (\%rax), \%eax & 1016: 8b 00 & mov (\%rax), \%eax \\
                 \multicolumn{1}{|l}{89 45 fc} & mov \%eax, -0x4(\%rbp) & 1018: 89 45 fc & mov \%eax, -0x4(\%rbp) \\
-                \multicolumn{2}{|l|}{48 8b 05 00 00 00 00 00 00 00 00} & \multicolumn{2}{l|}{101b: 48 8b 05 ...} \\
+                \multicolumn{2}{|l|}{48 8b 05 00 00 00 00} & \multicolumn{2}{l|}{101b: 48 8b 05 ...} \\
                 \multicolumn{1}{|r}{} & \multicolumn{1}{r|}{movq 0x0(\%rip), \%rax} & \multicolumn{1}{r}{} & movq \circled{4}(\%rip), \%rax \\
-                \multicolumn{2}{|l|}{48 8b 15 00 00 00 00 00 00 00 00} & \multicolumn{2}{l|}{1022: 48 8b 15 ...} \\
+                \multicolumn{2}{|l|}{48 8b 15 00 00 00 00} & \multicolumn{2}{l|}{1022: 48 8b 15 ...} \\
                 \multicolumn{1}{|r}{} & movq 0x0(\%rip), \%rdx & \multicolumn{1}{r}{} & movq \_\_\_(\%rip), \%rdx \\
                 \multicolumn{1}{|l}{8b 12} & mov (\%rdx), \%edx & 1029: 8b 12 & mov (\%rdx), \%edx \\
                 \multicolumn{1}{|l}{89 10} & mov \%edx, (\%rax) & 102b: 89 10 & mov \%edx, (\%rax) \\
-                \multicolumn{2}{|l|}{48 8b 05 00 00 00 00 00 00 00 00} & \multicolumn{2}{l|}{102d: 48 8b 05 ...} \\
+                \multicolumn{2}{|l|}{48 8b 05 00 00 00 00} & \multicolumn{2}{l|}{102d: 48 8b 05 ...} \\
                 \multicolumn{1}{|r}{} & movq 0x0(\%rip), \%rax &  & movq \_\_\_(\%rip), \%rax \\
                 \multicolumn{1}{|l}{8b 55 fc} & mov -0x4(\%rbp), \%edx & 1034: 8b 55 fc & mov -0x4(\%rbp), \%edx \\
                 \multicolumn{1}{|l}{89 10} & mov \%edx, (\%rax) & 1037: 89 10 & mov \%edx, (\%rax) \\
-                \multicolumn{2}{|l|}{8b 05 00 00 00 00 00 00 00 00} & \multicolumn{2}{l|}{1039: 8b 05 ...} \\
+                \multicolumn{2}{|l|}{8b 05 00 00 00 00} & \multicolumn{2}{l|}{1039: 8b 05 ...} \\
                 \multicolumn{1}{|r}{} & movq 0x0(\%rip), \%eax & \multicolumn{1}{r}{} & movq \_\_\_(\%rip), \%eax \\
                 \multicolumn{1}{|l}{83 c0 01} & add 0x1, \%eax & 103f: 83 c0 01 & add 0x1, \%eax \\
-                \multicolumn{2}{|l|}{89 05 00 00 00 00 00 00 00 00} & \multicolumn{2}{l|}{1042: 89 05 ...} \\
+                \multicolumn{2}{|l|}{89 05 00 00 00 00} & \multicolumn{2}{l|}{1042: 89 05 ...} \\
                 \multicolumn{1}{|r}{} & mov \%eax, 0x0(\%rip) & \multicolumn{1}{r}{} & mov \%eax, \circled{5}(\%rip) \\
                 \multicolumn{1}{|l}{90} & nop & 1048: 90 & nop \\
                 \multicolumn{1}{|l}{5d} & pop \%rbp & 1049: 5d & pop \%rbp \\
@@ -394,6 +394,25 @@
                 \circled{5} & \begin{tabular}[c]{@{}l@{}}r.offset = 0x44\\ r.symbol = ???\\ r.type = R\_X86\_64\_PC32\\ r.addend = -4\end{tabular} &  \\ \hline
             \end{tabular}
         \end{table}
+        \sol 第一问比较简单，按照基本的理解进行就可以，不要忘了未初始化的全局变量进入 \verb|COM|。注意此题后两栏的填写要求的是“定义的模块”及其所在的节，因此 \verb|foo.o| 中的 \verb|buf| 虽然是 \verb|extern| 变量，但它在 \verb|m.o| 中定义，所在的位置是 \verb|.data| 节。如果要问 \verb|buf| 在 \verb|foo.o| 中的位置，则答案为 \verb|UND|。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|}
+                \hline
+                符号 & 是否为 .symtab 条目 & 符号类型 & 定义符号的模块 & 节 \\ \hline
+                bufp0 & 是 & 全局 & foo.o & .data \\ \hline
+                buf & 是 & 外部 & m.o & .data \\ \hline
+                bufp1 & 是 & 全局 & foo.o & COMMON \\ \hline
+                foo & 是 & 全局 & foo.o & .text \\ \hline
+                temp & 否 & / & / & / \\ \hline
+                count & 是 & 局部 & foo.o & .bss \\ \hline
+            \end{tabular}
+        \end{table}
+
+        第二问有两种做法。一种是根据重定位条目计算，一种是直接根据链接完毕的程序中的信息。我们先讲后者。注意到 \verb|%rip| 是程序计数器，因此题中访问全局变量或者静态变量时所使用的偏移本质上就是目标地址减下一条指令的地址（看汇编）。注意最后一个空我们可以结合汇编代码和 C 代码判断出重定位的是 \verb|count| 的引用，从而各空依次答案为 \verb|1000 - ff6 = 0xa|（注意这个填写时要用小端法，且补足 4 字节 \verb|0a 00 00 00|），\verb|2330 + 4 = 0x2334|，\verb|3028 - 100f = 0x2019|，\verb|2338 - 1022 = 0x1316| 和 \verb|3024 - 1048 = 0x1fdc|。
+
+        传统的做法首先要确定 \verb|addr(s)|。注意这里需要重定位的引用都是指令，所以 \verb|m.o| 中的 \verb|.text| 绝对地址是 \verb|0xfe8|，而 \verb|foo.o| 中的 \verb|.text| 的绝对地址是 \verb|0x1000|。对于第 \circled{1} 个，目标为 \verb|0x1000|，偏移量 \verb|0xa|，\verb|addend| 为 \verb|-0x4|，所以结果是 \verb|1000 - (fe8 + a) - 4 = 0xa|（填写方法同上）。第 \circled{2} 个是绝对引用，\verb|2330 + 4 = 0x2334| 即可。第 \circled{3} 个的目标为 \verb|0x3028|，偏移量 \verb|0x7|，\verb|addend| 为 \verb|-0x8|，所以结果是 \verb|3028 - (1000 + 7) - 8 = 0x2019|。剩下的皆同理，不再赘述。
         \proy{2016} C 源文件 \verb|f1.c| 和 \verb|f2.c| 的代码分别如下所示，编译链接生成可执行文件后执行，输出结果为：
         \begin{minted}[frame=single, fontsize=\small]{c}
     // f1.c
