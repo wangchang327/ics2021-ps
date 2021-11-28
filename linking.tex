@@ -136,6 +136,25 @@
             \item 同一函数中定义的带 \verb|static| 的变量
         \end{choices}
         \sol C，即局部变量。请注意这里说的是一定不需要，有一些非局部变量或者指令是可能需要重定位也可能不需要重定位的。当然，此题的说法不妥，重定位都是针对一条引用，而不是针对符号本身。说一个符号不需要重定位，应当是指其任何引用都不可能要重定位。
+        \pro 在 x86-64 的机器上用 gcc-7 编译可以顺利编译并运行以下两个文件。若某次运行时得到输出 \verb|0x48\n|，则这个 16 进制的 \verb|48| 产生自：
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    // f1.c
+    void p2(void);
+    int main() {
+        p2();
+        return 0;
+    }
+    // f2.c
+    #include <stdio.h>
+    char main;
+    void p2() { printf("0x%x\n", main); }
+        \end{minted}
+        \begin{choices}
+            \item 垃圾值
+            \item \verb|main| 函数汇编地址的最低字节按有符号补齐的结果
+            \item \verb|main| 函数汇编地址的最高字节按有符号补齐的结果
+            \item \verb|main| 函数汇编的第一个字节按有符号补齐的结果
+        \end{choices}
         \pro 有如下 C 代码：
         \begin{minted}[frame=single, fontsize=\small]{c}
     #define k 100
@@ -175,13 +194,16 @@
                 10 & .symtab & SYMTAB & 0000000000000000 & 00000190 \\ \hline
             \end{tabular}
         \end{table}
+        \begin{hint}
+            节头部表各条目含义可参 \url{http://www.skyfree.org/linux/references/ELF\_Format.pdf} 第 9 页，特别关注 \verb|sh_addr|、\verb|sh_offset|、\verb|sh_size|。
+        \end{hint}
 
         \verb|t.txt| 中的部分符号表如下：
         \begin{table}[H]
             \tt
             \centering
             \begin{tabular}{cccccccc}
-                \multicolumn{8}{l}{Symbol table '.symtab' contains ?? entries:} \\ \hline
+                \hline
                 \multicolumn{1}{|c}{Num} & Value & Size & Type & Bind & Vis & Ndx & \multicolumn{1}{c|}{Name} \\
                 \multicolumn{1}{|c}{5} & 0000000000000000 &  & OBJECT &  & DEFAULT &  & \multicolumn{1}{c|}{ans.1797} \\
                 \multicolumn{1}{|c}{7} & 0000000000000008 &  & OBJECT &  & DEFAULT &  & \multicolumn{1}{c|}{y} \\
@@ -278,6 +300,113 @@
         第六问绝对重定位比较简单，由题意得到 \verb|.rodata.str.1.1+0xa| 的地址是 \verb|0x40069e|，所以其起始地址是 \verb|0x400694|。
 
         第七问考察程序加载，先执行的是 \verb|_start| 函数，所以地址为 \verb|0x400430|。
+        \pro[origin={丁睿助教提供}] 判断下列说法的正确性。
+            \qn 动态链接可以在加载时或者运行时完成，它比静态库更节省内存和磁盘上的储存空间。
+            \qn 动态库可以不编译成位置无关代码。
+            \qn 通过代码段的全局偏移量表 \verb|GOT| 和数据段的过程链接表 \verb|PLT|，动态链接器可以完成延迟绑定 (lazy binding)。
+            \qn ASLR 不会影响代码段和数据段间的相对偏移，这样位置无关代码才能正确使用。
+        \pro[origin={丁睿助教提供}] 本题基于下列 \verb|m.c| 及 \verb|foo.c| 文件，使用 \verb|gcc foo.c m.c| 生成 \verb|a.out|。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    // m.c
+    void foo();
+    int buf[2] = {1, 2};
+    int main() {
+        foo();
+        return 0;
+    }
+    // foo.c
+    extern int buf[];
+    int *bufp0 = &buf[0];
+    int *bufp1;
+    void foo() {
+        static int count = 0;
+        int temp;
+        bufp1 = &buf[1];
+        temp = *bufp0;
+        *bufp0 = *bufp1;
+        *bufp1 = temp;
+        count++;
+    }
+        \end{minted}
+        \qn 读取 \verb|a.out| 的节头部表，部分信息如下。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|cccccc|}
+                \hline
+                号 & 名称 & 类型 & 地址 & 偏移量 & 大小 \\
+                1 & .interp & PROGBITS & 00000000000002a8 & 000002a8 & 000000000000001c \\
+                14 & .text & PROGBITS & 0000000000001050 & 00001050 & 0000000000000205 \\
+                16 & .rodata & PROGBITS & 0000000000002000 & 00002000 & 000000000000000a \\
+                23 & .data & PROGBITS & 0000000000004000 & 00003000 & 0000000000000020 \\
+                24 & .bss & NOBITS & 0000000000004020 & 00003020 & 0000000000000010 \\ \hline
+            \end{tabular}
+        \end{table}
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{ccccccc}
+                \hline
+                \multicolumn{1}{|c}{Num} & Value & Size & Type & Bind & Ndx & \multicolumn{1}{c|}{Name} \\
+                \multicolumn{1}{|c}{35} & 00...004024 &  & &  &  & \multicolumn{1}{c|}{count.1797} \\
+                \multicolumn{1}{|c}{54} & 00...004010 & 8 & OBJECT &  &  & \multicolumn{1}{c|}{bufp0} \\
+                \multicolumn{1}{|c}{59} & 00...00115a & 78 & FUNC & GLOBAL &  & \multicolumn{1}{c|}{foo} \\
+                \multicolumn{1}{|c}{62} &  &  & OBJECT & GLOBAL &  & \multicolumn{1}{c|}{buf} \\
+                \multicolumn{1}{|c}{64} & 00...0011a8 & 54 &  & GLOBAL & 14 & \multicolumn{1}{c|}{main} \\
+                \multicolumn{1}{|c}{68} & 00...004028 & 8 & OBJECT & GLOBAL &  & \multicolumn{1}{c|}{bufp1} \\
+                \multicolumn{1}{|c}{51} & 00...000000 & 0 & FUNC &  & UND & \multicolumn{1}{c|}{printf@@GLIBC\_2.2.5} \\ \hline
+            \end{tabular}
+        \end{table}
+            \subqn 补全符号表中的空缺部分。
+            \subqn 读取 \verb|a.out| 中的 \verb|.interp| 节（大小为 \verb|0x1c|），发现是一个可读字符串。请补全结果：\verb|/lib64/____-linux-x86-64.____.2|。
+            \subqn 读取 \verb|a.out| 中的 \verb|.bss| 节，其存储时占用的空间为 \rule{2.5cm}{0.25mm} 字节，运行时占用的空间为 \rule{2.5cm}{0.25mm} 字节。
+        \qn 现在通过 \verb|gcc -c m.c; objdump -dx m.o| 我们看到如下重定位信息。
+        \begin{minted}[frame=single, fontsize=\small]{text}
+    0000000000000000 <main>:
+    0:   55                    push %rbp
+    ...
+    10:  8b 15 00 00 00 00 mov 0x0(%rip), %edx # 16 <main+0x16>
+                    12: R_X86_64_PC32       buf
+    ...
+    1e:  48 8d 3d 00 00 00 00 lea 0x0(%rip), %rdi # 25 <main+0x25>
+                    21: R_X86_64_PC32       .rodata-0x4
+    ...
+    2a:  e8 00 00 00 00        callq  2f <main+0x2f>
+                    2b: R_X86_64_PLT32      printf-0x4
+    ...
+        \end{minted}
+            \subqn 假设链接器生成 \verb|a.out| 时已经确定 \verb|m.o| 的 \verb|.text| 节在 \verb|a.out| 中的起始地址为 \verb|0x11a8|。请写出重定位后的对应于原本 \verb|main+0x10 位置的代码|。
+            \subqn 而 \verb|main+0x1e| 处的指令变成
+            \begin{minted}[frame=single, fontsize=\small]{text}
+    11c6: 48 8d 3d 37 0e 00 00 lea 0xe37(%rip), %rdi
+            \end{minted}
+            可见字符串 \verb|"%d %d"|在 \verb|a.out| 中的起始地址是 \verb|0x|\rule{2.5cm}{0.25mm}。
+        \qn 使用 \verb|objdump -d a.out| 可以看到如下 \verb|.plt| 节的代码。
+        \begin{minted}[frame=single, fontsize=\small]{text}
+    Disassembly of section .plt:
+    
+    0000000000001020 <.plt>:
+    1020: ff 35 9a 2f 00 00 pushq 0x2f9a(%rip)
+            # 3fc0 <_GLOBAL_OFFSET_TABLE_+0x8>
+    1026: ff 25 9c 2f 00 00 jmpq *0x2f9c(%rip)
+            # 3fc8 <_GLOBAL_OFFSET_TABLE_+0x10>
+    102c: 0f 1f 40 00 nopl 0x0(%rax)
+
+    0000000000001030 <printf@plt>:
+    1030: ff 25 9a 2f 00 00 jmpq *0x2f9a(%rip)
+            # 3fd0 <printf@GLIBC_2.2.5>
+    1036: 68 00 00 00 00 pushq $0x0
+    103b: e9 e0 ff ff ff jmpq 1020 <.plt>
+        \end{minted}
+            \subqn 完成 \verb|main+0x2a| 处的重定位。
+            \begin{minted}[frame=single, fontsize=\small]{text}
+    ____________: e8 ___ ___ ___ ___     callq  1030 <printf@plt>
+            \end{minted}
+            \subqn \verb|printf| 的 \verb|PLT| 表条目是 \verb|PLT[____]|，\verb|GOT| 表条目是 \verb|GOT[____]|（均填写数字）。
+            \subqn 使用 gdb 对 \verb|a.out| 进行调试。某次运行时 \verb|main| 的起始地址为 \verb|0x5555555551a8|, 那么当加载器载入内存而尚未重定位 \verb|printf| 地址前，\verb|printf| 的 \verb|GOT| 表项的内容是 \rule{2.5cm}{0.25mm}。你填写的这个值是 \rule{2.5cm}{0.25mm}（填静态/动态）链接器设置的。而重定位后可以使用 \verb|disas| \rule{2.5cm}{0.25mm} 读出 \verb|printf| 动态链接进来的代码。
+            \begin{hint}
+                \verb|disas| 是 gdb 中用于反汇编的指令。Gdb 如果通过立即数直接访问内存地址，直接使用该数即可。如果需要从一个地址中读值并以此间接访问内存，可以使用 \verb|*(long *) 0xImm| 的格式，其中 \verb|Imm| 表示该立即数。
+            \end{hint}
     \end{problems}
 
 \chapter{链接{---}往年考题}

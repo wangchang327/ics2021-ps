@@ -1,0 +1,332 @@
+\chapter{异常控制流与系统 I/O}
+    \begin{summary}
+        \begin{compactitem}
+            \item 知道控制流和异常控制流的定义，知道异常及其处理是由软硬件结合实现的。
+            \item 熟悉异常处理的整个过程，包括异常表等数据结构，会以某个异常为例，复述整个异常处理的过程。会区分异常和过程调用的区别。
+            \item 熟练掌握异常的四种类别及其特征、常见例子，熟悉异常结束后的返回机制。了解 x86-64 系统调用的基本范式。
+            \item 熟练掌握进程的概念，理解上下文、上下文切换、调度、抢占等概念及其内容，知道内核模式和用户模式的区别。熟悉并行和并发的相同和不同。
+            \item 会使用 Linux 系统下提供的进程管理函数，记忆其参数填法、返回值和行为（特别是 \verb|waitpid|），熟练掌握 \verb|fork| 函数，会通过画进程图和拓扑排序的方式进行分析。
+            \item 知道 Linux 的常见信号，熟悉信号处理的过程及其细节（例如 \verb|SIGKILL, SIGSTOP| 的默认行为不能修改、待处理信号至多只有一个、进程可以发信号给自己等），知道发送信号的机制和多种 API。
+            \item 理解信号处理程序和主“程序”的并发性质，熟悉编写信号处理程序中需要注意的五个要点并理解其原因（以及用阻塞避免竞争）。信号不能用来计数。
+            \item 了解非本地跳转的基本机制，知道 \verb|setjmp| 的返回值不能赋值。
+            \item 知道 Linux 系统的文件模型和文件类型，会用各种文件读写系统调用编写程序。熟悉文件元数据的结构和读写方法。
+            \item 熟练掌握描述符表（理解与打开文件的关系）、打开文件表、v-node 表、引用计数的概念，会结合异常控制流（\verb|fork|）和重定向（\verb|dup2|）的知识分析程序。
+            \item 知道标准输出和底层系统调用的区别，熟练掌握输出缓冲的机制和 \verb|fflush|。
+        \end{compactitem}
+    \end{summary}
+
+    \begin{problems}
+        \pro 区分异常的四种类型：填写下表（打勾）。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|ccc|}
+                \hline
+                \multirow{2}{*}{异常的种类} & \multirow{2}{*}{是否同步} & \multicolumn{3}{c|}{可能的返回行为} \\ \cline{3-5} 
+                &  & \multicolumn{1}{c|}{重复当前指令} & \multicolumn{1}{c|}{执行下一条指令} & 结束进程运行 \\ \hline
+                中断（interrupt） & \rule{0pt}{3ex} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} &  \\ \hline
+                陷阱（trap） & \rule{0pt}{3ex} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} &  \\ \hline
+                故障（fault） & \rule{0pt}{3ex} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} &  \\ \hline
+                终止（abort） & \rule{0pt}{3ex} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} &  \\ \hline
+            \end{tabular}
+        \end{table}
+        \pro 下列行为分别触发什么类型的异常？
+            \qn 执行指令 \verb|mov $57, %eax; syscall|
+            \qn 程序执行过程中，发现它所使用的物理内存损坏了
+            \qn 程序执行过程中，试图往 \verb|main| 函数的内存中写入数据
+            \qn 按下键盘
+            \qn 磁盘读出了一块数据
+            \qn 用 \verb|read| 函数发起磁盘读
+            \qn 用户程序执行了指令 \verb|lgdt|，但是这个指令只能在内核模式下执行
+        \pro 在下面的程序中，父进程和子进程的输出分别是什么？
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int main() {
+        int a = 9;
+        if (Fork() == 0)
+            printf("p1: a=%d\n", a--);
+        printf("p2: a=%d\n", a++);
+        exit(0);
+    }
+        \end{minted}
+        \pro 阅读下述程序。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int main() {
+        char c = 'A';
+        printf("%c", c); fflush(stdout);
+        if (fork() == 0) {
+            c++;
+            printf("%c", c); fflush(stdout);
+        } else {
+            printf("%c", c); fflush(stdout);
+            fork();
+        }
+        c++;
+        printf("%c", c); fflush(stdout);
+        return 0;
+    }
+        \end{minted}
+        假设系统调用成功，所有子进程都正常运行。判断下列哪些输出是可能的：\verb|AABBBC|、\verb|ABCABB|、\verb|ABBABC|、\verb|AACBBC|、\verb|ABABCB|、\verb|ABCBAB|。
+        \pro 阅读下述程序。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int main() {
+        int child_status;
+        char c = 'A';
+        printf("%c", c); fflush(stdout);
+        c++;
+        if (fork() == 0) {
+            printf("%c", c); fflush(stdout);
+            c++;
+            fork();
+        } else {
+            printf("%c", c); fflush(stdout);
+            c += 2;
+            wait(&child_status);
+        } 
+        printf("%c", c); fflush(stdout);
+        exit(0);
+    }
+        \end{minted}
+        假设系统调用成功，所有子进程都正常运行。判断下列哪些输出是可能的：\verb|ABBCCD|、\verb|ABBCDC|、\verb|ABBDCC|、\verb|ABDBCC|、\verb|ABCDBC|、\verb|ABCDCB|。
+        \pro 阅读下述程序。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    void handler() {
+        printf("D\n");
+        return;
+    }
+    int main() {
+        signal(SIGCHLD, handler);
+        if (fork() > 0) {
+            printf("A\n");
+        } else {
+            printf("B\n");
+        } 
+        printf("C\n");
+        exit(0);
+    }
+        \end{minted}
+        假设系统调用成功，所有子进程都正常运行。判断下列哪些输出是可能的：\verb|ACBC|、\verb|ABCCD|、\verb|ACBDC|、\verb|ABDCC|、\verb|BCDAC|、\verb|ABCC|。
+        \pro 在某年的 ICS 课堂上，老师给同学布置了一个作业，在 Linux 上写出一份代码，使得运行它以后可输出系统能创建的进程的最大数目。下面是几位同学的答案。
+            \qn Alice 同学的答案是：
+            \begin{minted}[frame=single, fontsize=\small]{c}
+    int main() {
+        int pid;
+        int count = 1;
+        while ((pid = fork()) != 0) {
+            // parent process
+            count++;
+        } 
+        if (pid == 0) {
+            // child process
+            exit(0);
+        } 
+        printf("max = %d", count);
+    }
+            \end{minted}
+            这段代码不能够正确运行，原因在于对 \verb|fork| 的返回值处理得不正确。请修改至多一处代码，使得程序正确运行。
+            \qn Bob 同学对 Alice 同学修改过后的正确代码发出了疑问。Bob 同学认为，由于进程的调度时间和顺序都是不确定的，因此有的时候会调度到子进程，子进程执行 \verb|exit(0)| 以后就结束了，因此父进程可以创建更多的进程，所以 Alice 的代码输出的答案大于真实上限。请问，Bob 的说法正确吗？如果正确，请指出 Alice 应当如何修改代码，以避免 Bob 提到的问题。如果 Bob 的说法错误，请指出他错在何处。
+            \qn Carol同学的答案是：
+            \begin{minted}[frame=single, fontsize=\small]{c}
+    int main() {
+        int pid;
+        int count = 1;
+        while ((pid = fork()) > 0) {
+            // parent process
+            count++;
+        } 
+        if (pid == 0) {
+            // child process
+            while(1)
+                sleep(1);
+        } 
+        printf("max = %d", count);
+    }
+            \end{minted}
+            连续运行 Carol 同学的答案两次，发现结果分别如下：
+            \begin{minted}[frame=single, fontsize=\small]{shell-session}
+    $ ./test
+    max = 1795
+    $ ./test
+    max = 1
+            \end{minted}
+                \subqn 解释为什么会发生这种情况。
+                \subqn 为了解决第一次运行后的遗留问题，可以不修改代码，而直接在 Linux 终端中使用指令来解决。假设在第一次程序运行完以后，使用 \verb|ps| 指令，得到的列表前几项如下：
+                \begin{minted}[frame=single, fontsize=\small]{shell-session}
+    $ ./test
+    max = 1795
+    $ ps
+    22698 pts/0     00:00:00 bash
+    22725 pts/0     00:00:00 test
+    22726 pts/0     00:00:00 test
+    22727 pts/0     00:00:00 test
+    ............
+                \end{minted}
+                假设 \verb|test| 程序开始运行后，没有任何新的进程被创建，并且所有进程号均按照顺序递增、逐个地分配。于是，输入下列的指令，就可以让第二次运行得到正确的结果。其中 \verb|-9| 表示 \verb|SIGKILL|。请在横线上填入正确的值。
+                \begin{minted}[frame=single, fontsize=\small]{shell-session}
+    $ kill -9 _________
+                \end{minted}
+            \qn Dave 同学修改了 Carol 同学的答案。他将 Carol 的最后一句 \verb|printf| 改为如下代码：
+            \begin{minted}[frame=single, fontsize=\small]{c}
+    if (pid < 0) {
+        printf("max = %d", count);
+        kill(0, SIGKILL);
+    }
+            \end{minted}
+            这段代码有时无法输出任何答案。Dave 想了一想，将 \verb|printf| 中的字符串做了些修改，这样这段代码就能正确运行了。他修改了什么？
+        \pro 以下问题中我们均假设缓冲区足够大，且 \verb|stdout| 只有在关闭文件、换行与 \verb|fflush| 的情况下才会刷新缓冲区；程序运行过程中的所有系统调用均成功。
+        \qn 考虑下面的程序。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int main() {
+        printf("a");
+        fork();
+        printf("b");
+        fork();
+        printf("c");
+        return 0;
+    }
+        \end{minted}
+        写出它的一个可能的输出 \rule{3.5cm}{0.25mm}，这个输出是否是唯一可能的？说明理由。
+        \qn 考虑下面的程序。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int main() {
+        write(1, "a", 1);
+        fork();
+        write(1, "b", 1);
+        fork();
+        write(1, "c", 1);
+        return 0;
+    }
+        \end{minted}
+        以上程序的输出中有 \rule{1cm}{0.25mm} 个 \verb|a|，\rule{1cm}{0.25mm} 个 \verb|b|，\rule{1cm}{0.25mm} 个 \verb|c|；其第一个输出的字符一定是 \rule{1cm}{0.25mm}。
+        \qn 考虑下面的程序。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int main() {
+        printf("a");
+        fork();
+        write(1, "b", 1);
+        fork();
+        write(1, "c", 1);
+        return 0;
+    }
+        \end{minted}
+        以上程序的输出中有 \rule{1cm}{0.25mm} 个 \verb|a|，\rule{1cm}{0.25mm} 个 \verb|b|，\rule{1cm}{0.25mm} 个 \verb|c|；其第一个输出的字符一定是 \rule{1cm}{0.25mm}。
+        \pro 假设磁盘上有空文件 \verb|file.txt|，以下程序运行过程中的所有系统调用均成功。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int main() {
+        int fd1 = open("file.txt", O_RDWR|O_CREAT, S_IRUSR|S_IWUSR); 
+        int fd2 = open("file.txt", O_RDWR|O_CREAT, S_IRUSR|S_IWUSR); 
+        printf("%d %d\n", fd1, fd2);
+        write(fd1, "123", 3);
+        write(fd2, "45", 2);
+        close(fd1);
+        close(fd2);
+        return 0;
+    }
+        \end{minted}
+        \qn 程序关闭 \verb|fd1| 前，补全下面的 Linux 三级表结构；填写打开文件表中的 \verb|refcnt| 值。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{ccccc}
+                文件描述符表 & {\qquad \qquad \qquad} & 打开文件表 & {\qquad \qquad \qquad} & v-node 表 \\ \cline{1-1} \cline{3-3} \cline{5-5} 
+                \multicolumn{1}{|c|}{0} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{2}{*}{refcount = \_\_\_\_}} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{6}{*}{file.txt}} \\ \cline{1-1}
+                \multicolumn{1}{|c|}{1} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3}
+                \multicolumn{1}{|c|}{2} &  &  & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1}
+                \multicolumn{1}{|c|}{3} &  &  & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3}
+                \multicolumn{1}{|c|}{4} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{2}{*}{refcount = \_\_\_\_}} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1}
+                \multicolumn{1}{|c|}{5} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3} \cline{5-5} 
+            \end{tabular}
+        \end{table}
+        \qn 程序结束时，标准输出上的内容是 \rule{3.5cm}{0.25mm}，\verb|file.txt| 中的内容是 \rule{3.5cm}{0.25mm}。
+        \pro 假设磁盘上有空文件 \verb|file.txt|，以下程序运行过程中的所有系统调用均成功。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int main() {
+        int fd1 = open("file.txt", O_RDWR|O_CREAT, S_IRUSR|S_IWUSR); 
+        int fd2 = open("file.txt", O_RDWR|O_CREAT, S_IRUSR|S_IWUSR); 
+        dup2(fd2, fd1);
+        printf("%d %d\n", fd1, fd2);
+        write(fd1, "123", 3);
+        write(fd2, "45", 2);
+        close(fd1);
+        close(fd2);
+        return 0;
+    }
+        \end{minted}
+        \qn 程序关闭 \verb|fd1| 前，补全下面的 Linux 三级表结构；填写打开文件表中的 \verb|refcnt| 值。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{ccccc}
+                文件描述符表 & {\qquad \qquad \qquad} & 打开文件表 & {\qquad \qquad \qquad} & v-node 表 \\ \cline{1-1} \cline{3-3} \cline{5-5} 
+                \multicolumn{1}{|c|}{0} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{2}{*}{refcount = \_\_\_\_}} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{6}{*}{file.txt}} \\ \cline{1-1}
+                \multicolumn{1}{|c|}{1} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3}
+                \multicolumn{1}{|c|}{2} &  &  & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1}
+                \multicolumn{1}{|c|}{3} &  &  & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3}
+                \multicolumn{1}{|c|}{4} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{2}{*}{refcount = \_\_\_\_}} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1}
+                \multicolumn{1}{|c|}{5} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3} \cline{5-5} 
+            \end{tabular}
+        \end{table}
+        \qn 程序结束时，标准输出上的内容是 \rule{3.5cm}{0.25mm}，\verb|file.txt| 中的内容是 \rule{3.5cm}{0.25mm}。
+        \pro 假设磁盘上有空文件 \verb|file.txt|，以下程序运行过程中的所有系统调用均成功。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int main() {
+        int fd1 = open("file.txt", O_RDWR|O_CREAT, S_IRUSR|S_IWUSR); 
+        int fd2 = open("file.txt", O_RDWR|O_CREAT, S_IRUSR|S_IWUSR); 
+        printf("%d %d\n", fd1, fd2);
+        write(fd1, "123", 3);
+        write(fd2, "45", 2);
+        close(fd1);
+        close(fd2);
+        return 0;
+    }
+        \end{minted}
+        \qn 程序关闭 \verb|fd1| 前，补全下面的 Linux 三级表结构；填写打开文件表中的 \verb|refcnt| 值。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{ccccc}
+                文件描述符表 & {\qquad \qquad \qquad} & 打开文件表 & {\qquad \qquad \qquad} & v-node 表 \\ \cline{1-1} \cline{3-3} \cline{5-5} 
+                \multicolumn{1}{|c|}{0} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{2}{*}{refcount = \_\_\_\_}} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{6}{*}{file.txt}} \\ \cline{1-1}
+                \multicolumn{1}{|c|}{1} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3}
+                \multicolumn{1}{|c|}{2} &  &  & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1}
+                \multicolumn{1}{|c|}{3} &  &  & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3}
+                \multicolumn{1}{|c|}{4} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{2}{*}{refcount = \_\_\_\_}} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1}
+                \multicolumn{1}{|c|}{5} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3} \cline{5-5} 
+            \end{tabular}
+        \end{table}
+        \qn 程序结束时，标准输出上的内容是 \rule{3.5cm}{0.25mm}，\verb|file.txt| 中的内容是 \rule{3.5cm}{0.25mm}。
+        \pro 假设磁盘上有空文件 \verb|file.txt|，以下程序运行过程中的所有系统调用均成功；缓冲区足够大，且 \verb|stdout| 只有在关闭文件、换行与 \verb|fflush| 的情况下才会刷新缓冲区。
+        \begin{minted}[frame=single, fontsize=\small]{c}
+    int main() {
+        pid_t pid;
+        int child_status;
+        int fd1 = open("file.txt", O_RDWR|O_CREAT, S_IRUSR|S_IWUSR); 
+        if ((pid = fork()) > 0) {
+            // Parent
+            printf("P:%d ", fd1);
+            write(fd1, "123", 3);
+            waitpid(pid, &child_status, 0);
+        } else {
+            // Child
+            printf("C:%d ", fd1);
+            write(fd1, "45", 2);
+        } 
+        close(fd1);
+        return 0;
+    }
+        \end{minted}
+        \qn 子进程关闭 \verb|fd1| 前，补全下面的 Linux 三级表结构；填写打开文件表中的 \verb|refcnt| 值。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{ccccc}
+                文件描述符表 & {\qquad \qquad \qquad} & 打开文件表 & {\qquad \qquad \qquad} & v-node 表 \\ \cline{1-1} \cline{3-3} \cline{5-5} 
+                \multicolumn{1}{|c|}{Parent 3} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{2}{*}{refcount = \_\_\_\_}} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{6}{*}{file.txt}} \\ \cline{1-1}
+                \multicolumn{1}{|c|}{Parent 4} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3}
+                &  &  & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\
+                &  &  & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3}
+                \multicolumn{1}{|c|}{Child 3} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{2}{*}{refcount = \_\_\_\_}} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1}
+                \multicolumn{1}{|c|}{Child 4} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3} \cline{5-5} 
+            \end{tabular}
+        \end{table}
+        \qn 程序结束时，标准输出上的内容是 \rule{3.5cm}{0.25mm}，\verb|file.txt| 中的内容是 \rule{3.5cm}{0.25mm}。（写出所有可能答案）
+    \end{problems}
+
+\chapter{异常控制流与系统 I/O{---}往年考题}
