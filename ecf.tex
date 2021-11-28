@@ -595,6 +595,13 @@
             \item 异常是由于计算机系统发生了不可恢复的错误导致的。
             \item 异常的发生可能是异步的，也可能是同步的。
         \end{choices}
+        \proy{2015} 下列说法正确的是：
+        \begin{choices}
+            \item \verb|SIGTSTP| 信号既不能被捕获，也不能被忽略。
+            \item 存在信号的默认处理行为是进程停止直到被 \verb|SIGCONT| 信号重启。
+            \item 系统调用不能被中断，因为那是操作系统的工作。
+            \item 子进程能给父进程发送信号，但不能发送给兄弟进程。
+        \end{choices}
         \proy{2015} 在系统调用成功的情况下，下面哪个是以下程序可能的输出？
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
