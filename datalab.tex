@@ -1,4 +1,4 @@
-\chapter{Datalab 回顾}
+\chapter{Datalab 回顾}\thispagestyle{empty}
     \begin{summary}
         \begin{compactitem}
             \item 了解位级操作中常见的小模块，包括 de Morgan 律、加法器、减法器、popcount 等，会运用常见策略处理非常规的位运算编程要求，如掩码设计、模拟、分治、位级表示展开等。
@@ -17,7 +17,7 @@
         我们知道 \verb+~, &, |+ 可以表达“所有”的逻辑表达式，比方说异或 \verb+x ^ y = (x & ~y) | (~x & y)+。而实际上 \verb+~, |+ 就足以做到这件事，因为我们有 \verb+x & y = ~(~x | ~y)+。这样的情况称为\emph{连接词的完备集}，以后大家还会反复学到。
 
         当然，其实单纯一个与非或者一个或非也够了。假设\emph{或非} 用 $\downarrow$ 表示（即 $\texttt{x} \downarrow \texttt{y} = \verb+~(x | y)+$），请你完成以下代码：唯一允许的位运算操作符是 $\downarrow$。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     unsigned xor_with_nor(unsigned x, unsigned y) {
         return _________________________; // return x ^ y with only NOR
     }
@@ -27,7 +27,7 @@
     在第二个例子中，我们总结和 \texttt{isLessOrEqual, sm2tc, counter1To5} 几个题有关的重要技巧。
     \begin{example}[选择器]
         试用位级运算的技术计算表达式 \texttt{cond ? t : f}。根据注释中的提示尝试补全下面的代码，假设 \texttt{cond} 的输入总是 1 或者 0。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int conditional(int cond, int t, int f) {
         /* Compute a mask that equals 0x00000000
          * or 0xFFFFFFFF depending on the value of cond */
@@ -37,7 +37,7 @@
     }
         \end{minted}
         这个例子的意义是，如果你一定想要用 \texttt{if}，可以用这个办法避开 datalab 的限制。更显然地，减法、常数乘法都是事实上可以用的，此外你也可以回顾你在实验题中是怎样表达 \texttt{==} 的。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int equal(int x, int y) {
         return _________________________; // return x == y
     }
@@ -87,7 +87,7 @@
         一般来说，有符号数的处理比无符号数稍微需要一些讨论。根据上面的方法，请你尝试给出两个有符号数的平均 $\left \lfloor \frac{x+y}{2} \right \rfloor$ 而不发生溢出的算法；对 $\left \lceil \frac{x+y}{2} \right \rceil$ 做同样的事。
         
         与此相关，请问如何用位运算检查 $x+y$ 是否溢出了？\begin{hint} 检查符号位。 \end{hint}
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int addOK(int x, int y) {
         ________________________________;
         ________________________________;
@@ -102,7 +102,7 @@
         让我们来决定一个给定数的二进制表示中，1 的个数是偶数还是奇数；奇数返回 1，否则返回 0。允许使用 datalab 整数部分规定的所有运算符。
         
         这里我们采用\emph{分治}的策略，首先考察比较短的数。例如，当所处理的数只有两位时，采用的代码十分显然：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int bitParity2bit(int x) {
         int bit1 = 0b01 & x;
         int bit2 = 0b01 & (x >> 1);
@@ -112,7 +112,7 @@
         将异或理解为 $\mathbb F_2$ 上的加法是非常有益的。
 
         对于四位整数，我们两位两位操作，并让操作的过程某种意义上“并行”进行。首先分别确定 1、2 和 3、4 位的奇偶性，所得结果再设法异或一次。（思考：\texttt{mask2} 可以改成其他数吗？）
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int bitParity4bit(int x) {
         int mask = 0b0101;
         int halfParity = (mask & x) ^ (mask & (x >> 1));
@@ -122,7 +122,7 @@
         \end{minted}
 
         现在，请你尝试根据上面的提示，补全下面针对八位整数的算法（要求使用操作符数目不超过 12 个）。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int bitParity8bit(int x) {
         int mask = ____________________;
         int quarterParity = ____________________;
@@ -135,7 +135,7 @@
         最后，试完成针对十六位或更长整数的算法（注意，根据 datalab 要求，立即数有效长度不能超过 8 位）。
         
         作为模仿练习，请你对问题“决定一个给定数的二进制表示中有多少个 1”做同样的事。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     /* Let's count how many bits are set in a number */
     int bitCount8bit(int x) {
         int mask = ____________________;
@@ -154,7 +154,7 @@
         这个某种意义上是一个广为流传的\sout{面试题}。我们沿用\emph{分治}的思想。假设二进制数 $x$ 有 $2m$ 位 $(\underbracket{b_{2m-1} \dotsm b_m}_{x_h} \underbracket{b_{m-1} \dotsm b_0}_{x_l})_2$，那么显然有
         \[ \operatorname{rev}(x) = \operatorname{rev}(x_l) \operatorname{rev}(x_h). \]
         根据这个思路，请你补全以下代码：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     unsigned reverseBits(unsigned n) {
         n = (n >> 16) | (n << 16);
         n = ((n & __________) >> 8) | ((n & __________) << 8);

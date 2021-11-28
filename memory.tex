@@ -1,4 +1,4 @@
-\chapter{存储器层次结构}
+\chapter{存储器层次结构}\thispagestyle{empty}
     \begin{summary}
         \begin{compactitem}
             \item 了解 SRAM、DRAM 等易失性存储器及其变种（如 DDR SDARM 等）的功能和历史；了解 PROM、EPROM 等非易失性存储器及其变种的功能和历史。
@@ -36,7 +36,7 @@
         \pro 已知一个磁盘每条磁道平均有 400 个扇区，旋转速度为 \SI{6000}{RPM}，那么它的平均传送时间大约为 \rule{2.5cm}{0.25mm} ms。
         \sol 答案为 $60/6000 \text{ （转一圈的时间）} \times 1/400 \text{ （转过一个磁道的时间）} \times 1000 = \SI{0.025}{ms}$。
         \pro 考虑如下程序：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     for (int i = 0; i < n; i++) {
         B[i] = 0;
         for (int j = 0; j < m; j++)
@@ -61,7 +61,7 @@
             \qn 使用随机替换代替 LRU，期望命中率可能会提高。
         \sol 1 正确，相当于在 cache 中直接增加一组空间。2、3 都错误，由于总容量不变，所以组数都会降低，命中率都可能降低。实际上实验表明，增大路数一般会导致命中率降低，而增大块大小对于不同的访存步长可能造成命中率升高或降低。4 正确，对于某些特定的程序，LRU 的期望性能可能不如随机替换（参看 2018 年期中第 13 题的构造），实验表明在较小的 cache 中随机策略更优。
         \pro 考虑如下程序：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int A[MAXN];
     for (int i = 0; i < 25; i++) {
         int x = A[i];
@@ -109,7 +109,7 @@
         第四问考察冷不命中。当缓存充分大时，至少第一次访问该元素时是要发生不命中的，而这里一共有 28 个元素要访问，所以最高命中率是 72\%。
     \end{problems}
 
-\chapter{存储器层次结构{---}往年考题}
+\chapter{存储器层次结构{---}往年考题}\thispagestyle{empty}
     \begin{problems}
         \proy{2018} 以下关于存储的叙述中，正确的是：
         \begin{choices}
@@ -170,7 +170,7 @@
         \end{choices}
         \sol CD。对于全相联缓存，操作主要和替换策略有关。LRU 和 FIFO 的行为是一样的，并且发生抖动（第 $n$ 次访问会替换第 $n+1$ 次访问需要的块），因此不会发生任何命中。随机替换策略中，每次新来一个块，随机换出的块会导致之后的四次访存有一次 miss，且是等概率地有一次。因而平均 2.5 次访存会发生一次 miss，所以命中率是 60\%。LIFO 策略中，前 3 个内存块的访问一直会命中，而最后两个块交替发生 miss，所以命中率也是 60\%。
         \proy{2018} 某计算机地址空间 12 位，L1 cache 大小为 256 字节，组数 $S=4$，路数 $E=2$，现在在地址 \verb|0x0| 处开始有一个 $N$ 行 $M$ 列的 \verb|int| 类型的数组 \verb|int A[N][M]|，有如下 C 代码：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int ans = 0;
     for(int j = 0; j < M; ++j)
         for(int i = 0; i < N; ++i) ans += A[i][j];
@@ -268,7 +268,7 @@
             \item 以上说法全不正确。
         \end{choices}
         \proy{2015} 考虑下面的程序：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     #define LENGTH 8
     void clear4x4 (char array[LENGTH][LENGTH]) {
         int row, col;

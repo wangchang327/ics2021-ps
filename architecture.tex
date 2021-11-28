@@ -1,4 +1,4 @@
-\chapter{体系结构初步}
+\chapter{体系结构初步}\thispagestyle{empty}
     \begin{summary}
         \begin{compactitem}
             \item 了解体系结构的简要发展史，熟悉 RISC、CISC 的区别和应用。了解基本的门电路、算术运算器、选择器、触发器和寄存器的原理和实现。
@@ -233,7 +233,7 @@
     ];
         \end{minted}
         \pro 有如下定义：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // 以下都是局部变量
     int i, j, temp, ians;
     int *p, *q, *r;
@@ -246,7 +246,7 @@
         \end{minted}
         判断编译器是否会自动进行以下代码优化：
         \qn
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // 优化前
     ians = 0;
     for (j = 0; j < 100; j++)
@@ -257,7 +257,7 @@
     for (j = 0; j < 100; j++) ians += iMat[i][j];
         \end{minted}
         \qn
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // 优化前
     dans = 0;
     for (j = 0; j < 100; j++)
@@ -268,7 +268,7 @@
     for (j = 0; j < 100; j++) dans += dMat[i][j];
         \end{minted}
         \qn
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // 优化前
     for (i = 0; i < foo(100); i++) ians += iMat[0][i];
     // 优化后
@@ -276,7 +276,7 @@
     for (i = 0; i < temp; i++) ians += iMat[0][i];
         \end{minted}
         \qn
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // 优化前
     *p += *q;
     *p += *r
@@ -286,7 +286,7 @@
         \end{minted}
         \sol (2)、(3)、(4)都不会，理由分别是浮点数加法运算没有结合律、\verb|foo| 函数可能有额外副作用和别名问题（例如若 \verb|p, q, r| 都指向同一个元素，那么两段代码行为不等价）。
         \pro 阅读下列 C 代码以及它编译生成的汇编语言。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     long func() {
         long ans = 1;
         long i;
@@ -316,7 +316,7 @@
         \sol 循环中产生数据相关的寄存器为累加器 \verb|%rax| 和计数器 \verb|%rdx|。由于每次 \verb|%rax| 更新都需要等待一次较慢的加法或乘法，其所在的数据相关路径为关键路径，需要 $k$ 个周期。因为循环每次处理 2 个元素，从而数据相关给出的 CPE 下界分别是 4 和 0.5。
     \end{problems}
 
-\chapter{体系结构初步{---}往年考题}
+\chapter{体系结构初步{---}往年考题}\thispagestyle{empty}
     \begin{problems}
         \proy{2018} 以下是一款 Y86 流水线处理器的结构图（局部），请以此为基础，依次回答下列问题。
         \begin{figure}[H]
@@ -391,14 +391,14 @@
         以下哪项程序优化编译器总是可以进行？
         \vspace{\baselineskip}
         \begin{choices}
-            \item \begin{minted}[frame=single, fontsize=\small]{c}
+            \item \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // 优化前
     for(i = 0; i < n; ++i) { a[i] += b[i]; a[i] += c[i]; }
     // 优化后
     float tmp;
     for(i = 0; i < n; ++i) { tmp = b[i] + c[i]; a[i] += tmp; }
             \end{minted}
-            \item \begin{minted}[frame=single, fontsize=\small]{c}
+            \item \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // 优化前
     *p += *q; *p += *r;
     // 优化后
@@ -406,14 +406,14 @@
     tmp = *q + *r;
     *p += tmp;
             \end{minted}
-            \item \begin{minted}[frame=single, fontsize=\small]{c}
+            \item \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // 优化前
     for(i = 0; i < n; ++i) sum += i * 4;
     // 优化后
     int N = n * 4;
     for(i = 0; i < N; i += 4) sum += i;
             \end{minted}
-            \item \begin{minted}[frame=single, fontsize=\small]{c}
+            \item \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // 优化前
     for(i = 0; i < foo(n); ++i) bar();
     // 优化后
@@ -621,14 +621,14 @@
         都是局部变量，\verb|N| 是一个整数型常量，\verb|int foo(int)| 是一个函数。
         \vspace{\baselineskip}
         \begin{choices}
-            \item \begin{minted}[frame=single, fontsize=\small]{c}
+            \item \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // 优化前
     for (j = 0; j < N; j++) m += i * N * j;
     // 优化后
     int temp = i * N;
     for (j = 0; j < N; j++) m += temp * j;
             \end{minted}
-            \item \begin{minted}[frame=single, fontsize=\small]{c}
+            \item \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // 优化前
     for (j = 0; j < N; j++) B[i] *= A[j];
     // 优化后
@@ -636,13 +636,13 @@
     for (j = 0; j < N; j++) temp *= A[j];
     B[i] = temp;
             \end{minted}
-            \item \begin{minted}[frame=single, fontsize=\small]{c}
+            \item \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // 优化前
     for(j = 0; j < N; j++) m = (m + A[j]) + B[j];
     // 优化后
     for(j = 0; j < N; j++) m = m + (A[j] + B[j]);
             \end{minted}
-            \item \begin{minted}[frame=single, fontsize=\small]{c}
+            \item \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // 优化前
     for(j = 0; j < foo(N); j++) m++;
     // 优化后

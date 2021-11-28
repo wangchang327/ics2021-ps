@@ -1,4 +1,4 @@
-\chapter{异常控制流与系统 I/O}
+\chapter{异常控制流与系统 I/O}\thispagestyle{empty}
     \begin{summary}
         \begin{compactitem}
             \item 知道控制流和异常控制流的定义，知道异常及其处理是由软硬件结合实现的。
@@ -9,8 +9,8 @@
             \item 知道 Linux 的常见信号，熟悉信号处理的过程及其细节（例如 \verb|SIGKILL, SIGSTOP| 的默认行为不能修改、待处理信号至多只有一个、进程可以发信号给自己等），知道发送信号的机制和多种 API。
             \item 理解信号处理程序和主“程序”的并发性质，熟悉编写信号处理程序中需要注意的五个要点并理解其原因（以及用阻塞避免竞争）。信号不能用来计数。
             \item 了解非本地跳转的基本机制，知道 \verb|setjmp| 的返回值不能赋值。
-            \item 知道 Linux 系统的文件模型和文件类型，会用各种文件读写系统调用编写程序。熟悉文件元数据的结构和读写方法。
-            \item 熟练掌握描述符表（理解与打开文件的关系）、打开文件表、v-node 表、引用计数的概念，会结合异常控制流（\verb|fork|）和重定向（\verb|dup2|）的知识分析程序。
+            \item 知道 Linux 系统的文件模型和文件类型，会用各种文件读写系统调用编写程序。熟悉文件元数据的结构和读写方法。了解 RIO 包的用法和目的。
+            \item 熟练掌握描述符表（理解与打开文件的关系）、打开文件表、v-node 表、引用计数的概念，会结合异常控制流（\verb|fork|）和重定向（\verb|dup2, dup|）的知识分析程序。
             \item 知道标准输出和底层系统调用的区别，熟练掌握输出缓冲的机制和 \verb|fflush|。
         \end{compactitem}
     \end{summary}
@@ -38,7 +38,7 @@
             \qn 用 \verb|read| 函数发起磁盘读
             \qn 用户程序执行了指令 \verb|lgdt|，但是这个指令只能在内核模式下执行
         \pro 在下面的程序中，父进程和子进程的输出分别是什么？
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
         int a = 9;
         if (Fork() == 0)
@@ -48,7 +48,7 @@
     }
         \end{minted}
         \pro 阅读下述程序。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
         char c = 'A';
         printf("%c", c); fflush(stdout);
@@ -66,7 +66,7 @@
         \end{minted}
         假设系统调用成功，所有子进程都正常运行。判断下列哪些输出是可能的：\verb|AABBBC|、\verb|ABCABB|、\verb|ABBABC|、\verb|AACBBC|、\verb|ABABCB|、\verb|ABCBAB|。
         \pro 阅读下述程序。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
         int child_status;
         char c = 'A';
@@ -87,7 +87,7 @@
         \end{minted}
         假设系统调用成功，所有子进程都正常运行。判断下列哪些输出是可能的：\verb|ABBCCD|、\verb|ABBCDC|、\verb|ABBDCC|、\verb|ABDBCC|、\verb|ABCDBC|、\verb|ABCDCB|。
         \pro 阅读下述程序。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     void handler() {
         printf("D\n");
         return;
@@ -106,7 +106,7 @@
         假设系统调用成功，所有子进程都正常运行。判断下列哪些输出是可能的：\verb|ACBC|、\verb|ABCCD|、\verb|ACBDC|、\verb|ABDCC|、\verb|BCDAC|、\verb|ABCC|。
         \pro 在某年的 ICS 课堂上，老师给同学布置了一个作业，在 Linux 上写出一份代码，使得运行它以后可输出系统能创建的进程的最大数目。下面是几位同学的答案。
             \qn Alice 同学的答案是：
-            \begin{minted}[frame=single, fontsize=\small]{c}
+            \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
         int pid;
         int count = 1;
@@ -124,7 +124,7 @@
             这段代码不能够正确运行，原因在于对 \verb|fork| 的返回值处理得不正确。请修改至多一处代码，使得程序正确运行。
             \qn Bob 同学对 Alice 同学修改过后的正确代码发出了疑问。Bob 同学认为，由于进程的调度时间和顺序都是不确定的，因此有的时候会调度到子进程，子进程执行 \verb|exit(0)| 以后就结束了，因此父进程可以创建更多的进程，所以 Alice 的代码输出的答案大于真实上限。请问，Bob 的说法正确吗？如果正确，请指出 Alice 应当如何修改代码，以避免 Bob 提到的问题。如果 Bob 的说法错误，请指出他错在何处。
             \qn Carol同学的答案是：
-            \begin{minted}[frame=single, fontsize=\small]{c}
+            \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
         int pid;
         int count = 1;
@@ -164,7 +164,7 @@
     $ kill -9 _________
                 \end{minted}
             \qn Dave 同学修改了 Carol 同学的答案。他将 Carol 的最后一句 \verb|printf| 改为如下代码：
-            \begin{minted}[frame=single, fontsize=\small]{c}
+            \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     if (pid < 0) {
         printf("max = %d", count);
         kill(0, SIGKILL);
@@ -173,7 +173,7 @@
             这段代码有时无法输出任何答案。Dave 想了一想，将 \verb|printf| 中的字符串做了些修改，这样这段代码就能正确运行了。他修改了什么？
         \pro 以下问题中我们均假设缓冲区足够大，且 \verb|stdout| 只有在关闭文件、换行与 \verb|fflush| 的情况下才会刷新缓冲区；程序运行过程中的所有系统调用均成功。
         \qn 考虑下面的程序。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
         printf("a");
         fork();
@@ -185,7 +185,7 @@
         \end{minted}
         写出它的一个可能的输出 \rule{3.5cm}{0.25mm}，这个输出是否是唯一可能的？说明理由。
         \qn 考虑下面的程序。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
         write(1, "a", 1);
         fork();
@@ -197,7 +197,7 @@
         \end{minted}
         以上程序的输出中有 \rule{1cm}{0.25mm} 个 \verb|a|，\rule{1cm}{0.25mm} 个 \verb|b|，\rule{1cm}{0.25mm} 个 \verb|c|；其第一个输出的字符一定是 \rule{1cm}{0.25mm}。
         \qn 考虑下面的程序。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
         printf("a");
         fork();
@@ -209,10 +209,10 @@
         \end{minted}
         以上程序的输出中有 \rule{1cm}{0.25mm} 个 \verb|a|，\rule{1cm}{0.25mm} 个 \verb|b|，\rule{1cm}{0.25mm} 个 \verb|c|；其第一个输出的字符一定是 \rule{1cm}{0.25mm}。
         \pro 假设磁盘上有空文件 \verb|file.txt|，以下程序运行过程中的所有系统调用均成功。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
-        int fd1 = open("file.txt", O_RDWR|O_CREAT, S_IRUSR|S_IWUSR); 
-        int fd2 = open("file.txt", O_RDWR|O_CREAT, S_IRUSR|S_IWUSR); 
+        int fd1 = open("file.txt", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR); 
+        int fd2 = open("file.txt", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR); 
         printf("%d %d\n", fd1, fd2);
         write(fd1, "123", 3);
         write(fd2, "45", 2);
@@ -237,10 +237,10 @@
         \end{table}
         \qn 程序结束时，标准输出上的内容是 \rule{3.5cm}{0.25mm}，\verb|file.txt| 中的内容是 \rule{3.5cm}{0.25mm}。
         \pro 假设磁盘上有空文件 \verb|file.txt|，以下程序运行过程中的所有系统调用均成功。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
-        int fd1 = open("file.txt", O_RDWR|O_CREAT, S_IRUSR|S_IWUSR); 
-        int fd2 = open("file.txt", O_RDWR|O_CREAT, S_IRUSR|S_IWUSR); 
+        int fd1 = open("file.txt", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR); 
+        int fd2 = open("file.txt", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR); 
         dup2(fd2, fd1);
         printf("%d %d\n", fd1, fd2);
         write(fd1, "123", 3);
@@ -266,10 +266,10 @@
         \end{table}
         \qn 程序结束时，标准输出上的内容是 \rule{3.5cm}{0.25mm}，\verb|file.txt| 中的内容是 \rule{3.5cm}{0.25mm}。
         \pro 假设磁盘上有空文件 \verb|file.txt|，以下程序运行过程中的所有系统调用均成功。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
-        int fd1 = open("file.txt", O_RDWR|O_CREAT, S_IRUSR|S_IWUSR); 
-        int fd2 = open("file.txt", O_RDWR|O_CREAT, S_IRUSR|S_IWUSR); 
+        int fd1 = open("file.txt", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR); 
+        int fd2 = open("file.txt", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR); 
         printf("%d %d\n", fd1, fd2);
         write(fd1, "123", 3);
         write(fd2, "45", 2);
@@ -294,11 +294,11 @@
         \end{table}
         \qn 程序结束时，标准输出上的内容是 \rule{3.5cm}{0.25mm}，\verb|file.txt| 中的内容是 \rule{3.5cm}{0.25mm}。
         \pro 假设磁盘上有空文件 \verb|file.txt|，以下程序运行过程中的所有系统调用均成功；缓冲区足够大，且 \verb|stdout| 只有在关闭文件、换行与 \verb|fflush| 的情况下才会刷新缓冲区。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
         pid_t pid;
         int child_status;
-        int fd1 = open("file.txt", O_RDWR|O_CREAT, S_IRUSR|S_IWUSR); 
+        int fd1 = open("file.txt", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR); 
         if ((pid = fork()) > 0) {
             // Parent
             printf("P:%d ", fd1);
@@ -315,6 +315,7 @@
         \end{minted}
         \qn 子进程关闭 \verb|fd1| 前，补全下面的 Linux 三级表结构；填写打开文件表中的 \verb|refcnt| 值。
         \begin{table}[H]
+            \tt
             \centering
             \begin{tabular}{ccccc}
                 文件描述符表 & {\qquad \qquad \qquad} & 打开文件表 & {\qquad \qquad \qquad} & v-node 表 \\ \cline{1-1} \cline{3-3} \cline{5-5} 
@@ -329,4 +330,688 @@
         \qn 程序结束时，标准输出上的内容是 \rule{3.5cm}{0.25mm}，\verb|file.txt| 中的内容是 \rule{3.5cm}{0.25mm}。（写出所有可能答案）
     \end{problems}
 
-\chapter{异常控制流与系统 I/O{---}往年考题}
+\chapter{异常控制流与系统 I/O{---}往年考题}\thispagestyle{empty}
+    \begin{problems}
+        \proy{2018} 关于进程，以下说法正确的是：
+        \begin{choices}
+            \item 没有设置模式位时，进程运行在用户模式中，允许执行特权指令，例如发起 I/O 操作。
+            \item 调用 \verb|waitpid(-1, NULL, WNOHANG & WUNTRACED)| 会立即返回：如果调用进程的所有子进程都没有被停止或终止，则返回 \verb|0|；如果有停止或终止的子进程，则返回其中一个的 \verb|PID|。
+            \item \verb|execve| 函数的第三个参数 \verb|envp| 指向一个以 \verb|null| 结尾的指针数组，其中每一 个指针指向一个形如“\verb|name=value|”的环境变量字符串。
+            \item 进程可以通过使用 \verb|signal| 函数修改和信号相关联的默认行为，唯一的例外是 \verb|SIGKILL|，它的默认行为是不能修改的。
+        \end{choices}
+        \proy{2018} 假设某进程有且仅有五个已打开的文件描述符 0\textasciitilde4，分别引用了五个不同的文件，尝试运行以下代码：\verb|dup2(3,2); dup2(0,3); dup2(1,10); dup2(10,4); dup2(4,0);|。关于得到的结果，说法正确的是：
+        \begin{choices}
+            \item 运行正常完成，现在有四个描述符引用同一个文件。
+            \item 运行正常完成，现在进程共引用四个不同的文件。
+            \item 由于试图从一个未打开的描述符进行复制，发生错误。
+            \item 由于试图向一个未打开的描述符进行复制，发生错误。
+        \end{choices}
+        \proy{2018} Bob 是一名刚刚学完异常的同学，他希望通过配合 \verb|kill| 和 \verb|signal| 的使用，能让两个进程向同一个文件中交替地打印出字符。可惜他的 tshlab 做得不过关，导致他写的这个程序有各种问题。
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    #include "csapp.h"
+    #define MAXN 6
+    int parentPID = 0;
+    int childPID = 0;
+    int count = 1;
+    int fd1 = 1;
+    void handler1() {
+        if (count > MAXN)
+            return;
+        for (int i = 0; i < count; i++)
+            write(fd1, "+", 1);
+        __________X__________
+        kill(parentPID, SIGUSR2);
+    }
+    void handler2() {
+        if (count > MAXN)
+            return;
+        for (int i = 0; i < count; i++)
+            write(fd1, "-", 1);
+        __________Y__________
+        kill(childPID, SIGUSR1);
+    }
+
+    int main() {
+        signal(SIGUSR1, handler1);
+        signal(SIGUSR2, handler2);
+        parentPID = getpid();
+        childPID = fork();
+        fd1 = open("file.txt", O_RDWR);
+        if (childPID) {
+            __________Z__________
+            kill(childPID, SIGUSR1);
+        }
+        exit(0);
+    }
+        \end{minted}
+        假设程序能在任意时刻被系统打断、调度，并且调度的时间切片大小是不确定的，可以充分长。在每次程序执行前，\verb|file.txt| 是一个已经存在的空文件。
+        \qn 此时，\verb|X| 处语句和 \verb|Y| 处语句都是 \verb|count++;|，\verb|Z| 处语句是空语句。Alice 测试该代码，发现有时 \verb|file.txt| 中没有任何输出。请解释原因。
+        
+        \begin{hint}
+            考虑第 28 行 \verb|fork| 以后，下一次被调度的进程，并从这个角度回答本题。不需要给出解决方案。
+        \end{hint}
+        \qn Bob 根据 Alice 的反馈，在某两行之间加了若干代码，修复了前述的问题。当 \verb|X| 处代码和 \verb|Y| 处代码都是 \verb|count++;|，\verb|Z| 处为空时，Bob 期望 \verb|file.txt| 中的输出是：
+        \begin{center}
+            \verb|+-++--+++---++++----+++++-----++++++------|
+        \end{center}
+        可 Alice 测评 Bob 的程序的时候，却发现有时 Bob 的程序在 \verb|file.txt| 中的输出是：
+        \begin{center}
+            \verb|+-+--+---+----+------|
+        \end{center}
+        现在要对程序的问题进行分析，请按以下要求填写后面的表格：
+        \begin{compactenum}[(i)]
+            \item 在描述符表一栏中，勾选该进程当前 \verb|fd1| 的值。
+            \item 在打开文件表一栏中，填写该项的 \verb|refcnt|。如果某一项不存在，请在括号中写 \verb|0|。
+            \item 画出描述符表到打开文件表的表项指向关系。不需要画关于标准输入/标准输出/标准错误的箭头。评分时不对箭头评分，请务必保证(i)、(ii)两步的解答与箭头连接的情况相一致。
+        \end{compactenum}
+        \subqn 当程序第一次在终端上输出 \verb|+| 的瞬间，Linux 三级表的结构如下，请补全：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{cccccc}
+                \multicolumn{2}{c}{文件描述符表} & {\qquad} & 打开文件表 & {\qquad} & v-node 表 \\ \cline{1-2} \cline{4-4} \cline{6-6} 
+                \multicolumn{1}{|c|}{\multirow{4}{*}{父进程}} & \multicolumn{1}{c|}{(     ) 0} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{4}{*}{refcount = \_\_\_\_}} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{9}{*}{file.txt}} \\ \cline{2-2}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{(     ) 1} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{2-2}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{(     ) 2} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{2-2}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{(     ) 3} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-2} \cline{4-4}
+                &  &  &  & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-2} \cline{4-4}
+                \multicolumn{1}{|c|}{\multirow{4}{*}{子进程}} & \multicolumn{1}{c|}{(     ) 0} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{4}{*}{refcount = \_\_\_\_}} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{2-2}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{(     ) 1} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{2-2}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{(     ) 2} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{2-2}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{(     ) 3} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-2} \cline{4-4} \cline{6-6} 
+            \end{tabular}
+        \end{table}
+        \subqn 当程序第一次在 \verb|file.txt| 中输出 \verb|+| 的瞬间，Linux 三级表的结构如下，请补全：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{cccccc}
+                \multicolumn{2}{c}{文件描述符表} & {\qquad} & 打开文件表 & {\qquad} & v-node 表 \\ \cline{1-2} \cline{4-4} \cline{6-6} 
+                \multicolumn{1}{|c|}{\multirow{4}{*}{父进程}} & \multicolumn{1}{c|}{(     ) 0} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{4}{*}{refcount = \_\_\_\_}} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{9}{*}{file.txt}} \\ \cline{2-2}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{(     ) 1} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{2-2}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{(     ) 2} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{2-2}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{(     ) 3} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-2} \cline{4-4}
+                &  &  &  & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-2} \cline{4-4}
+                \multicolumn{1}{|c|}{\multirow{4}{*}{子进程}} & \multicolumn{1}{c|}{(     ) 0} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{4}{*}{refcount = \_\_\_\_}} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{2-2}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{(     ) 1} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{2-2}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{(     ) 2} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{2-2}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{(     ) 3} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-2} \cline{4-4} \cline{6-6} 
+            \end{tabular}
+        \end{table}
+        \subqn 如果要产生 Bob 预期的输出，Linux 三级表的关系应当如下，请补全：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{cccccc}
+                \multicolumn{2}{c}{文件描述符表} & {\qquad} & 打开文件表 & {\qquad} & v-node 表 \\ \cline{1-2} \cline{4-4} \cline{6-6} 
+                \multicolumn{1}{|c|}{\multirow{4}{*}{父进程}} & \multicolumn{1}{c|}{(     ) 0} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{4}{*}{refcount = \_\_\_\_}} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{9}{*}{file.txt}} \\ \cline{2-2}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{(     ) 1} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{2-2}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{(     ) 2} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{2-2}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{(     ) 3} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-2} \cline{4-4}
+                &  &  &  & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-2} \cline{4-4}
+                \multicolumn{1}{|c|}{\multirow{4}{*}{子进程}} & \multicolumn{1}{c|}{(     ) 0} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\multirow{4}{*}{refcount = \_\_\_\_}} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{2-2}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{(     ) 1} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{2-2}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{(     ) 2} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{2-2}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{(     ) 3} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-2} \cline{4-4} \cline{6-6} 
+            \end{tabular}
+        \end{table}
+        \qn 对于上一问的错误代码，如果终端上输出的是 \verb|+++|，那么 \verb|file.txt| 中的内容是什么？答：\rule{6cm}{0.25mm}。
+        \qn Bob 修复了(2)的问题，使得代码能够产生预期的输出。现在，Bob 又希望自己的代码最终输出的是 \verb|+--+++----+++++------|，为此，他对 \verb|X, Y, Z| 处作了如下的修改。\verb|X, Y| 处语句已做如下填写，请补上 \verb|Z| 处语句。
+        \begin{compactitem}
+            \item \verb|X| 处填写为 \verb|count += 2;|。
+            \item \verb|Y| 处填写为 \verb|count += 2;|。
+            \item \verb|Z| 处填写为 \rule{6cm}{0.25mm}。
+        \end{compactitem}
+        \proy{2016} 下列哪一事件不会导致信号被发送到进程？
+        \begin{choices}
+            \item 新连接到达监听端口
+            \item 进程访问非法地址
+            \item 除零
+            \item 上述情况都不对
+        \end{choices}
+        \proy{2016} 考虑以下代码，假设 \verb|result.txt| 中的初始内容为 \verb|666666|。
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    char *str1 = "6666";
+    char *str2 = "2333";
+    char *str3 = "hhhh";
+    int fd1, fd2, fd3, i;
+    fd1 = open("result.txt", O_RDWR);
+    fd2 = open("result.txt", O_RDWR);
+    dup2(fd1, fd2);
+    for (i = 0; i < 5; ++i) {
+        fd3 = open("result.txt", O_RDWR);
+        write(fd1, str1, 4);
+        write(fd2, str2, 4);
+        write(fd3, str3, 4);
+        close(fd3);
+    }
+    close(fd1); close(fd2);
+        \end{minted}
+        假设所有系统调用均成功，则这段代码执行结束后，\verb|result.txt| 的内容中有（\qquad）个 \verb|6|。
+        \begin{choices}
+            \item 6
+            \item 16
+            \item 20
+            \item 22
+        \end{choices}
+        \proy{2016} 关于 I/O 操作，以下说法中正确的是：
+        \begin{choices}
+            \item 由于 RIO 包的健壮性，所以 RIO 中的函数都可以交叉调用。
+            \item 成功调用 \verb|open| 函数后，一定返回一个不小于 3 的文件描述符。
+            \item 调用 Unix I/O 开销较大，标准 I/O 库使用缓冲区来加快 I/O 的速度。
+            \item 和描述符表一样，每个进程拥有独立的打开文件表。
+        \end{choices}
+        \proy{2016} 请阅读以下程序，然后回答问题。假设程序中的函数调用都可以正确执行，并默认 \verb|printf| 执行完会调用 \verb|fflush|。
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    int main() {
+        int cnt=1;
+        int pid_1, pid_2;
+        pid_1=fork();
+        if (pid_1 == 0) {
+            pid_2 = fork();
+            if(pid_2 != 0) {
+                wait(pid_2, NULL, 0);
+                printf("B");
+            }
+            printf("F");
+            exit(0);
+        } else {
+            __________A__________
+            __________B__________
+            wait(pid_1, NULL, 0);
+            pid_2 = fork();
+            if (pid_2 == 0) {
+                printf("D");
+                cnt -= 1;
+            }
+            if(cnt == 0)
+                printf("E");
+            else
+                printf("G");
+            exit(0);
+        }
+    }
+        \end{minted}
+        \qn 如果程序中的 \verb|A, B| 位置的代码为空，列出所有可能的输出结果：\rule{3cm}{0.25mm}。
+        \qn 如果程序中的 \verb|A, B| 位置的代码分别为 \verb|printf("C");|、\verb|exit(0);|，列出所有可能的输出结果：\rule{6cm}{0.25mm}。
+        \proy{2016} 请阅读以下程序，然后回答问题（假设程序中的函数调用都可以正确执行，且每条语句都是原子动作）：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    pid_t pid;
+    int even = 0;
+    int counter1 = 0;
+    int counter2 = 1;
+    void handler1(int sig) {
+        if (even % 2 == 0) {
+            printf("%d\n", counter1);
+            counter1 = ______________________;
+        } else {
+            printf("%d\n", counter2);
+            counter2 = ______________________;
+            even = even + ______________________;
+        }
+    }
+    void handler2(int sig) {
+        if (______________________) {
+            counter1 = even * even;
+        } else {
+            counter2 = even * even;
+        }
+    }
+    int main() {
+        signal(SIGUSR1, handler1);
+        signal(SIGUSR2, handler2);
+
+        if ((pid = fork()) == 0) {
+            while (1) {};
+        }
+        while (even < 30) {
+            kill(pid, ______________________);
+            sleep(1);
+            kill(pid, ______________________);
+            sleep(1);
+            even = even + ______________________;
+        }
+        kill(pid, SIGKILL);
+        exit(0);
+    }
+        \end{minted}
+        完成程序，使得程序在输出的数字为以下 $Q$ 队列的前 30 项，$Q$ 队列定义为
+        \[ Q_0=0, \quad Q_1=1, \quad Q_{n+1} = \begin{cases}
+            Q_n+1 \quad (2 \mid n), \\
+            2Q_n \quad (2 \nmid n),
+        \end{cases} \quad (n \in \mathbb N). \]
+        注意：若某个位置中的程序内容对本次程序执行结果没有影响，请在相应位置填写 “无关”。
+        \proy{2015} 设一段程序中阻塞了 \verb|SIGCHLD| 和 \verb|SIGUSR1| 信号。接下来，向它按顺序发送 \verb|SIGCHLD, SIGUSR1, SIGCHLD| 信号，当程序取消阻塞继续执行时，将处理这三个信号中的哪几个？
+        \begin{choices}
+            \item 都不处理
+            \item 处理一次 \verb|SIGCHLD|
+            \item 处理一次 \verb|SIGCHLD|，一次 \verb|SIGUSR1|
+            \item 处理所有三个信号
+        \end{choices}
+        \proy{2015} 学完本课程后，几位同学聚在一起讨论有关异常的话题，请问下面哪一个说法有误？
+        \begin{choices}
+            \item 发生异常和异常处理意味着控制流的突变。
+            \item 与异常相关的处理是由硬件和操作系统共同完成的。
+            \item 异常是由于计算机系统发生了不可恢复的错误导致的。
+            \item 异常的发生可能是异步的，也可能是同步的。
+        \end{choices}
+        \proy{2015} 在系统调用成功的情况下，下面哪个是以下程序可能的输出？
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    int main() {
+        int pid = fork();
+        if (pid == 0) {
+            printf("A");
+        } else {
+            pid = fork();
+            if (pid == 0) {
+                printf("A");
+            } else {
+                printf("B");
+            }
+        }
+        exit(0);
+    }
+        \end{minted}
+        \begin{choices}
+            \item \verb|AAB|
+            \item \verb|AAA|
+            \item \verb|AABB|
+            \item \verb|AA|
+        \end{choices}
+        \proy{2016} 以下关于 Unix I/O 的说法正确的是：
+        \begin{choices}
+            \item 从网络套接字（socket）读取内容时，可以通过反复读的方式处理不足值问题，直到读完所需要的数量或遇到 \verb|EOF| 为止。
+            \item 以 \verb|O_RDWR| 方式打开文件后，文件会有两个指针，分别记录读文件的当前位置和写文件的当前位置。
+            \item 用 \verb|read| 函数直接读取控制台输入的文本行，会自动在行末追加 \verb|\0| 字符。
+            \item 使用 \verb|dup2(4, 1)| 成功进行重定向后执行 \verb|close(4)|，会导致 1 号文件描述符也不可用。
+        \end{choices}
+        \begin{hint}
+            \verb|O_RDWR| 表示文件可读可写。\verb|dup2(oldfd, newfd)| 表示将 \verb|oldfd| 重定向给 \verb|newfd|。
+        \end{hint}
+        \proy{2015} 考虑如下程序代码：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    #include <stdio.h>
+    #include "csapp.h"
+    int main() {
+        printf("2");
+        if (Fork()) {
+            printf("33");
+            Write(STDOUT_FILENO, "lol", 3);
+        } else {
+            Sleep(1);
+            printf("233");
+            Write(STDOUT_FILENO, "hhhh", 4);
+        }
+        fflush(stdout);
+        return 0;
+    }
+        \end{minted}
+        编译后运行程序，程序正常退出。那么程序的输出是：
+        \begin{choices}
+            \item \verb|233lol233hhhh|
+            \item \verb|lol233hhhh2233|
+            \item \verb|233lol2233hhhh|
+            \item \verb|2lol33hhhh233|
+        \end{choices}
+        \proy{2015} 以下程序运行时系统调用全部正确执行，且每个信号都被处理。请给出代码运行后所有可能的输出结果。
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <unistd.h>
+    #include <signal.h>
+
+    int c = 1;
+    void handler1(int sig) {
+        c++;
+        printf("%d", c);
+    }
+
+    int main() {
+        signal(SIGUSR1, handler1);
+        sigset_t s;
+        sigemptyset(&s);
+        sigaddset(&s, SIGUSR1);
+        sigprocmask(SIG_BLOCK, &s, 0);
+
+        int pid = fork() ? fork() : fork();
+        if (pid == 0) {
+            kill(getppid(), SIGUSR1);
+            printf("S");
+            sigprocmask(SIG_UNBLOCK, &s, 0);
+            exit(0);
+        } else {
+            while (waitpid(-1, NULL, 0) != -1);
+            sigprocmask(SIG_UNBLOCK, &s, 0);
+            printf("P");
+        }
+        return 0;
+    }
+        \end{minted}
+        \proy{2014} 在系统调用成功的情况下，下列代码会输出几个 \verb|hello|？
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    void doit() {
+        if (fork() == 0) {
+            printf("hello\n");
+            fork();
+        }
+        return;
+    }
+    int main() {
+        doit();
+        printf("hello\n");
+        exit(0);
+    }
+        \end{minted}
+        \begin{choices}
+            \item 3
+            \item 4
+            \item 5
+            \item 6
+        \end{choices}
+        \proy{2014} 下列说法中哪一个是错误的？
+        \begin{choices}
+            \item 中断一定是异步发生的。
+            \item 异常处理程序一定运行在内核模式下。
+            \item 故障处理一定返回到当前指令。
+            \item 陷阱一定是同步发生的。
+        \end{choices}
+        \proy{2014} 下列这段代码的输出不可能是：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    void handler() {
+        printf("h");
+    }
+    int main() {
+        signal(SIGCHLD, handler) ;
+        if (fork() == 0) {
+            printf("a") ;
+        } else {
+            printf("b") ;
+        }
+        printf("c") ;
+        exit(0);
+    }
+        \end{minted}
+        \begin{choices}
+            \item \verb|abcc|
+            \item \verb|abch|
+            \item \verb|bcach|
+            \item \verb|bchac|
+        \end{choices}
+        \proy{2014} 设文本文件 \verb|ICS.txt| 中包含 3000 个字符，考虑如下代码段：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    int main(int argc, char** argv) {
+        int fd = open("ICS.txt", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+        write(fd, "ICS", 3);
+        char buf[128];
+        int i;
+        for (i = 0; i < 10; i++) {
+            int fd1 = open("ICS.txt", O_RDWR);
+            int fd2 = dup(fd1);
+            int cnt = read(fd1, buf, 128);
+            write(fd2, buf, cnt);
+        }
+        return 0; 
+    }
+        \end{minted}
+        上述代码执行完后，\verb|ICS.txt| 中包含多少个字符（假设所有系统调用都成功）？
+        \begin{choices}
+            \item 3
+            \item 256
+            \item 3000
+            \item 3072
+        \end{choices}
+        \proy{2014} 下列系统 I/O 的说法中，正确的是：
+        \begin{choices}
+            \item C 语言中的标准 I/O 函数在不同操作系统中的实现代码一样。
+            \item 对于同一个文件描述符，混用 RIO 包中的 \verb|rio_readnb| 和 \verb|rio_readn| 两个函数不会造成问题。
+            \item C 语言中的标准 I/O 函数是异步线程安全的。
+            \item 使用 I/O 缓冲区可以减少系统调用的次数，从而加快 I/O 的速度。
+        \end{choices}
+        \proy{2014} 以下程序运行时系统调用均正确执行，\verb|buffer.txt| 的初始内容为 \verb|pekinguniv|。请给出代码运行后打印输出的结果，并给出程序运行结束后 \verb|buffer.txt| 文件的内容。
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <fcntl.h>
+    #include <unistd.h>
+
+    int main() {
+        char c;
+        int file1 = open("buffer.txt", O_RDWR);
+        int file2;
+
+        read(file1, &c, 1);
+        file2 = dup(file1);
+        write(file2, &c, 1);
+        printf("1 = %c\n", c);
+
+        int pid = fork() ;
+        if (pid == 0) {
+            read(file1, &c, 1);
+            write(file2, &c, 1);
+            printf("2 = %c\n", c);
+            read(file1, &c, 1);
+            printf("3 = %c\n", c);
+            close(file1);
+            exit(0);
+        } else {
+            waitpid(pid, NULL, 0);
+            close(file2);
+            dup2(file1, file2);
+            read(file2, &c, 1);
+            write(file2, &c, 1);
+            printf("4 = %c\n", c);
+        }
+        return 0;
+    }
+        \end{minted}
+        \proy{2014} 某程序员实现了一个自己的 \verb|sleep| 函数，请分析该代码存在哪些问题。
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    #include <signal.h>
+    #include <unistd.h>
+    static void sig_alrm(int signo) {
+        /* nothing to do, just return to wake up the pause */
+    }
+
+    unsigned int sleep(unsigned int seconds) {
+        if (signal(SIGALRM, sig_alrm) == SIG_ERR)
+            return seconds;
+
+        alarm(seconds); /* start the timer */
+        pause(); /* next caught signal wakes us up */
+        return(alarm(0)); /* turn off timer, return unslept time */
+    }
+        \end{minted}
+        \proy{2014} 请阅读下面的代码：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    int main(int argc, char** argv) {
+        int fd1 = open("ICS.txt", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+        
+        write(fd1, "abc", 3);
+
+        int fd2 = fd1;
+        int fd3 = dup(fd2);
+        int fd4 = open("ICS.txt", O_APPEND | O_RDWR);
+        write(fd2, "defghi", 6);
+        write(fd4, "xyz", 3);
+
+        int fd5 = fd4;
+        dup2(fd3, fd5);
+        write(fd4, "pqr", 3);
+
+        close(fd1);
+        return 0;
+    }
+        \end{minted}
+        \qn 设初始时 \verb|ICS.txt| 文件不存在。程序执行时，所有的系统调用均会成功，所有表项均会从小到大依次分配，描述符表一开始被占用掉前 3 个表项。请填写在第 16 行代码刚刚执行完之后，下面的打开文件表和 v-node 表中表项 的部分值，并画出表项之间的指向关系。对于已经释放的打开文件表表项，请填写释放前那一刻的值和指向的 v-node 表表项。可以忽略多余的表项。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{ccccccc}
+                描述符表 & {\qquad} & \multicolumn{3}{c}{打开文件表} & {\qquad} & v-node 表 \\ \cline{1-1} \cline{3-5} \cline{7-7} 
+                \multicolumn{1}{|c|}{...} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{pos} & \multicolumn{1}{c|}{refcount} & \multicolumn{1}{c|}{是否被释放} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{文件名} \\ \cline{1-1} \cline{3-5} \cline{7-7} 
+                \multicolumn{1}{|c|}{3} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-5} \cline{7-7} 
+                \multicolumn{1}{|c|}{4} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-5} \cline{7-7} 
+                \multicolumn{1}{|c|}{5} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-5} \cline{7-7} 
+                \multicolumn{1}{|c|}{6} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-5} \cline{7-7} 
+                \multicolumn{1}{|c|}{7} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-5} \cline{7-7} 
+            \end{tabular}
+        \end{table}
+        \qn 请填写在第 16 行代码刚刚执行完之后，下列变量的值：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|}
+                \hline
+                fd1 & fd2 & fd3 & fd4 & fd5 \\ \hline
+                {\qquad \qquad} & {\qquad \qquad} & {\qquad \qquad} & {\qquad \qquad} & {\qquad \qquad} \\ \hline
+            \end{tabular}
+        \end{table}
+        \qn 请写出程序执行完之后，\verb|ICS.txt| 文件中的内容。
+        \proy{2013} 关于信号的叙述，以下不正确的是哪一个？
+        \begin{choices}
+            \item 在任何时刻，一种类型至多只会有一个待处理信号。
+            \item 信号既可以发送给一个进程，也可以发送给一个进程组。
+            \item \verb|SIGTERM| 和 \verb|SIGKILL| 信号既不能被捕获，也不能被忽略。
+            \item 当进程在前台运行时，键入 \verb|Ctrl-C|，内核就会发送一个 \verb|SIGINT| 信号给这个前台进程。
+        \end{choices}
+        \proy{2013} 下面关于非局部跳转的叙述，正确的是哪一个？
+        \begin{choices}
+            \item \verb|setjmp| 可以和 \verb|siglongjmp| 使用同一个 \verb|jmp_buf| 变量。
+            \item \verb|setjmp| 必须放在 \verb|main()| 函数中调用。
+            \item 虽然 \verb|longjmp| 通常不会出错，但仍然需要对其返回值进行出错判断。
+            \item 在同一个函数中既可以出现 \verb|setjmp|，也可以出现 \verb|longjmp|。
+        \end{choices}
+        \proy{2013} 考虑如下代码，假设 \verb|result.txt| 的初始内容是 \verb|123|。
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    int main(int argc, char** argv) {
+        int fd1 = open("result.txt", O_RDWR);
+        char str[] = "abc";
+        char c;
+        write(fd1, str, 1);
+        read(fd1, &c, 1);
+        write(fd1, &c, 1);
+        return 0;
+    }
+        \end{minted}
+        在这段代码执行完毕之后，\verb|result.txt| 的内容是什么？假设所有的系统调用都会成功。
+        \begin{choices}
+            \item \verb|a22|
+            \item \verb|a21|
+            \item \verb|a13|
+            \item \verb|abb|
+        \end{choices}
+        \proy{2013} 已知在适当定义 \verb|fd1, fd2, str1, str2| 后，代码段
+        \begin{center}
+            \verb|write(fd1, str1, strlen(str1)); write(fd2, str2, strlen(str2));|
+        \end{center}
+        可以在原本为空的文件 \verb|ICS.txt| 中写下字符串 \verb|I love ICS!|。那么下面确实是“适当定义”的代码有（\qquad）。
+        \vspace{.25em}
+        \begin{compactenum}[(1)]
+            \item\ \begin{minted}[frame=single, fontsize=\small]{c}
+    int fd1 = open("ICS.txt", O_RDWR);
+    int fd2 = open("ICS.txt", O_RDWR);
+    char *str1 = "I love ";
+    char *str2 = "ICS!";
+            \end{minted}
+            \item\ \begin{minted}[frame=single, fontsize=\small]{c}
+    int fd1 = open("ICS.txt", O_RDWR);
+    int fd2 = dup(fd1);
+    char *str1 = "I love ";
+    char *str2 = "ICS!";
+            \end{minted}
+            \item\ \begin{minted}[frame=single, fontsize=\small]{c}
+    int fd1 = open("ICS.txt", O_RDWR);
+    int fd2 = open("ICS.txt", O_RDWR);
+    char *str1 = "I love ";
+    char *str2 = "I love ICS!";
+            \end{minted}
+            \item\ \begin{minted}[frame=single, fontsize=\small]{c}
+    int fd1 = open("ICS.txt", O_RDWR);
+    int fd2 = dup(fd1);
+    char *str1 = "I love ";
+    char *str2 = "I love ICS!";
+            \end{minted}
+        \end{compactenum}
+        \begin{choices}
+            \item (1)(4)
+            \item (2)(3)
+            \item (1)(2)(3)(4)
+            \item 以上都不正确
+        \end{choices}
+        \proy{2013} 请阅读以下程序，然后回答问题，假设程序中的函数调用都可以正确执行。
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    int main() {
+        printf("A\n");
+        if (fork() == 0) {
+            printf("B\n");
+        } else {
+            printf("C\n");
+            __________A__________
+        }
+        printf("D\n");
+        exit(0);
+    }
+        \end{minted}
+        \qn 如果程序中的 \verb|A| 位置的代码为空，列出所有可能的输出。
+        \qn 如果程序中的 \verb|A| 位置的代码为 \verb|waitpid(-1, NULL, 0);|，列出所有可能的输出。
+        \qn 如果程序中的 \verb|A| 位置的代码为 \verb|printf("E\n");|，列出所有可能的输出。
+        \proy{2013} 请阅读以下程序，然后回答问题。假设程序中的函数调用都可以正确执行，且每条语句都是原子动作。
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    pid_t pid;
+    int even = 0; // 根据程序设计要求初始值可能不同
+    int counter1 = 0;
+    int counter2 = 1;
+    void handler1(int sig) {
+        if (even % 2 == 0) {
+            printf("%d\n", counter1);
+            counter1 = __________A__________;
+        } else {
+            printf("%d\n", counter2);
+            counter2 = __________B__________;
+        }
+        even = __________C__________;
+    }
+    void handler2(int sig) {
+        if (__________D__________) {
+            counter1 = even * even;
+        } else {
+            counter2 = even * even;
+        }
+    }
+    int main() {
+        signal(SIGUSR1, handler1);
+        signal(SIGUSR2, handler2);
+        if ((pid = fork()) == 0) {
+            while (1) {};
+        }
+        while (even < 20) {
+            kill(pid, __________E__________);
+            sleep(1);
+            kill(pid, __________F__________);
+            sleep(1);
+            even += 2;
+        }
+        kill(pid, SIGKILL);
+        exit(0);
+    }
+        \end{minted}
+        \qn 完成程序，使得程序输出斐波那契数列的前 20 项，其中 $F_0=0, F_1=1, \dotsc, F_n=F_{n-1}+F_{n-2}$。如果存在对本次程序执行结果没有影响的语句，请在相应位置填写“无关”。
+        {\tt
+        \begin{compactenum}[A：]
+            \item \verb|______________________________|
+            \item \verb|______________________________|
+            \item \verb|______________________________|
+            \item \verb|______________________________|
+            \item \verb|______________________________|
+            \item \verb|______________________________|
+        \end{compactenum}}
+        \qn 完成程序，其中 \verb|A, B| 处保持不变，使得程序可以分别输出前几个奇数或偶数的平方和。其中若要输出奇数的平方和，\verb|even| 的初始值为 3; 若要输出偶数的平方和，\verb|even| 的初始值为 2。
+        {\tt
+        \begin{compactenum}[A：]
+            \addtocontents{enumi}{2}
+            \item \verb|______________________________|
+            \item \verb|______________________________|
+            \item \verb|______________________________|
+            \item \verb|______________________________|
+        \end{compactenum}}
+    \end{problems}

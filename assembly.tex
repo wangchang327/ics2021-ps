@@ -1,4 +1,4 @@
-\chapter{汇编语言}
+\chapter{汇编语言}\thispagestyle{empty}
     \begin{summary}
         \begin{compactitem}
             \item 知道 x86-64 中指令、程序计数器、寄存器、条件码、内存等概念，记住重要的寄存器名称、含义和使用规范，清楚掌握数据传送指令和操作数的正确用法。
@@ -79,7 +79,7 @@
         ret
         \end{minted}
         \sol 如下所示:
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     long func(long a, long b) {
         return a * 15 + b * 7;
     }
@@ -111,7 +111,7 @@
         rep ret 
         \end{minted}
         \sol 如下所示（快速幂）：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     long func(long a, long b) {
         long ans = 1;
         while (b > 0) {
@@ -125,19 +125,19 @@
         \end{minted}
         \pro 对于下列四个函数，假设 gcc 开了编译优化，判断 gcc 是否会将其编译为条件传送。
         \qn
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     long f1(long a, long b) { return (++a > --b) ? a : b; }
         \end{minted}
         \qn
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     long f2(long a, long b) { return (*a > *b) ? --(*a) : (*b)--; }
         \end{minted}
         \qn
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     long f3(long a, long b) { return a ? *a : (b ? *b : 0); }
         \end{minted}
         \qn
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     long f4(long a, long b) { return (a > b) ? a++ : ++b; }
         \end{minted}
         \sol 1、4 会被编译成条件传送。1 由于比较前计算出的 \verb|a| 与 \verb|b| 就是传送的目标，因此会被编译成条件传送；2 由于比较结果会导致 \verb|a| 与 \verb|b| 指向的元素发生不同的改变，因此会被编译成条件跳转；3 由于指针 \verb|a| 可能无效，因此会被编译为条件跳转；4 会被编译成条件传送，因为 \verb|a| 和 \verb|b| 都是局部变量，返回的时候对 \verb|a| 和 \verb|b| 的操作都是无影响的。
@@ -194,7 +194,7 @@
     0x40049d: retq             
         \end{minted}
         补全主函数的 C 代码。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // a in %rdi, b in %rsi, c in %rdx
     int main(int a, int b, int c) {
         int res = 4;
@@ -219,7 +219,7 @@
     }
         \end{minted}
         \sol 做法是首先根据跳转表, 确定各标号的起始地址, 然后再作汇编代码的对应. 答案如下所示：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     case 0:
     case 1:
         c = c - 5;
@@ -252,7 +252,7 @@
         addq   $8, %rsp
         ret
         \end{minted}
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     long func(long n, long m) {
         if (__________)
             return __________;
@@ -260,7 +260,7 @@
     }
         \end{minted}
         \pro 将下列 C 代码翻译为汇编代码。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     void callee(long *a, long *b) {
         if (a == b) return;
         *a ^= *b;
@@ -334,7 +334,7 @@
 
         此处栈空间的填写难度不大。首先，\verb|main| 即将发生调用时，\verb|%rsp| 值为 \verb|0xf...f80|，接下来 \verb|call| 后需要在栈中设置返回地址，这个返回地址为 \verb|0x4000ac + 0x5 = 0x4000b1|。所以栈的第三个空填此。注意栈是向下增长的，所以前两个空不确定。接下来 \verb|caller| 要保存 \verb|%r12, %rbp, %rbx| 三个寄存器，因此先后填入 \verb|0x213, 0x18, 0x15|。最后，\verb|callee| 被调用，需要再次填入返回地址 \verb|0x400088 + 0x5 = 0x40008d|。最后一个空显然不确定。
         \pro 在 x86-64、Linux 操作系统下有如下 C 定义：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     struct A {
         char CC1[6];
         int II1;
@@ -348,7 +348,7 @@
             \qn 将 \texttt{A} 重排后，令结构体尽可能小，那么得到的新的结构体大小为 \rule{2.5cm}{0.25mm} 字节。
         \sol 解题时不妨用框图的形式把整个结构的内存布局画出来并标好偏移量。\verb|CC1| 从位置 0 开始；整数 4 字节对齐，所以 \verb|II1|从位置 8 开始；长整数 8 字节对齐，所以 \verb|LL1| 必须从位置 16 开始；而后的字符数组 \verb|CC2| 延展到位置 34，仍由长整数 8 字节对齐，\verb|LL2| 只好从位置 40 开始；最后的整数从位置 48 开始，现在总大小为 52 字节。在结构体后面再放一个相同的 \verb|A|，发现需要再补 4 字节才能使得第二个 \verb|A| 的 \verb|LL1| 对齐，所以第一问为 56 字节。第二问：可以重排顺序为 \verb|LL1 LL2 II1 II2 CC1 CC2|，刚好没有空白空间，得到的大小为 40 字节。显然这个可以用贪心法来做（先放对齐要求高的元素）。
         \pro 在 x86-64、LINUX 操作系统下，考虑如下的 C 定义：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     typedef union {
         char c[7];
         short h;
@@ -426,7 +426,7 @@
     400659: retq
         \end{minted}
         C 语言代码：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     typedef struct{
         long a;
         long b;
@@ -517,7 +517,7 @@
         栈的剩下位置，7、21 都是不确定的，因为只是分配了没有修改过。（注意栈帧开头应该不是旧的帧指针，因为如果要这样需要显式 \verb|push|。）
     \end{problems}
 
-\chapter{汇编语言{---}往年考题}
+\chapter{汇编语言{---}往年考题}\thispagestyle{empty}
     \begin{problems}
         \proy{2018} 在 x86-64 下，以下哪个选项的说法是错误的？
         \begin{choices}
@@ -674,7 +674,7 @@
             \item \verb|jmp *.L3(, %eax, 8)|
         \end{choices}
         \proy{2018} 以下代码的输出结果不可能是
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     union {
         double d;
         struct {
@@ -700,7 +700,7 @@
             \item 对于任意 union，将其成员按照其实际占用内存大小从小到大的顺序进行排列一定不会使之内存占用最大
         \end{choices}
         \proy{2017} 有如下代码段：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int func(int x, int y);
     int (*p) (int a, int b);
     p = func;
@@ -722,7 +722,7 @@
             \item \verb|*A + 2|
         \end{choices}
         \proy{2015} 已知下面的数据结构，假设在 Linux/IA32 下要求对齐，这个结构的总的大小是多少个字节？如果重新排列其中的字段，最少可以达到多少个字节？
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     struct {
         char a;
         double *b;
@@ -746,7 +746,7 @@
             \item 不确定
         \end{choices}
         \proy{2014} 有如下定义的结构，在 x86-64 下，下述结论中错误的是？
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     struct {
         char c;
         union {
@@ -771,7 +771,7 @@
             \item 24, 16
         \end{choices}
         \proy{2018} 假设在 64 位 Linux 机器上有数据结构定义如下：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     typedef struct s1 {
         char cc[N];
         int ii[N];
@@ -782,7 +782,7 @@
         \end{minted}
         \qn 分别确定当 $N=3, 4, 5$ 时，\verb|sizeof(S1)| 和 \verb|sizeof(T1)| 的输出。
         \qn 当 $N=4$ 时，该数据结构初始化代码如下: 
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     void init(int n) {
         int i;
         for (i = 0; i < n; i++) {
@@ -827,14 +827,14 @@
         ret
         \end{minted}
         根据上述代码，填写函数 \verb|fun| 的 C 语言代码：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     void fun(int x, int y) {
         __________ = __________;
         __________ = __________;
     }
         \end{minted}
         \proy{2017} 分析下面 C 语言程序和相应的 x86-64 汇编程序，请填写缺失的内容。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     #include <stdio.h>
     #include "string.h"
 
@@ -969,7 +969,7 @@
         
         从而，\verb|xor| 后的第一条指令对应于 \verb|str| 参数，即 \verb|movq -40(%rbp), %rdx|，第三条指令为 \verb|movq %rdx, %rsi|，第四条指令为 \verb|movq -32(%rbp), %rdi|。\verb|call| 后仍为 \verb|leaq|。\verb|myprint| 函数的结尾是检查金丝雀，是标准的。填写 \verb|movq %fs:40, %rax|、\verb|xorq -8(%rbp), %rax| 或者 \verb|movq -8(%rbp), %rax|、\verb|xorq %fs:40, %rax| 都是可以的。
         \proy{2015} 在 32 位机器中，有如下声明。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     union ELE {
         struct {
             int x;
@@ -991,7 +991,7 @@
     subl    4(%eax), %edx
     movl    %edx, (%ecx)
         \end{minted}
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     void process(union ELE *up) {
         up->__________ = __________ - __________;
     }
@@ -1009,7 +1009,7 @@
         movl    (%eax), %eax
         \end{minted}
         \qn 阅读下列代码，回答后面的问题。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     typedef struct {
         short x[A][B];
         int y;
@@ -1089,7 +1089,7 @@
         \end{cases} \]
         解得 $A=3, B=7$。
         \proy{2014} 一个函数如下，其中部分代码被隐去。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int f(int n, int m) {
         if (m > 0) {
             if (____________________) {
@@ -1251,7 +1251,7 @@
         movl     0x0, %eax
     .L4 
         \end{minted}
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int fun(_____ x) {
         int bit_sum = 0;
         while (_______________) {
@@ -1266,7 +1266,7 @@
     }
         \end{minted}
         \proy{2013} 阅读下面的 C 代码：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     /**
      * int_sqrt - rough approximation to sqrt
      * @x: integer of which to calculate the sqrt
@@ -1358,7 +1358,7 @@
     40052e: retq
         \end{minted}
         对应的 C 代码为：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     #define N _______________
     #define M _______________
     struct P1 { char c[N]; char *d[N]; char e[N]; } P1;

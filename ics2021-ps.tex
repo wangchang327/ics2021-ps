@@ -50,6 +50,7 @@
 \usetikzlibrary{shapes.symbols, backgrounds, matrix, calc, arrows, math, arrows.meta, shapes.gates.logic.US, shapes.gates.logic.IEC, decorations.pathreplacing}
 \usepackage{minted}
 \renewcommand\fcolorbox[4][]{\textcolor[rgb]{0.63,0.63,0.00}{\strut#4}}
+\renewcommand{\theFancyVerbLine}{\texttt{\scriptsize{\arabic{FancyVerbLine}}}}
 
 \newcommand\MemoryLayout[2]{
 	\begin{tikzpicture}[scale=0.3]
@@ -82,7 +83,7 @@
 \pagestyle{fancy}
 \renewcommand{\chaptermark}[1]{\markboth{
 	\CJKnumber{\thechapter}\quad #1
-	}{}}
+}{}}
 \renewcommand{\sectionmark}[1]{\markright{\arabic{chapter} \quad #1}}
 \fancyhf{}
 \fancyhead[EC]{\CJKfamily{hei2}\footnotesize{\leftmark}\vspace{1mm}}

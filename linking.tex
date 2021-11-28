@@ -1,4 +1,4 @@
-\chapter{链接}
+\chapter{链接}\thispagestyle{empty}
     \begin{summary}
         \begin{compactitem}
             \item 知道源代码编译为可执行文件的全过程，知道静态链接和动态链接的概念，会正确书写含有多文件的代码的编译命令（静态库的顺序问题）。
@@ -35,7 +35,7 @@
             \qn 链接时，通过合理地安排静态库和模块的顺序，每个静态库都可以在命令中出现至多一次。
         \sol (1)错误，处理静态库只会拷贝被用到的模块，特别地，只会解析当前用到的符号，因此其顺序很重要。(2)错误，对于模块文件，会把所有函数都拷贝，因此其顺序一般不重要。(3)正确，参见(2)的分析。(4)错误，例子可以参看书中练习 7.3 的 C。事实上，如果引用成环的话，至少有一个静态库要写两次。
         \pro 有下面两个程序。将他们先分别编译为 \verb|.o| 文件，再链接为可执行文件。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     /* main.c */
     #include <stdio.h>
     __________A__________
@@ -57,7 +57,7 @@
         return 0;
     }
         \end{minted}
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     /* count.c */
     __________B__________
     int bar(int n) {
@@ -137,7 +137,7 @@
         \end{choices}
         \sol C，即局部变量。请注意这里说的是一定不需要，有一些非局部变量或者指令是可能需要重定位也可能不需要重定位的。当然，此题的说法不妥，重定位都是针对一条引用，而不是针对符号本身。说一个符号不需要重定位，应当是指其任何引用都不可能要重定位。
         \pro 在 x86-64 的机器上用 gcc-7 编译可以顺利编译并运行以下两个文件。若某次运行时得到输出 \verb|0x48\n|，则这个 16 进制的 \verb|48| 产生自：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // f1.c
     void p2(void);
     int main() {
@@ -156,7 +156,7 @@
             \item \verb|main| 函数汇编的第一个字节按有符号补齐的结果
         \end{choices}
         \pro 有如下 C 代码：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     #define k 100
     long foo(long n);
     long bar(long n) {
@@ -306,7 +306,7 @@
             \qn 通过代码段的全局偏移量表 \verb|GOT| 和数据段的过程链接表 \verb|PLT|，动态链接器可以完成延迟绑定 (lazy binding)。
             \qn ASLR 不会影响代码段和数据段间的相对偏移，这样位置无关代码才能正确使用。
         \pro[origin={丁睿助教提供}] 本题基于下列 \verb|m.c| 及 \verb|foo.c| 文件，使用 \verb|gcc foo.c m.c| 生成 \verb|a.out|。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // m.c
     void foo();
     int buf[2] = {1, 2};
@@ -409,7 +409,7 @@
             \end{hint}
     \end{problems}
 
-\chapter{链接{---}往年考题}
+\chapter{链接{---}往年考题}\thispagestyle{empty}
     \begin{problems}
         \proy{2018} 下列关于链接技术的描述，错误的是：
         \begin{choices}
@@ -420,7 +420,7 @@
         \end{choices}
         \sol A，可能不报告，例如多个弱符号任选一个，于是有造成非预期行为或者运行时错误的风险。
         \proy{2018} 本题基于下列 \verb|m.c| 及 \verb|foo.c| 文件所编译生成的 \verb|m.o| 和 \verb|foo.o|，编译未加优化选项。
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // m.c
     void foo();
     int buf[2] = {1, 2};
@@ -543,7 +543,7 @@
 
         传统的做法首先要确定 \verb|addr(s)|。注意这里需要重定位的引用都是指令，所以 \verb|m.o| 中的 \verb|.text| 绝对地址是 \verb|0xfe8|，而 \verb|foo.o| 中的 \verb|.text| 的绝对地址是 \verb|0x1000|。对于第 \circled{1} 个，目标为 \verb|0x1000|，偏移量 \verb|0xa|，\verb|addend| 为 \verb|-0x4|，所以结果是 \verb|1000 - (fe8 + a) - 4 = 0xa|（填写方法同上）。第 \circled{2} 个是绝对引用，\verb|2330 + 4 = 0x2334| 即可。第 \circled{3} 个的目标为 \verb|0x3028|，偏移量 \verb|0x7|，\verb|addend| 为 \verb|-0x8|，所以结果是 \verb|3028 - (1000 + 7) - 8 = 0x2019|。剩下的皆同理，不再赘述。
         \proy{2016} C 源文件 \verb|f1.c| 和 \verb|f2.c| 的代码分别如下所示，编译链接生成可执行文件后执行，输出结果为：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // f1.c
     #include <stdio.h>
     static int var = 100;
@@ -565,7 +565,7 @@
             \item 链接错误
         \end{choices}
         \proy{2016} C 源文件 \verb|m1.c| 和 \verb|m2.c| 的代码分别如下所示，
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // m1.c
     #include <stdio.h>
     int a1;
@@ -592,7 +592,7 @@
             \item \verb|0x108301c, 0x1083018|
         \end{choices}
         \proy{2016} 在 x86-64 环境下，考虑如下 4 个文件（\verb|main.c, value.c, f1.c, f2.c|）：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     /* main.c */
     #include <stdio.h>
     extern void f_void_void();
@@ -661,7 +661,7 @@
     c = _____
         \end{minted}
         \proy{2015} 在 \verb|foo.c| 文件中包含如下代码：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int foo(void) {
         int error = printf("You ran into a problem!\n");
         return error;
@@ -675,7 +675,7 @@
             \item \verb|.text|
         \end{choices}
         \proy{2015} 在 x86-64 环境下，考虑如下 2 个文件 \verb|main.c| 和 \verb|foo.c|：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     /* main.c */
     #include <stdio.h>
     long long ________________________;
@@ -732,7 +732,7 @@
     deadbeefcafebffe
         \end{minted}
         \qn 现在有一位程序员要为这个程序编写头文件。假设新的头文件名称为 \verb|foo.h|， 内容如下：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     extern long long a;
     extern char *foo(int);
         \end{minted}
@@ -745,7 +745,7 @@
             \item 每个库在命令行只须出现一次即可。
         \end{choices}
         \proy{2014} 已知有源文件 \verb|foo.c|，在该文件中的函数外，如果添加语句
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     static int count = 0xdeadbeef;
         \end{minted}
         那么它在编译为 \verb|foo.o| 后，会影响到 ELF 可重定位目标文件中的除 \verb|.text| 以外的哪些 section？
@@ -757,7 +757,7 @@
         \end{choices}
         \sol B，显然初始化的静态变量要出现在 \verb|.data| 中，符号表自然也要修改。但注意不要误解了 \verb|.rel.data| 的含义，这里 \verb|.rel.data| 是不会发生变化的，因为 \verb|count| 初始化时，不需要引用别的非局部变量的地址，换言之它作为一个数据，初始化时不涉及重定位问题。别的位置引用它可能涉及重定位问题，但那是 \verb|.rel.text| 的事情。另一方面，如果题目改为 \verb|static int *count = &x;|，其中 \verb|x| 为一个全局变量，那么 \verb|.rel.data| 是会发生改变的。或者，再加一条 \verb|int y = count;|，那么 \verb|.rel.data| 也会改变，但这个条目对应的是 \verb|y|。\verb|.rel.text| 也不会发生变化，除非增加一条引用 \verb|count| 的指令，例如 \verb|count = 3;|，那么这条指令需要重定位，会在 \verb|.rel.text| 中对应重定位条目。原则上 \verb|.strtab| 也会发生改变（但我们一般不考虑这个）。
         \proy{2014} 考虑如下 3 个文件：\verb|main.c|、\verb|fib.c| 和 \verb|bignat.c|：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     /* main.c */
     void fib (int n);
     int main (int argc, char** argv) {
@@ -793,7 +793,7 @@
     }
         \end{minted}
         另外，假设在文件 \verb|bignat.c| 中定义了如下两个函数 \verb|plus| 和 \verb|from_int|（定义的具体内容略）：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int plus (int n, unsigned int* a, unsigned int* b, unsigned int* c);
     void from_int (int n, unsigned int k, unsigned int* a);
         \end{minted}
@@ -830,7 +830,7 @@
         \end{table}
         \qn 若在 \verb|fib.c| 中，程序员在声明变量 \verb|ring| 时把它写成了 \verb|static int ring[3][N];|，会不会影响这些文件的编译、链接和运行结果？说明理由。
         \proy{2013} 下列程序运行的结果是什么？
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     /* main.c */
     int i = 0;
     int main() {
@@ -849,7 +849,7 @@
             \item 有时打印输出 1，有时打印输出 0
         \end{choices}
         \proy{2013} 考虑如下两个程序 \verb|fact1.c| 和 \verb|fact.c|：
-        \begin{minted}[frame=single, fontsize=\small]{c}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     /* fact1.c */
     #define MAXNUM 12
     int table[MAXNUM];

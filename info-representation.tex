@@ -1,4 +1,4 @@
-\chapter{位级表示}
+\chapter{位级表示}\thispagestyle{empty}
 	\begin{summary}
 		\begin{compactitem}
 			\item 知道整数、浮点数在系统的存储方式（字节序）。
@@ -29,7 +29,7 @@
 		\end{table}
 		\sol 根据小端法可知分别为 \verb|0x56 0x34 0x12 0x00|、\verb|0x34 0x12 0x78 0x56|。
 		\pro 在 x86-64 机器上，有下列 C 代码：
-		\begin{minted}[frame=single, fontsize=\small]{c}
+		\begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
         unsigned int A = 0x11112222;
         unsigned int B = 0x33336666;
@@ -44,7 +44,7 @@
 		运行该代码，结果是什么？
 		\sol 根据小端法，\verb|A| 在内存中从高地址到低地址分别是 \verb|11 11 22 22|，得到 \verb|P = 0x2222|，同理 \verb|Q = 0x3333|，结果为 \verb|0x5555|。
 		\pro 在 x86-64 机器上，有下列 C 代码：
-		\begin{minted}[frame=single, fontsize=\small]{c}
+		\begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
         char A[12] = "11224455";
         char B[12] = "11445577";
@@ -59,7 +59,7 @@
 		运行该代码，结果是什么？
 		\sol 答案为 \verb|0x0303|，分析方法和前一题一样。
 		\pro 在 x86-64 机器上，有如下的定义：
-		\begin{minted}[frame=single, fontsize=\small]{c}
+		\begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int x = ...; // 表达式 A
     int y = ...; // 表达式 B
     unsigned int ux = x;
@@ -85,7 +85,7 @@
 		\end{hint}
 		\sol 1 取 \verb|x = 1, y = -1| 即不正确；2 取 \verb|x = -1| 即不正确；3 正确，利用异或的交换律、结合律，以及 \verb|x ^ x == 0|（视为模 2 加法即可）；4 正确，即使是对负数；5 不正确，负奇数该运算向 0 舍入；6 正确，\verb|(~x) – y| 也就是 \verb|(~x) + (~y) + 1|，注意运算优先级；7 不正确，\verb|!!ux| 是有符号数。
 		\pro 下列代码的目的是将字符串 \texttt{A} 的内容复制到字符串 \texttt{B}，覆盖 \texttt{B} 原有的内容，并输出“Hello World”；但实际运行输出是“Buggy Codes”。尝试找到代码中的错误。
-		\begin{minted}[frame=single, fontsize=\small]{c}
+		\begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
         char A[12] = "Hello World";
         char B[12] = "Buggy Codes";
@@ -142,7 +142,7 @@
 			\qn 将 \texttt{float} 转换成 \texttt{int} 时，既有可能造成舍入，又有可能造成溢出。
 		\sol 1 正确；2 取 \verb|a = INF, b = FLT_MAX|；3 取 \verb|a = 16777220, b = 16777218|；4 取最大的非规格化负数；5 正确；6 \verb|nan != nan|；7 正确。
 		\pro 遵循 IEEE 754 浮点数标准，考虑下列代码：
-		\begin{minted}[frame=single, fontsize=\small]{c}
+		\begin{minted}[frame=single, fontsize=\small, linenos]{c}
     for (int x = 0; ; x++) {
         float f = x;
         if (x != (int)f) {
@@ -154,7 +154,7 @@
 		试问代码的运行结果是什么？或者死循环？
 		\sol $16777217=2^{24}+1$，这时写成科学计数法小数点后面要 24 位，超出了单精度浮点的表示范围，会发生舍入。
 		\pro 遵循 IEEE 754 浮点数标准，考虑下列代码：
-		\begin{minted}[frame=single, fontsize=\small]{c}
+		\begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int x = 33554466; // 2^25 + 34
     int y = x + 8;
     for ( ; x < y; x++) {
@@ -176,7 +176,7 @@
 		\end{compactenum}
 	\end{problems}
 
-\chapter{位级表示{---}往年考题}
+\chapter{位级表示{---}往年考题}\thispagestyle{empty}
 	\begin{problems}
 		\proy{2018} 下列哪种类型转换既可能导致溢出，又可能导致舍入？
 		\begin{choices}
@@ -187,7 +187,7 @@
 		\end{choices}
 		\sol B。
 		\proy{2018} 在采用小端法存储机器上运行下面的代码，输出的结果是？（\texttt{int}、\texttt{unsigned} 为 32 位长，\texttt{short} 为 16 位长，0\textasciitilde9 的 ASCII 码是 \texttt{0x30}\textasciitilde\texttt{0x39}）
-		\begin{minted}[frame=single, fontsize=\small]{c}
+		\begin{minted}[frame=single, fontsize=\small, linenos]{c}
     char *s = "2018";
     int *p1 = (int *)s;
     short s1 = (*p1) >> 12;
@@ -201,7 +201,7 @@
 			\item \texttt{0x00008313}
 		\end{choices}
 		\proy{2018} 考虑如下函数
-		\begin{minted}[frame=single, fontsize=\small]{c}
+		\begin{minted}[frame=single, fontsize=\small, linenos]{c}
     void XOR(int x, int y) {
         y = x ^ y;
         x = x ^ y;
@@ -317,7 +317,7 @@
 		    \item “\texttt{0111000}”可能是 7 位浮点数的 \texttt{NaN} 表示。
 		\end{choices}
 		\proy{2014} 假设有下面 $x$ 和 $y$ 的程序定义：
-		\begin{minted}[frame=single, fontsize=\small]{c}
+		\begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int x = a >> 2;
     int y = (x + a) / 4;
 		\end{minted}
@@ -345,7 +345,7 @@
 			\end{table}
 			\qn 假设格式 A 变为 1 个符号位、$k+1$ 个阶码位、$n-1$ 个小数位，那么能表示的实数数量会怎样变化？数值的精度会怎样变化？（回答增加、降低或不变即可）
 		\proy{2016} 在 64 位机器上，判断表达式是否对代码生成的变量恒成立（指求值为 1）。
-		\begin{minted}[frame=single, fontsize=\small]{c}
+		\begin{minted}[frame=single, fontsize=\small, linenos]{c}
     /* random_int() 函数返回一个随机的 int 类型值 */
     int x = random_int();
     int y = random_int();
@@ -368,7 +368,7 @@
 		\proy{2016} 假设 C 语言中新定义了一种数据类型 T, 该类型为 12-bit 长的浮点数，此浮点数遵循 IEEE 浮点数格式，其字段划分如下：符号位(s) 1-bit、阶码字段(exp) 6-bit、小数字段(frac) 5-bit。
 			\qn 若将该格式下能表示的所有正规格数从小到大依次排列，则相邻两数之间差值的最小值为 \rule{2.5cm}{0.25mm}，最大值为 \rule{2.5cm}{0.25mm}。
 			\qn 现定义了如下变量：
-			\begin{minted}[frame=single, fontsize=\small]{c}
+			\begin{minted}[frame=single, fontsize=\small, linenos]{c}
     T a = -15.875;
     T b = (1 << 28) + (1 << 24) + (1 << 22);
     T c = a * b;
