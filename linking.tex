@@ -358,7 +358,7 @@
             \end{tabular}
         \end{table}
             \subqn 补全符号表中的空缺部分。
-            \subqn 读取 \verb|a.out| 中的 \verb|.interp| 节（大小为 \verb|0x1c|），发现是一个可读字符串。请补全结果：\verb|/lib64/____-linux-x86-64.____.2|。
+            \subqn 读取 \verb|a.out| 中的 \verb|.interp| 节，发现是一个可读字符串，请填空补全读出的结果：\verb|/lib64/____-linux-x86-64.____.2|。
             \subqn 读取 \verb|a.out| 中的 \verb|.bss| 节，其存储时占用的空间为 \rule{2.5cm}{0.25mm} 字节，运行时占用的空间为 \rule{2.5cm}{0.25mm} 字节。
         \qn 现在通过 \verb|gcc -c m.c; objdump -dx m.o| 我们看到如下重定位信息。
         \begin{minted}[frame=single, fontsize=\small]{text}
@@ -745,7 +745,7 @@
             \item 每个库在命令行只须出现一次即可。
         \end{choices}
         \proy{2014} 已知有源文件 \verb|foo.c|，在该文件中的函数外，如果添加语句
-        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+        \begin{minted}[frame=single, fontsize=\small]{c}
     static int count = 0xdeadbeef;
         \end{minted}
         那么它在编译为 \verb|foo.o| 后，会影响到 ELF 可重定位目标文件中的除 \verb|.text| 以外的哪些 section？
