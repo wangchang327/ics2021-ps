@@ -29,6 +29,19 @@
                 终止（abort） & \rule{0pt}{3ex} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} &  \\ \hline
             \end{tabular}
         \end{table}
+        \sol 属于基本概念题，注意故障可能返回也可能不返回，而且返回一般是返回到当前指令（例如缺页故障会返回再次执行，但除零等故障则终止程序）。中断的异步是指它一般是其他设备触发的，CPU 执行完当前指令之后才会去响应中断。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|ccc|}
+                \hline
+                \multirow{2}{*}{异常的种类} & \multirow{2}{*}{是否同步} & \multicolumn{3}{c|}{可能的返回行为} \\ \cline{3-5} 
+                &  & \multicolumn{1}{c|}{重复当前指令} & \multicolumn{1}{c|}{执行下一条指令} & 结束进程运行 \\ \hline
+                中断（interrupt） & 否 & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\checked} &  \\ \hline
+                陷阱（trap） & 是 & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{\checked} &  \\ \hline
+                故障（fault） & 是 & \multicolumn{1}{c|}{\checked} & \multicolumn{1}{c|}{} & \checked \\ \hline
+                终止（abort） & 是 & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \checked \\ \hline
+            \end{tabular}
+        \end{table}
         \pro 下列行为分别触发什么类型的异常？
             \qn 执行指令 \verb|mov $57, %eax; syscall|
             \qn 程序执行过程中，发现它所使用的物理内存损坏了
@@ -37,6 +50,7 @@
             \qn 磁盘读出了一块数据
             \qn 用 \verb|read| 函数发起磁盘读
             \qn 用户程序执行了指令 \verb|lgdt|，但是这个指令只能在内核模式下执行
+        \sol 分别为：陷阱（系统调用）；终止；故障（称为一般保护故障，segmentation fault 也属于此类）；中断（I/O 设备发起读写）；中断（I/O 设备发起读写，即使是 DMA 方式也是要中断的）；陷阱（系统调用）；故障。
         \pro 在下面的程序中，父进程和子进程的输出分别是什么？
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
@@ -47,6 +61,7 @@
         exit(0);
     }
         \end{minted}
+        \sol 父进程和子进程的 \verb|a| 相互独立，注意自增自减运算符的位置，所以父进程输出 \verb|p2: a=9\n|，而子进程输出 \verb|p1: a=9\np2: a=8\n|。
         \pro 阅读下述程序。
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
@@ -65,6 +80,25 @@
     }
         \end{minted}
         假设系统调用成功，所有子进程都正常运行。判断下列哪些输出是可能的：\verb|AABBBC|、\verb|ABCABB|、\verb|ABBABC|、\verb|AACBBC|、\verb|ABABCB|、\verb|ABCBAB|。
+        \sol 做此类题，画出简要的进程图（结点只需要标明输出）并进行拓扑排序即可。进程图如下：
+        \begin{figure}[H]
+            \small
+            \tt
+            \centering
+            \begin{tikzpicture}[scale=2]
+                \node[hassenode] (0) at (0,0) {A};
+                \node[hassenode] (1) at (-0.5,-0.5) {B};
+                \node (1t) at (-1,-0.5) {子进程};
+                \node (2t) at (1,-0.5) {父进程};
+                \node[hassenode] (2) at (0.5,-0.5) {A};
+                \node[hassenode] (3) at (0,-1) {B};
+                \node[hassenode] (4) at (1,-1) {B};
+                \node[hassenode] (5) at (-1,-1) {C};
+
+                \foreach \x/\y in {0/1, 0/2, 1/5, 2/3, 2/4} \draw[-{Stealth[angle'=45]}] (\x) -- (\y);
+            \end{tikzpicture}
+        \end{figure}
+        所以 \verb|AABBBC|、\verb|ABCABB|、\verb|ABABCB| 是可能的，其他都不可能。
         \pro 阅读下述程序。
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
@@ -86,6 +120,25 @@
     }
         \end{minted}
         假设系统调用成功，所有子进程都正常运行。判断下列哪些输出是可能的：\verb|ABBCCD|、\verb|ABBCDC|、\verb|ABBDCC|、\verb|ABDBCC|、\verb|ABCDBC|、\verb|ABCDCB|。
+        \sol 遇到 \verb|wait| 时，进程图中子进程结束前的最后一个输出向父进程 \verb|wait| 后的第一个输出连一条有向边，然后再拓扑排序。进程图如下：
+        \begin{figure}[H]
+            \small
+            \tt
+            \centering
+            \begin{tikzpicture}[scale=2]
+                \node[hassenode] (0) at (0,0) {A};
+                \node[hassenode] (1) at (-0.5,-0.5) {B};
+                \node (1t) at (-1,-0.5) {父进程};
+                \node (2t) at (1,-0.5) {子进程};
+                \node[hassenode] (2) at (0.5,-0.5) {B};
+                \node[hassenode] (3) at (0,-1) {C};
+                \node[hassenode] (4) at (1,-1) {C};
+                \node[hassenode] (5) at (-1,-1) {D};
+
+                \foreach \x/\y in {0/1, 0/2, 1/5, 2/3, 2/4, 3/5} \draw[-{Stealth[angle'=45]}] (\x) -- (\y);
+            \end{tikzpicture}
+        \end{figure}
+        所以 \verb|ABBCCD|、\verb|ABBCDC| 是可能的，其他都不可能。
         \pro 阅读下述程序。
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     void handler() {
@@ -104,6 +157,27 @@
     }
         \end{minted}
         假设系统调用成功，所有子进程都正常运行。判断下列哪些输出是可能的：\verb|ACBC|、\verb|ABCCD|、\verb|ACBDC|、\verb|ABDCC|、\verb|BCDAC|、\verb|ABCC|。
+        \sol 信号被发送之后，接收的时间是不确定的（也可能丢失，不接收），某种意义上是一个悬空的结点，有多种连边的可能，讨论信号接收时间然后在进程图中连接边即可。这里 \verb|SIGCHLD| 是子进程结束的信号，进程图如下：
+        \begin{figure}[H]
+            \small
+            \tt
+            \centering
+            \begin{tikzpicture}[scale=2]
+                \node[hassenode] (0) at (0,0) {/};
+                \node[hassenode] (1) at (-0.5,-0.5) {A};
+                \node (1t) at (-1,-0.5) {父进程};
+                \node (2t) at (1,-0.5) {子进程};
+                \node[hassenode] (2) at (0.5,-0.5) {B};
+                \node[hassenode] (4) at (1,-1) {C};
+                \node[hassenode] (3) at (0,-1) {D};
+                \node[hassenode] (5) at (-1,-1) {C};
+
+                \foreach \x/\y in {0/1, 0/2, 1/5, 2/4} \draw[-{Stealth[angle'=45]}] (\x) -- (\y);
+                \foreach \x/\y in {3/0, 3/1, 3/5} \draw[-{Stealth[angle'=45]}, dashed] (\x) -- (\y);
+                \draw[-{Stealth[angle'=45]}, densely dotted] (4) -- (3);
+            \end{tikzpicture}
+        \end{figure}
+        所以 \verb|ACBC|（父进程抢先结束）、\verb|ABCCD|（父进程即将退出的时候收到信号）、\verb|BCDAC|、\verb|ABCC| 是可能的，其他都不可能。
         \pro 在某年的 ICS 课堂上，老师给同学布置了一个作业，在 Linux 上写出一份代码，使得运行它以后可输出系统能创建的进程的最大数目。下面是几位同学的答案。
             \qn Alice 同学的答案是：
             \begin{minted}[frame=single, fontsize=\small, linenos]{c}
@@ -171,6 +245,11 @@
     }
             \end{minted}
             这段代码有时无法输出任何答案。Dave 想了一想，将 \verb|printf| 中的字符串做了些修改，这样这段代码就能正确运行了。他修改了什么？
+        \sol (1)注意 \verb|fork()| 可能失败，返回 \verb|-1| 表示之，所以必须将\verb|(pid = fork()) != 0| 改为 \verb|(pid = fork()) > 0|，否则不能及时停下来。
+        
+        (2)因为代码中没有回收工作，所以子进程结束后会变成僵死进程，继续占用系统资源，所以 Bob 说错了。(3a)则同理，父进程结束以后没有回收子进程，子进程一直在运行，占用系统资源，导致有第二次执行无法再创建更多子进程。对于(3b)，由于父进程结束了，因此 \verb|22725| 是第一个子进程的 pid，于是 \verb|22724| 是第一个父进程的 pid。由于要 \verb|kill| 整个进程组，子进程的进程组号均为 \verb|22724|，所以填写 \verb|-22724|。
+        
+        最后一问和输入输出的缓冲区有关，\verb|printf| 一般是行缓冲的，进程被 \verb|kill| 为非正常退出，缓冲区的内容还没来得及写到标准输出，程序就已经结束了；所以需要在 \verb|printf| 的字符串后面加换行符，令结果得到输出。
         \pro 以下问题中我们均假设缓冲区足够大，且 \verb|stdout| 只有在关闭文件、换行与 \verb|fflush| 的情况下才会刷新缓冲区；程序运行过程中的所有系统调用均成功。
         \qn 考虑下面的程序。
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
@@ -208,6 +287,11 @@
     }
         \end{minted}
         以上程序的输出中有 \rule{1cm}{0.25mm} 个 \verb|a|，\rule{1cm}{0.25mm} 个 \verb|b|，\rule{1cm}{0.25mm} 个 \verb|c|；其第一个输出的字符一定是 \rule{1cm}{0.25mm}。
+        \sol 本题帮助你理解输入输出缓冲的机制。
+
+        \verb|printf| 是行缓冲的，每个程序都有一个全局的 \verb|buffer|。因此第一个程序中，只有程序结束后才会输出全部字符串。因为 \verb|fork()| 时整个进程上下文会被复制，所以 4 个进程的缓冲区最后都是 \verb|abc|，故最后的结果是 \verb|abcabcabcabc|。由于进程结束的先后不影响结果，故这是一个唯一的输出。
+
+        \verb|write| 是无缓冲的，只要调用就会直接输出，所以 \verb|a| 只会输出一次，\verb|b| 两次，\verb|c| 四次。第一个输出的字符当然是 \verb|a|。第三问则和前两问同理，\verb|printf| 的内容每个进程都会输出，而且最后输出，所以有 4 个 \verb|a|、2 个 \verb|b| 和 4 个 \verb|c|，第一个输出的字符是 \verb|b|。
         \pro 假设磁盘上有空文件 \verb|file.txt|，以下程序运行过程中的所有系统调用均成功。
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
@@ -234,6 +318,7 @@
             \end{tabular}
         \end{table}
         \qn 程序结束时，标准输出上的内容是 \rule{3.5cm}{0.25mm}，\verb|file.txt| 中的内容是 \rule{3.5cm}{0.25mm}。
+        \sol \verb|fd1| 和 \verb|fd2| 对应独立的打开文件表条目，所以指针相互独立，前者写上 \verb|123| 而后者从头写上 \verb|45|，所以文件中得到 \verb|453|，标准输出显然是 \verb|3 4|（顺序分配文件描述符）。三级表图略，文件描述符分别指向两个条目，\verb|refcnt| 均为 1。
         \pro 假设磁盘上有空文件 \verb|file.txt|，以下程序运行过程中的所有系统调用均成功。
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
@@ -261,6 +346,7 @@
             \end{tabular}
         \end{table}
         \qn 程序结束时，标准输出上的内容是 \rule{3.5cm}{0.25mm}，\verb|file.txt| 中的内容是 \rule{3.5cm}{0.25mm}。
+        \sol 由于 \verb|fd2| 被复制给 \verb|fd1|，所以现在两个打开文件表条目是同一个，本质上是同一个文件读写指针，所以写出的结果是 \verb|12345|。注意复制的是打开文件表条目，所以标准输出上还是 \verb|3 4|。三级表图略，文件描述符指向同一个条目，\verb|refcnt| 为 2。
         \pro 假设磁盘上有空文件 \verb|file.txt|，以下程序运行过程中的所有系统调用均成功；缓冲区足够大，且 \verb|stdout| 只有在关闭文件、换行与 \verb|fflush| 的情况下才会刷新缓冲区。
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
@@ -294,6 +380,7 @@
             \end{tabular}
         \end{table}
         \qn 程序结束时，标准输出上的内容是 \rule{3.5cm}{0.25mm}，\verb|file.txt| 中的内容是 \rule{3.5cm}{0.25mm}。（都写出所有可能答案）
+        \sol 因为 \verb|fork| 时文件描述符也被复制，因此父子进程用的描述符都是 3 号描述符，且二者共用同一个读写指针，只不过读写的顺序不确定，所以文件中可能是 \verb|45123| 或者 \verb|12345|。不过标准输出中的内容则顺序确定：因为 \verb|printf| 是行缓冲，而这里一定是子进程先结束，所以输出为 \verb|C:3 P:3|。
     \end{problems}
 
 \chapter{异常控制流与系统 I/O{---}往年考题}\thispagestyle{empty}
@@ -305,6 +392,8 @@
             \item \verb|execve| 函数的第三个参数 \verb|envp| 指向一个以 \verb|null| 结尾的指针数组，其中每一 个指针指向一个形如“\verb|name=value|”的环境变量字符串。
             \item 进程可以通过使用 \verb|signal| 函数修改和信号相关联的默认行为，唯一的例外是 \verb|SIGKILL|，它的默认行为是不能修改的。
         \end{choices}
+        \sol C。A 显然是错误的，特权指令必须在内核模式下进行。B 中 option 的
+        位应该用 \verb+|+ 运算符来连结，而不是用且，否则一般会得到 0。D 不是唯一的例外，\verb|SIGKILL| 和 \verb|SIGSTOP| 都是例外（不要把后者和 \verb|SIGTSTP| 混淆了）。
         \proy{2018} 假设某进程恰有五个已打开的文件描述符 0\textasciitilde4，分别引用五个不同文件，尝试运行以下代码：\verb|dup2(3, 2); dup2(0, 3); dup2(1, 10); dup2(10, 4); dup2(4, 0);|。关于得到的结果，说法正确的是：
         \begin{choices}
             \item 运行正常完成，现在有四个描述符引用同一个文件。
@@ -312,6 +401,7 @@
             \item 由于试图从一个未打开的描述符进行复制，发生错误。
             \item 由于试图向一个未打开的描述符进行复制，发生错误。
         \end{choices}
+        \sol A。注意 API 的参数顺序 \verb|dup2(old, new)|，所以 old 的指针会复制给 new，new的指向的打开文件表条目会变成指向 old 的条目，最后 0、1、4、10 四个文件描述符会指向同一个打开文件表条目。这里调用序列会向 10 号文件描述符复制，这是允许的，但是如果从没有打开的文件描述符复制，则确实会发生错误（但不会导致程序终止，只是 \verb|dup2| 返回值表示出错，并且文件描述符的状态没有发生改变）。
         \proy{2018} Bob 是一名刚刚学完异常的同学，他希望通过配合 \verb|kill| 和 \verb|signal| 的使用，能让两个进程向同一个文件中交替地打印出字符。可惜他的 tshlab 做得不过关，导致他写的这个程序有各种问题。
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     #include "csapp.h"
@@ -428,6 +518,43 @@
             \item \verb|Y| 处填写为 \verb|count += 2;|。
             \item \verb|Z| 处填写为 \rule{6cm}{0.25mm}。
         \end{compactitem}
+        \sol 此题很有意思。
+
+        首先阅读代码可知，Bob 想要完成的是建立两个进程，然后父子进程互发信号，交替地在文件中写 \verb|+| 和 \verb|-|（一共写 6 次）。对于第一问，根据提示我们知道 \verb|fork| 之后可能调度子进程充分长时间，导致其未等到父进程的信号就结束了，因而不会有任何输出。如果需要等待信号，则要调用 \verb|sigsuspend| 来安全地等待——这就是解决方案。
+
+        (2)问初看非常神秘，为什么会在终端中打印字符？这说明必定有进程把字符向 1 号文件描述符写了。阅读代码可知，\verb|fd| 是被初始化为 1 的！由此可见，子进程可能 \verb|fork| 之后还没来得及打开 \verb|file.txt| 就被其他进程抢占，然后接收到父进程的信号，结果 \verb|fd| 还是个错误值，就在标准输出中打印了，其后它才打开 \verb|file.txt|，使得 \verb|fd| 变为正确值。至于为什么 \verb|file.txt| 中的 \verb|+| 号数量严重不足则很容易想到，因为父子进程的文件是 \verb|fork| 之后才打开的，这样它们的读写指针相互独立，写的时候会发生相互覆盖，出现问题。
+
+        由此可见，当程序第一次在终端上输出 \verb|+| 的瞬间，父进程的 \verb|fd| 为 3，而子进程的 \verb|fd| 则为 1，父进程的该文件描述符打开一个 \verb|refcnt = 1| 的文件表条目，而子进程尚未有之。而当程序第一次在 \verb|file.txt| 中输出 \verb|+| 的瞬间，父进程和子进程的 \verb|fd| 都为 3，而二者的描述符分别指向打开文件表中的不同条目，\verb|refcnt| 皆为 1。Bob 期望的是二者的描述符表都指向打开文件表中的一个条目，\verb|refcunt = 2|，这样才能达到互不覆盖的目的。
+
+        分析 \verb|file.txt| 中的输出时，切忌在一行中模拟，这样很容易搞不清楚读写指针的位置。对于独立的读写指针，我们应该先写出它们分别试图写的内容，确定每个位置哪个指针最后写，然后用最后一次写的字符来确定最终的内容。我们先复现题干给出的 \verb|file.txt| 的输出。父进程和子进程的写序列分别是
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{cccccccccccccccccccccc}
+                读写顺序 & \multicolumn{1}{c|}{1} & \multicolumn{2}{c|}{3} & \multicolumn{3}{c|}{5} & \multicolumn{4}{c|}{7} & \multicolumn{5}{c|}{9} & \multicolumn{6}{c}{11} \\ \hline
+                父进程 & \multicolumn{1}{c|}{-} & \cellcolor{blue!10}- & \multicolumn{1}{c|}{-} & \cellcolor{blue!10}- & \cellcolor{blue!10}- & \multicolumn{1}{c|}{-} & \cellcolor{blue!10}- & \cellcolor{blue!10}- & \cellcolor{blue!10}- & \multicolumn{1}{c|}{-} & \cellcolor{blue!10}- & \cellcolor{blue!10}- & \cellcolor{blue!10}- & \cellcolor{blue!10}- & \multicolumn{1}{c|}{-} & \cellcolor{blue!10}- & \cellcolor{blue!10}- & \cellcolor{blue!10}- & \cellcolor{blue!10}- & \cellcolor{blue!10}- & \cellcolor{blue!10}- \\
+                子进程 & \cellcolor{blue!10}+ & \multicolumn{1}{c|}{+} & \cellcolor{blue!10}+ & + & \multicolumn{1}{c|}{+} & \cellcolor{blue!10}+ & + & + & \multicolumn{1}{c|}{+} & \cellcolor{blue!10}+ & + & + & + & \multicolumn{1}{c|}{+} & \cellcolor{blue!10}+ & + & + & + & + & + &  \\ \hline
+                读写顺序 & \multicolumn{2}{c|}{2} & \multicolumn{3}{c|}{4} & \multicolumn{4}{c|}{6} & \multicolumn{5}{c|}{8} & \multicolumn{7}{c}{10}
+            \end{tabular}
+        \end{table}
+        每个字符我们都选择后写的那个，在上面用阴影标出，可以看到确实得到了题干中的序列。同样的道理，对于(3)问，我们知道在子进程正确打开 \verb|fd| 之前它输出了两次，所以序列可以画成：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{cccc|cccccccccccccccccc}
+                读写顺序 & \multicolumn{1}{c|}{1} & \multicolumn{2}{c|}{2} & \multicolumn{3}{c|}{4} & \multicolumn{4}{c|}{6} & \multicolumn{5}{c|}{8} & \multicolumn{6}{c}{10} \\ \hline
+                父进程 & \multicolumn{1}{c|}{-} & - & - & - & - & \multicolumn{1}{c|}{-} & \cellcolor{blue!10}- & - & - & \multicolumn{1}{c|}{-} & \cellcolor{blue!10}- & \cellcolor{blue!10}- & - & - & \multicolumn{1}{c|}{-} & \cellcolor{blue!10}- & \cellcolor{blue!10}- & \cellcolor{blue!10}- & \cellcolor{blue!10}- & \cellcolor{blue!10}- & \cellcolor{blue!10}- \\
+                子进程 & \cellcolor{blue!10}+ & \cellcolor{blue!10}+ & \cellcolor{blue!10}+ & \cellcolor{blue!10}+ & \cellcolor{blue!10}+ & \cellcolor{blue!10}+ & \multicolumn{1}{c|}{+} & \cellcolor{blue!10}+ & \cellcolor{blue!10}+ & \cellcolor{blue!10}+ & + & \multicolumn{1}{c|}{+} & \cellcolor{blue!10}+ & \cellcolor{blue!10}+ & \cellcolor{blue!10}+ & + & + & + &  &  &  \\ \hline
+                读写顺序 & \multicolumn{3}{c|}{3} & \multicolumn{4}{c|}{5} & \multicolumn{5}{c|}{7} & \multicolumn{9}{c}{9}
+            \end{tabular}
+        \end{table}
+        我们便得到(3)问的解答为
+        \begin{center}
+            \verb|++++++-+++--+++------|
+        \end{center}
+        如果本题直接在一行上模拟，效率是非常低的（因为要多次修改指针位置和写入的内容，容易粗心犯错）。
+
+        最后一问是容易的，因为父进程第一次需要打印 2 个 \verb|-| 而子进程需要打印 1 个 \verb|+|，所以 \verb|Z| 处填写 \verb|count++|，让父进程第一次打印两个。
         \proy{2016} 下列哪一事件不会导致信号被发送到进程？
         \begin{choices}
             \item 新连接到达监听端口
@@ -460,6 +587,7 @@
             \item 20
             \item 22
         \end{choices}
+        \sol B。\verb|fd1| 和 \verb|fd2| 的指针是一回事，因此每次在文件中写入 \verb|66662333|，一共 5 次。而 \verb|fd3| 每次循环都重新打开，指针都定位到开头，所以结束时前 4 个字符会被覆盖为 \verb|hhhh|，于是最后有 $5 \times 4-4=16$ 个 \verb|6|。
         \proy{2016} 关于 I/O 操作，以下说法中正确的是：
         \begin{choices}
             \item 由于 RIO 包的健壮性，所以 RIO 中的函数都可以交叉调用。
@@ -467,6 +595,7 @@
             \item 调用 Unix I/O 开销较大，标准 I/O 库使用缓冲区来加快 I/O 的速度。
             \item 和描述符表一样，每个进程拥有独立的打开文件表。
         \end{choices}
+        \sol C。有缓冲和无缓冲的输入输出函数不能混用，否则最后输出的顺序是不对的。对于 B，注意并没有说未关闭 \verb|stdin, stdout, stderr|，如果提前关闭了，则可能返回较小的文件描述符。D 显然是错的，进程的描述符表独立，但打开文件表系统只有一张。
         \proy{2016} 请阅读以下程序，然后回答问题。假设程序中的函数调用都可以正确执行，并默认 \verb|printf| 执行完会调用 \verb|fflush|。
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int main() {
@@ -500,6 +629,45 @@
         \end{minted}
         \qn 如果程序中的 \verb|A, B| 位置的代码为空，列出所有可能的输出结果：\rule{3cm}{0.25mm}。
         \qn 如果程序中的 \verb|A, B| 位置的代码分别为 \verb|printf("C");|、\verb|exit(0);|，列出所有可能的输出结果：\rule{6cm}{0.25mm}。
+        \sol 第(1)问是代码相对比较复杂的 fork puzzle，但是进程图仍然很简单，仔细分析 \verb|wait| 的关系即可，如下：
+        \begin{figure}[H]
+            \small
+            \tt
+            \centering
+            \begin{tikzpicture}[scale=2]
+                \node[hassenode] (0) at (0,0) {/};
+                \node[hassenode] (1l) at (-0.5,-0.5) {/};
+                \node[hassenode] (1ll) at (-1,-1) {B};
+                \node[hassenode] (2l) at (-1,-1.5) {F};
+                \node[hassenode] (1lr) at (-0.5,-1) {F};
+                \node[hassenode] (1r) at (0.5,-0.5) {/};
+                \node[hassenode] (2r) at (0.5,-1) {D};
+                \node[hassenode] (3r) at (0.5,-1.5) {E};
+                \node[hassenode] (2rr) at (1,-1) {G};
+
+                \foreach \x/\y in {0/1l, 1l/1ll, 1l/1lr, 1ll/2l, 1lr/1ll, 0/1r, 1r/2r, 2r/3r, 1r/2rr} \draw[-{Stealth[angle'=45]}] (\x) -- (\y);
+                \draw[-{Stealth[angle'=45]}] (2l) to[bend right=30] (1r);
+            \end{tikzpicture}
+        \end{figure}
+        因此全部可能的输出为 \verb|FBFDEG, FBFGDE, FBFDGE|。
+
+        (2)问更加简单一点，进程图如下：
+        \begin{figure}[H]
+            \small
+            \tt
+            \centering
+            \begin{tikzpicture}[scale=2]
+                \node[hassenode] (0) at (0,0) {/};
+                \node[hassenode] (1l) at (-0.5,-0.5) {/};
+                \node[hassenode] (1ll) at (-1,-1) {B};
+                \node[hassenode] (2l) at (-1,-1.5) {F};
+                \node[hassenode] (1lr) at (-0.5,-1) {F};
+                \node[hassenode] (1r) at (0.5,-0.5) {C};
+
+                \foreach \x/\y in {0/1l, 1l/1ll, 1l/1lr, 1ll/2l, 1lr/1ll, 0/1r} \draw[-{Stealth[angle'=45]}] (\x) -- (\y);
+            \end{tikzpicture}
+        \end{figure}
+        所以 \verb|CFBF, FCBF, FBCF, FBFC| 都是可能的。
         \proy{2016} 请阅读以下程序，然后回答问题（假设程序中的函数调用都可以正确执行，且每条语句都是原子动作）：
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     pid_t pid;
@@ -601,6 +769,7 @@
         \begin{hint}
             \verb|O_RDWR| 表示文件可读可写。\verb|dup2(oldfd, newfd)| 表示将 \verb|oldfd| 重定向给 \verb|newfd|。
         \end{hint}
+        \sol A。B 从来没有两个指针一说。\verb|read| 作为一个比较底层的函数，需要人工添加字符串结尾，C 错误。D 需要注意执行重定向后，1、4 对应的打开文件表条目的 \verb|refcnt| 是 2，所以关闭 4 只会导致 \verb|refcnt| 下降，文件仍然可用（直到 \verb|refcnt| 降为 0，系统才会释放相关资源）。
         \proy{2015} 考虑如下程序代码：
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     #include <stdio.h>
@@ -626,6 +795,7 @@
             \item \verb|233lol2233hhhh|
             \item \verb|2lol33hhhh233|
         \end{choices}
+        \sol B。因为 \verb|printf| 是行缓冲，子进程睡眠 1 秒，所以最先输出的一定是父进程的 \verb|lol|，这样便可选出答案，但后面的分析也是很平凡的。
         \proy{2015} 以下程序运行时系统调用全部正确执行，且每个信号都被处理。请给出代码运行后所有可能的输出结果。
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     #include <stdio.h>
@@ -660,6 +830,7 @@
         return 0;
     }
         \end{minted}
+        \sol \verb|fork() : fork() ? fork()| 看上去复杂，实际上非常简单，就是产生了 4 个进程，进程树两边是完全对称的（无论如何都要再 \verb|fork| 一次）。而且我们注意到，每边打印的字符顺序是严格的（\verb|sigprocmask| 中有系统调用，结束后是从内核模式回到用户模式，立刻处理信号，不会错过）：父进程需要等子进程，所以先出现 \verb|S|，父进程再进入信号处理程序，打印 \verb|2|，最后打印 \verb|P|。所以所有可能的结果是穿插两个 \verb|S2P| 得到的。枚举知道至少有 5 个答案：\verb|SS22PP|、\verb|S2PS2P|、\verb|SS2P2P|、\verb|S2S2PP|、\verb|S2SP2P|。
         \proy{2014} 在系统调用成功的情况下，下列代码会输出几个 \verb|hello|？
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     void doit() {

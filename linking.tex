@@ -27,7 +27,7 @@
                 \multicolumn{2}{c}{目标程序 \texttt{prog}}
             \end{tabular}
         \end{table}
-        \sol 根据课本描述，从上到下分别是 \verb|cpp, cc1, as|，分别得到的后缀名为 \verb|.i, .s, .o|。
+        \sol 根据课本描述，从上到下分别是 \verb|cpp, cc1, as|，分别得到的后缀名为 \verb|.i, .s, .o|。不要把 \verb|cc1| 记成 \verb|ccl|！
         \pro 判断下面关于静态链接的说法是否正确。
             \qn 链接时，链接器会拷贝静态库（\verb|.a|）中的所有模块（\verb|.o|）。
             \qn 链接时，链接器只会从每个模块（\verb|.o|）中拷贝出被用到的函数。
@@ -155,6 +155,7 @@
             \item \verb|main| 函数汇编地址的最高字节按有符号补齐的结果
             \item \verb|main| 函数汇编的第一个字节按有符号补齐的结果
         \end{choices}
+        \sol D。需要理解的是，全局符号本质上是一个内存地址处的数据，访问时会在相应位置读取内容（例如 \verb|mov 0xabc(%rip), %rax|），因此 \verb|char main| 这个符号对应 \verb|.text| 节 \verb|main| 开头的那个字节。虽然如此，如果在 \verb|f1.c| 中打印 \verb|main|，得到的会是其地址。
         \pro 有如下 C 代码：
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     #define k 100
@@ -270,7 +271,7 @@
             \end{tabular}
         \end{table}
 
-        第二问。\verb|Size| 栏就是填数据大小，是容易的。对于 \verb|ans| 和 \verb|y|，它们都是静态变量，因此都是局部符号，进入 \verb|.bss| 节（即 4）。对于 \verb|z|，它是一个外部变量，只有声明而没有定义，所以是全局符号且归入 \verb|UND| 伪节。对于 \verb|t|，它是一个未初始化的全局变量，只有这类符号会进入 \verb|COM| 伪节，它当然是全局符号。\verb|bar, main| 都是全局函数，是全局符号，属于代码，所以进入 \verb|.text| 节（即 1）。答案如下：
+        第二问。注意节头表中，\verb|offset| 指示节在目标文件中的偏移，而 \verb|address| 是加载时应当放置的相对位置，二者不一样。\verb|Size| 栏就是填数据大小，是容易的。对于 \verb|ans| 和 \verb|y|，它们都是静态变量，因此都是局部符号，进入 \verb|.bss| 节（即 4）。对于 \verb|z|，它是一个外部变量，只有声明而没有定义，所以是全局符号且归入 \verb|UND| 伪节。对于 \verb|t|，它是一个未初始化的全局变量，只有这类符号会进入 \verb|COM| 伪节，它当然是全局符号。\verb|bar, main| 都是全局函数，是全局符号，属于代码，所以进入 \verb|.text| 节（即 1）。答案如下：
         \begin{table}[H]
             \tt
             \centering
@@ -305,6 +306,7 @@
             \qn 动态库可以不编译成位置无关代码。
             \qn 通过代码段的全局偏移量表 \verb|GOT| 和数据段的过程链接表 \verb|PLT|，动态链接器可以完成延迟绑定 (lazy binding)。
             \qn ASLR 不会影响代码段和数据段间的相对偏移，这样位置无关代码才能正确使用。
+        \sol (1)正确，这是动态链接引入的一个重要动机。早期有很多操作系统是基于静态链接的，但是慢慢被淘汰了。(2)错误，必须编译成位置无关代码，因为加载时重定位放置的位置是不能保证的（相反，可执行文件可以不编译成 PIC，因为通常 Linux 系统给进程代码分配的起始位置是 \verb|0x400000|）。(3)错误，\verb|PLT| 中本质是一些可执行代码，因此必须在代码段，而 \verb|GOT| 必须能写，所以在数据段。(4)正确，位置无关代码需要用到大量相对偏移，不能让这一点出现错误。
         \pro[origin={丁睿助教提供}] 本题基于下列 \verb|m.c| 及 \verb|foo.c| 文件，使用 \verb|gcc foo.c m.c| 生成 \verb|a.out|。
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     // m.c
@@ -407,6 +409,32 @@
             \begin{hint}
                 \verb|disas| 是 gdb 中用于反汇编的指令。Gdb 如果通过立即数直接访问内存地址，直接使用该数即可。如果需要从一个地址中读值并以此间接访问内存，可以使用 \verb|*(long *) 0xImm| 的格式，其中 \verb|Imm| 表示该立即数。
             \end{hint}
+        \sol 题目第一问的填写方法和之前问题是类似的，惟 \verb|buf| 的地址需要注意。因为 \verb|.data| 节中只有 \verb|bufp1, buf|，而 \verb|bufp1| 从 \verb|0x4010| 开始占据了 8 字节，所以 \verb|buf| 的相应字段填写为 \verb|0x4018|。顺便指出，我们再一次看到，外部定义的内容在符号表中会出现在 \verb|UND| 节中。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{ccccccc}
+                \hline
+                \multicolumn{1}{|c}{Num} & Value & Size & Type & Bind & Ndx & \multicolumn{1}{c|}{Name} \\
+                \multicolumn{1}{|c}{35} & 00...004024 & 4 & OBJECT & LOCAL & 24 & \multicolumn{1}{c|}{count.1797} \\
+                \multicolumn{1}{|c}{54} & 00...004010 & 8 & OBJECT & GLOBAL & 23 & \multicolumn{1}{c|}{bufp0} \\
+                \multicolumn{1}{|c}{59} & 00...00115a & 78 & FUNC & GLOBAL & 14 & \multicolumn{1}{c|}{foo} \\
+                \multicolumn{1}{|c}{62} & 00...004018 & 8 & OBJECT & GLOBAL & 23 & \multicolumn{1}{c|}{buf} \\
+                \multicolumn{1}{|c}{64} & 00...0011a8 & 54 & FUNC & GLOBAL & 14 & \multicolumn{1}{c|}{main} \\
+                \multicolumn{1}{|c}{68} & 00...004028 & 8 & OBJECT & GLOBAL & 24 & \multicolumn{1}{c|}{bufp1} \\
+                \multicolumn{1}{|c}{51} & 00...000000 & 0 & FUNC & GLOBAL & UND & \multicolumn{1}{c|}{printf@@GLIBC\_2.2.5} \\ \hline
+            \end{tabular}
+        \end{table}
+
+        我们知道 \verb|.interp| 节存储的是动态链接器的绝对地址，而节头说明 \verb|.interp| 有 28 个字符，所以还要填 4 个，即 \verb|/lib64/ld-linux-x86-64.so.2|。注意 \verb|.bss| 节声明为 \verb|NOBITS|（根据我们的认识也应该这样声明），所以它存储时永远不占据空间，但运行时要分配空间，这由其 \verb|size| 字段决定，即表中的 16 字节。
+
+        (2)问考察静态链接重定位。重定位条目的 \verb|offset| 为 \verb|0x12|，\verb|addend| 为零；目标地址是 \verb|4018|，所以结果为 \verb|4018 - (11a8 + 12) = 0x2e5e|。结合 \verb|main| 重定位到 \verb|11a8| 知道指令地址是 \verb|11b8|，根据小端法填写 \verb|11b8:  8b 15 5e 2e 00 00 mov 0x2e5e(%rip), %edx|。从这里（结合 C 代码）我们也能发现 \verb|addend| 的实际作用是修正真正的跳转地址到 \verb|buf[1]|。下一小问是也类似，比较简单的做法是发现下一条指令的地址，即 \verb|%rip| 为 \verb|11c6 + 7 = 11cd|，所以目标是 \verb|11cd + e37 = 0x2004|。直接用重定位方法也可以，即 \verb|addend| 为 \verb|0x4|，\verb|offset| 为 \verb|0x21|，得 \verb|x - (11a8 + 21) - 4 = 0xe37|，故 \verb|x = 0x2004|。
+
+        (3)问为本题重点要练习的内容，即动态链接的过程。第一个重定位和上一问方法一样，答案为 \verb|11d2: e8 59 fe ff ff     callq  1030 <printf@plt>|。
+        
+        从代码中我们可发现，\verb|PLT| 表在代码段中，开头是一段和动态链接器有关的代码，然后顺次是各需要动态链接的函数的 \verb|PLT| 条目，例如这里是 \verb|printf@plt|。因为 \verb|PLT| 条目一个 16 字节，\verb|printf@plt| 相对于开头的偏移量恰为 16 字节，所以其条目为 \verb|PLT[1]|（个人认为这里给出代码的真实性存疑，因为一般 \verb|PLT| 表的前三条都是要被动态链接器占用的）。再来看 \verb|printf@plt|，我们知道，第一条指令代表从 \verb|printf| 的 \verb|GOT| 条目中查出其地址，然后跳转过去，因此其 \verb|GOT| 条目的地址是 \verb|0x2f9a(%rip)|，即 \verb|3fd0|。又前面的注释中写 \verb|# 3fc8 <_GLOBAL_OFFSET_TABLE_+0x10>|，所以 \verb|3fd0| 是 \verb|GOT + 0x18|，因为 \verb|GOT| 条目一个 8 字节，所以 \verb|printf| 的 \verb|GOT| 条目是 \verb|GOT[3]|。
+
+        根据延迟绑定的过程，第一次跳入 \verb|printf@plt| 时，其对应的 \verb|GOT| 条目会被初始化为其 \verb|PLT| 条目的第二条指令的地址，也就是 \verb|pushq $0x0| 的地址 \verb|0x1036|（注意这是可执行文件内部的相对地址，还没被装载）。根据 \verb|main| 被重定位 \verb|11a8| 得 \verb|GOT| 条目是 \verb|55...551a8 + (1036 - 11a8) = 0x55...55036|。跳回 \verb|PLT| 的第二条指令后，后续的工作是准备跳到 \verb|PLT| 开头的动态链接器入口，去真正地把 \verb|printf| 真实位置填写到 \verb|GOT| 中，这里 \verb|pushq $0x0| 是把 \verb|.rel.plt| 中 \verb|printf| 的下标传给动态链接器，以便于知道是在重定位何函数。所以真正绑定后，\verb|*0x2f9a(%rip)| 就是 \verb|printf| 的地址，而 \verb|GOT| 表的位置是 \verb|55...551a8 + (3fd0 - 11a8) = 0x55...57fd0|，所以最后一空填写 \verb|*(long *) 0x555555557fd0|。
     \end{problems}
 
 \chapter{链接{---}往年考题}\thispagestyle{empty}

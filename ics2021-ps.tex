@@ -37,7 +37,7 @@
 	headsep=6ex,
 }
 
-\usepackage[svgnames, dvipsnames]{xcolor}
+\usepackage[svgnames, dvipsnames, table]{xcolor}
 
 \usepackage{paralist}
 \usepackage{commands}
@@ -51,6 +51,7 @@
 \usepackage{minted}
 \renewcommand\fcolorbox[4][]{\textcolor[rgb]{0.63,0.63,0.00}{\strut#4}}
 \renewcommand{\theFancyVerbLine}{\texttt{\scriptsize{\arabic{FancyVerbLine}}}}
+\tikzset{hassenode/.style={circle, draw=black, fill=white, inner sep=1pt, minimum size=5pt}}
 
 \newcommand\MemoryLayout[2]{
 	\begin{tikzpicture}[scale=0.3]
@@ -78,6 +79,7 @@
 \usepackage{datetime}
 
 \usepackage{xstring}
+\usepackage{wasysym}
 \usepackage{fancyhdr}
 \newcommand\sectionname{\arabic{chapter}.\arabic{section}}
 \pagestyle{fancy}
