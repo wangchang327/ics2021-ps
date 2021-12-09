@@ -73,7 +73,7 @@
             \end{tabular}
         \end{table}
         不采用 TLB 加速翻译。
-        \qn 现在需要访问虚拟内存地址 \verb0x00A97088|。
+        \qn 现在需要访问虚拟内存地址 \verb|0x00A97088|。
             \subqn 将该地址拆成 \verb|VPN1 + VPN2 + VPO| 的形式。
             \subqn 对应的 PDE 条目的物理地址是 \rule{2.5cm}{0.25mm}，读出第二级页表的起始地址 \rule{2.5cm}{0.25mm}，PTE 条目的起始地址为 \rule{2.5cm}{0.25mm}，因此翻译得到的物理地址为 \rule{2.5cm}{0.25mm}。
             \subqn 用户模式能否访问该地址？能否写该地址？
@@ -209,7 +209,7 @@ ffffffffff600000-ffffffffff601000 r-xp [vsyscall]
         \end{choices}
         \proy{2019} 已知某系统页面大小为 \SI{2}{KB}，页表项为 8 字节，采用多层分页策略映射 48 位虚拟地址空间。若限定最高层页表占 1 页，则它可以采用多少层的分页策略？
         \proy{2019} 在一个具有 TLB 和高速缓存的系统中，假设地址翻译使用四级页表来进行，且不发生缺页异常，那么在 CPU 访问某个虚拟内存地址的过程中，至少会访问 \rule{2.5cm}{0.25mm} 次物理内存，至多会访问 \rule{2.5cm}{0.25mm} 次物理内存。
-        \proy{2019} 某 32 位机器有 24 位地址空间，采用二级页表，一级页表中有 64 个 PTE，二级页表中有 1024 个 PTE，一级页表 \SI{4}{KB} 对齐，PTE 最高一位是有效位，没有 TLB 和高速缓存。某人在该机器上执行了如下代码：
+        \proy{2019} 某 32 位机器有 28 位虚拟地址空间，物理地址为 24 位。采用二级页表，一级页表中有 64 个 PTE，二级页表中有 1024 个 PTE，一级页表 \SI{4}{KB} 对齐，PTE 最高一位是有效位，最低 24 位为物理地址，没有 TLB 和高速缓存。某人在该机器上执行了如下代码：
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int* a = calloc(10000, sizeof(int));
     int* b = a + 5000;
@@ -264,7 +264,7 @@ ffffffffff600000-ffffffffff601000 r-xp [vsyscall]
                 VP11263 &  \\ \hline
                 \end{tabular}
         \end{table}
-        \qn IA32 体系采用小端法和二级页表。其中两级页表大小相同，页大小均为 \SI{4}{KB}，结构也相同。TLB 采用直接映射。TLB 和页表每一项的后 7 位含义如下图所示。为简便起见，假设 TLB 和页表每一项的后 8\textasciitilde 12 位都是 0 且不会被改变。例如后 7 位 值为 \verb|0x27| 则表示可读写。
+        \qn IA32 体系采用小端法和二级页表。其中两级页表大小相同，页大小均为 \SI{4}{KB}，结构也相同。TLB 采用直接映射。TLB 和页表每一项的前 20 位为物理地址，后 7 位含义如下图所示。为简便起见，假设 TLB 和页表每一项的后 8\textasciitilde 12 位都是 0 且不会被改变。例如后 7 位 值为 \verb|0x27| 则表示可读写。
         \begin{table}[H]
             \tt
             \centering
@@ -546,7 +546,7 @@ ffffffffff600000-ffffffffff601000 r-xp [vsyscall]
     movl   $0xF4427048, %ebx
     movl   $0, (%ebx)
         \end{minted}
-        \proy{2014} IA32 体系采用小端法和二级页表。其中两级页表大小相同，页大小均为 \SI{4}{KB}，结构也相同。TLB 采用直接映射。TLB 和页表每一项的后 7 位含义如下图所示。为简便起见，假设 TLB 和页表每一项的后 8\textasciitilde 12 位都是 0 且不会被改变。例如后 7 位 值为 \verb|0x27| 则表示可读写。
+        \proy{2014} IA32 体系采用小端法和二级页表。其中两级页表大小相同，页大小均为 \SI{4}{KB}，结构也相同。TLB 采用直接映射。TLB 和页表每一项的前 20 位为物理地址，后 7 位含义如下图所示。为简便起见，假设 TLB 和页表每一项的后 8\textasciitilde 12 位都是 0 且不会被改变。例如后 7 位 值为 \verb|0x27| 则表示可读写。
         \begin{table}[H]
             \tt
             \centering
@@ -643,7 +643,7 @@ ffffffffff600000-ffffffffff601000 r-xp [vsyscall]
     #define UVPT 0xef400000
     // get_pde(va) 获取虚拟地址 va 对应的一级页表(页目录)中的页目录项内容
     unsigned int get_pde(unsigned int va) {
-        unsignedintpdx = (va >> __________) & __________;
+        unsigned int pdx = (va >> __________) & __________;
         unsigned int addr = UVPT + (__________) + pdx * 4;
         return *((unsigned int *) addr);
     }
