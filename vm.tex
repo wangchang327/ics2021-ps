@@ -1,0 +1,657 @@
+\chapter{虚拟内存}\thispagestyle{empty}
+    \begin{summary}
+        \begin{compactitem}
+            \item 理解虚拟内存的基本原理（是磁盘的缓存）和由硬件和软件共同实现的基本机制。
+            \item 熟练掌握分页式虚拟内存中，虚拟地址的结构、页表的结构、页表条目一般要包括的各字段的含义。
+            \item 结合高速缓存、TLB 熟练掌握地址翻译的完整过程，会根据页表的信息模拟虚拟地址到物理地址的转换。理解多级页表的设计目的，会根据系统信息计算多级页表的详细结构并进行地址翻译。
+            \item 以 Core i7/Linux 系统为例，了解实际虚拟内存的实现。了解页表自映射的机制。
+            \item 熟练掌握内存映射的概念，知道共享对象和私有对象的区别，理解 COW 机制并以 \verb|fork| 函数为例掌握其具体过程。会使用 \verb|mmap| 函数进行内存映射工作，知道其各参数和返回值的用法。
+            \item 综合运用高速缓存、异常控制流、系统级 I/O 和虚拟内存的知识求解综合问题。
+        \end{compactitem}
+    \end{summary}
+
+    \begin{problems}
+        \pro 在某一 64 位体系结构中，每页的大小为 \SI{4}{KB}，采用的是三级页表，每张页表占据 1 页，页表项长度为 8 字节。则虚拟地址的位数为 \rule{2.5cm}{0.25mm}。如果要映射满 64 位的虚拟地址空间，可通过增加页表级数来解决，那么至少要增加到 \rule{2.5cm}{0.25mm} 级页表。已知这个体系结构支持多种页大小，最小的三个页大小分别是 \SI{4}{KB}、\rule{2.5cm}{0.25mm} \si{MB}、\rule{2.5cm}{0.25mm} \si{GB}。
+        \pro Intel IA32 体系中，每页的大小为 \SI{4}{KB}，采用的是二级页表，每张页表占据一页，每个页表项（PTE、PDE）的长度均为 4 字节。支持的物理地址空间为 36 位。如果采用二级翻译，那么每个 PDE 条目格式如下（物理地址 35\textasciitilde 32 位必定为 0）：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+                \hline
+                & 31\textasciitilde 12 & 11 & 10 & 9 & 8 & 7 & 6 & 5 & 4 & 3 & 2 & 1 & 0 \\ \hline
+                PDE & 页表的物理地址 &  &  &  &  & 0 &  &  &  &  & U/S & R/W & V \\ \hline
+            \end{tabular}
+        \end{table}
+        每个 PTE 条目格式如下：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+                \hline
+                & 31\textasciitilde 12 & 11 & 10 & 9 & 8 & 7 & 6 & 5 & 4 & 3 & 2 & 1 & 0 \\ \hline
+                PTE & 虚拟页的物理地址 &  &  &  &  & 0 &  &  &  &  & U/S & R/W & V \\ \hline
+            \end{tabular}
+        \end{table}
+        如果采用一级页表翻译（大页模式），那么每个 PDE 的条目如下：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+                \hline
+                & 31\textasciitilde 22 & 21\textasciitilde17 & 16\textasciitilde13 & 12\textasciitilde 8 & 7 & 6 & 5 & 4 & 3 & 2 & 1 & 0 \\ \hline
+                \multirow{2}{*}{PDE} & 虚拟页的 & \multirow{2}{*}{0} & 物理地址的 & \multirow{2}{*}{\textasciitilde} & \multirow{2}{*}{1} & \multirow{2}{*}{} & \multirow{2}{*}{} & \multirow{2}{*}{} & \multirow{2}{*}{} & \multirow{2}{*}{U/S} & \multirow{2}{*}{R/W} & \multirow{2}{*}{V} \\
+                & 物理地址 &  & 35\textasciitilde 32 位 &  &  &  &  &  &  &  &  &  \\ \hline
+            \end{tabular}
+        \end{table}
+
+        上表中的最低位均为第 0 位。部分位的意义如下：
+        \begin{asparadesc}
+            \item[\texttt{V}] 当前条目是否有效（指向的页在物理内存中）；
+            \item[\texttt{R/W}] 指向的区域是否可写。只有两级页表均为 1 的时候，该虚拟内存地址才可以写。
+            \item[\texttt{U/S}] 指向的区域用户程序是否可访问。只有两级页表均为 1 的时候，该虚拟内存地址才可以被用户程序访问。
+        \end{asparadesc}
+
+        某一时刻，一级页表的起始地址为 \verb|0x00C188000|。部分物理内存中的数据如下：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|c|c|c|}
+                \hline
+                物理地址 & 内容 & 物理地址 & 内容 & 物理地址 & 内容 & 物理地址 & 内容 \\ \hline
+                00C188000 & 63 & 00C188001 & A0 & 00C188002 & 67 & 00C188003 & C0 \\ \hline
+                00C188004 & 0D & 00C188005 & A0 & 00C188006 & F0 & 00C188007 & A5 \\ \hline
+                00C188008 & 67 & 00C188009 & A0 & 00C18800A & 32 & 00C18800B & 0D \\ \hline
+                00C1880C0 & 67 & 00C1880C1 & 30 & 00C1880C2 & 88 & 00C1880C3 & C1 \\ \hline
+                00C188300 & E7 & 00C188301 & 0 & 00C188302 & 80 & 00C188303 & 9A \\ \hline
+                \textbf{00C188C00} & \textbf{65} & \textbf{00C1880C1} & \textbf{80} & \textbf{00C1880C2} & \textbf{18} & \textbf{00C1880C3} & \textbf{0C} \\ \hline
+                00D32A294 & 67 & 00D32A295 & C0 & 00D32A296 & 83 & 00D32A297 & 67 \\ \hline
+                00D32A298 & C0 & 00D32A299 & C0 & 00D32A29A & BB & 00D32A29B & DC \\ \hline
+                00D32AA5C & 67 & 00D32AA5D & C0 & 00D32AA5E & 83 & 00D32AA5F & 9A \\ \hline
+                00DA0C294 & 45 & 00DA0C295 & 82 & 00DA0C296 & 77 & 00DA0C297 & 67 \\ \hline
+                00DA0C298 & 67 & 00DA0C299 & 83 & 00DA0C29A & 29 & 00DA0C29B & 44 \\ \hline
+                00DA0CA5C & 0 & 00DA0CA5D & 9A & 00DA0CA5E & 88 & 00DA0CA5F & EF \\ \hline
+            \end{tabular}
+        \end{table}
+        不采用 TLB 加速翻译。
+        \qn 现在需要访问虚拟内存地址 \verb0x00A97088|。
+            \subqn 将该地址拆成 \verb|VPN1 + VPN2 + VPO| 的形式。
+            \subqn 对应的 PDE 条目的物理地址是 \rule{2.5cm}{0.25mm}，读出第二级页表的起始地址 \rule{2.5cm}{0.25mm}，PTE 条目的起始地址为 \rule{2.5cm}{0.25mm}，因此翻译得到的物理地址为 \rule{2.5cm}{0.25mm}。
+            \subqn 用户模式能否访问该地址？能否写该地址？
+        \qn 现要访问虚拟内存地址 \verb|0x3003C088|，则最终翻译得到的物理地址为 \rule{2.5cm}{0.25mm}。
+        \qn 下列 IA32 汇编代码执行结束以后，\verb|%eax| 的值是多少？假设一开始\verb|%ebx| 的值为 \verb|0x00A97088|，\verb|%edx| 的值为 \verb|0x3003C088|。
+        \begin{minted}[frame=single, fontsize=\small]{text}
+    movl   $0xC, (%ebx)
+    movl   $0x9, (%edx)
+    movl   (%ebx), %eax
+    xorl   (%edx), %eax
+        \end{minted}
+        \qn 下列 IA32 汇编代码执行结束以后，\verb|%eax| 的值是多少？
+        \begin{minted}[frame=single, fontsize=\small]{text}
+    movl   0xC0002A5C, %eax
+        \end{minted}
+        重点关注加粗的内存。以此为启发，写出读出第一级页表中 \verb|VPN1 = 2| 的条目的代码
+        \begin{minted}[frame=single, fontsize=\small]{text}
+    movl   ____________________, %eax
+        \end{minted}
+        \pro 有下列代码：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    int main() {
+        pid_t pid;
+        int child_status;
+        long* f = mmap(NULL, 8, PROT_READ | PROT_WRITE,
+                _____X_____ | MAP_ANONYMOUS, -1, 0);
+        *f = 0;
+        if ((pid = fork()) > 0) {
+            waitpid(pid, &child_status, 0);
+            *f = *f + 1;
+            printf("Parent: %ld\n", *f);
+        } else {
+            *f = *f + 1;
+            printf("Child:%ld\n",*f);
+        } 
+        return 0;
+    }
+        \end{minted}
+        当 \verb|X| 处为 \verb|MAP_PRIVATE| 时，标准输出上的两个整数是什么？如果是 \verb|MAP_SHARED| 呢？
+        \pro 有下列 C 程序。其中 \verb|sleep(3)| 是为了让 \verb|fork| 以后子进程先运行。\verb|hello.txt| 的初始内容为字符串 \verb|ABCDEFG|，紧接着为 \verb|\0|。Linux 采用写时复制（Copy-on-Write）技术。
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    char* f;
+    int count = 0, parent = 0, child = 0, done = 0;
+    void handler1() {
+        if (count >= 4) {
+            done = 1;
+            return;
+        } 
+        f[count] = '0' + count;
+        count++;
+        kill(parent,SIGUSR2);
+    }
+    void handler2() {
+        _____Y_____
+        write(STDOUT_FILENO, f, 7);
+        write(STDOUT_FILENO, "\n", 1);
+        kill(child,SIGUSR1);
+    }
+    int main() {
+        signal(SIGUSR1, handler1);
+        signal(SIGUSR2, handler2);
+        int child_status;
+        parent = getpid();
+        int fd = open("hello.txt", O_RDWR);
+        if ((child = fork()) > 0) { // Parent
+            f = mmap(NULL, 8, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+            sleep(3);
+            kill(child, SIGUSR1);
+            waitpid(child, &child_status, 0);
+        } else { // Child
+            f = mmap(NULL, 8, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+            while (done == 0);
+        }
+        return 0;
+    }
+        \end{minted}
+        \qn 若 \verb|Y| 处为空，程序运行结束以后，标准输出上的内容是什么（四行）？\verb|hello.txt| 中的内容是什么？
+        \qn 若 \verb|Y| 处为 \verb|f[6] = 'X';|，程序运行结束以后，标准输出上的内容是什么（四行）？\verb|hello.txt| 中的内容是什么？
+        \pro 有如下 C 程序：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    int main() {
+        char* hello;
+        char* bye;
+        int fd1 = open("hello.txt", O_RDWR);
+        int fd2 = open("bye.txt", O_RDWR);
+        hello = mmap(NULL, 16, PROT_READ, MAP_SHARED, fd1, 0);
+        bye = mmap(NULL, 16, PROT_READ | PROT_WRITE,
+                MAP_SHARED, fd2, 0);
+        for (int i = 0; i < 8; i++)
+            bye[i] = toupper(hello[i]);
+        /************A**************/
+        munmap(hello, 16);
+        munmap(bye, 16);
+        return 0;
+    }
+        \end{minted}
+        某次运行，该程序对应进程的 \verb|PID = 2333|。此时代码运行到 \verb|A| 处时，\verb|/proc/2333/maps| 中的内容如下：
+        \begin{minted}[frame=single, fontsize=\small]{text}
+ADDRESS                    PERM   PATH 
+00400000-00401000          (1)    /home/larry/map/pstate 
+00600000-00601000          r--p   /home/larry/map/pstate 
+00601000-00602000          rw-p   /home/larry/map/pstate 
+7fb596fb5000-7fb59719c000  r-xp   /lib/x86_64-linux-gnu/libc-2.27.so
+7fb59719c000-7fb59739c000  ---p   /lib/x86_64-linux-gnu/libc-2.27.so
+7fb59739c000-7fb5973a0000  r--p   /lib/x86_64-linux-gnu/libc-2.27.so
+7fb5973a0000-7fb5973a2000  rw-p   /lib/x86_64-linux-gnu/libc-2.27.so 
+7fb5973a2000-7fb5973a6000  rw-p  
+7fb5973a6000-7fb5973cd000  r-xp   /lib/x86_64-linux-gnu/(4)-2.27.so 
+7fb5975b1000-7fb5975b3000  rw-p  
+7fb5975cb000-7fb5975cc000  (2)    /home/larry/map/bye.txt 
+7fb5975cc000-7fb5975cd000  (3)    /home/larry/map/hello.txt 
+7fb5975cd000-7fb5975ce000  r--p   /lib/x86_64-linux-gnu/(4)-2.27.so
+7fb5975ce000-7fb5975cf000  rw-p   /lib/x86_64-linux-gnu/(4)-2.27.so 
+7fb5975cf000-7fb5975d0000  rw-p  
+7ffe671ef000-7ffe67210000  rw-p   [(5)] 
+7ffe673cc000-7ffe673cf000  r—p    [vvar]
+7ffe673cf000-7ffe673d1000  r-xp   [vdso] 
+ffffffffff600000-ffffffffff601000 r-xp [vsyscall]
+        \end{minted}
+        上面内容中，\verb|PERM| 下条目有四位。前三位是 \verb|r=readable|、\verb|w=writeable|、\verb|x=executable|，如果是 \verb|-| 则表示没有这一权限。第四位是 \verb|s=shared|、\verb|p=private|，表示内存映射是共享的还是私有的。
+        \qn 填写上面(1)\textasciitilde(5)空的内容。
+        \qn \verb|7fb5973a0000| 对应的页在页表中被标为了只读。对该页进行写操作会发生 \verb|SIGSEGV| 吗？说明理由。
+    \end{problems}
+
+\chapter{虚拟内存{---}往年考题}\thispagestyle{empty}
+    \begin{problems}
+        \proy{2019} 考虑本课程介绍的 Intel x86-64 存储系统中的某一个进程。它从用户态切换至内核态时，TLB \rule{2.5cm}{0.25mm}，高速缓存 \rule{2.5cm}{0.25mm}；当发生进程上下文切换时， TLB \rule{2.5cm}{0.25mm}，高速缓存 \rule{2.5cm}{0.25mm}。
+        \begin{choices}
+            \item 不必刷新 \quad 不必刷新 \quad 需要刷新 \quad 不必刷新
+            \item 不必刷新 \quad 不必刷新 \quad 不必刷新 \quad 不必刷新
+            \item 需要刷新 \quad 不必刷新 \quad 需要刷新 \quad 需要刷新
+            \item 需要刷新 \quad 不必刷新 \quad 不必刷新 \quad 需要刷新
+        \end{choices}
+        \proy{2019} 已知某系统页面大小为 \SI{2}{KB}，页表项为 8 字节，采用多层分页策略映射 48 位虚拟地址空间。若限定最高层页表占 1 页，则它可以采用多少层的分页策略？
+        \proy{2019} 在一个具有 TLB 和高速缓存的系统中，假设地址翻译使用四级页表来进行，且不发生缺页异常，那么在 CPU 访问某个虚拟内存地址的过程中，至少会访问 \rule{2.5cm}{0.25mm} 次物理内存，至多会访问 \rule{2.5cm}{0.25mm} 次物理内存。
+        \proy{2019} 某 32 位机器有 24 位地址空间，采用二级页表，一级页表中有 64 个 PTE，二级页表中有 1024 个 PTE，一级页表 \SI{4}{KB} 对齐，PTE 最高一位是有效位，没有 TLB 和高速缓存。某人在该机器上执行了如下代码：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    int* a = calloc(10000, sizeof(int));
+    int* b = a + 5000;
+    fork();
+    *b = 0x80C3F110;
+        \end{minted}
+        设编译后 \verb|b| 的值保存在寄存器中。
+        \qn 该机器页面大小为 \rule{2.5cm}{0.25mm} 字节，\verb|VPN1| 长度为 \rule{2.5cm}{0.25mm}，\verb|VPN2| 长度为 \rule{2.5cm}{0.25mm}。
+        \qn 由于该执行结果不符合预期，需要对程序执行过程进行还原。程序执行过程中硬件记录了部分内存访问记录。已知父进程执行第四行代码时进行了若干次物理内存的读写操作，其中第一次读内存操作从地址 \verb|0x67F0E8| 读出 \verb|0x80AA32C4|，另外有两次将 \verb|0x80C3F110| 写入内存的操作，写入的地址分别是 \verb|0xC3F50D| 和 \verb|0xAA3AD0|，但写入顺序并不清楚。据此回答（地址都用 16 进制表示）：程序结束后变量 \verb|b| 中保存的值是\rule{2.5cm}{0.25mm}。在 解析 \verb|*b| 的过程中，一级页表的起始地址为 \rule{2.5cm}{0.25mm}；二级页表的起始地址为 \rule{2.5cm}{0.25mm}；物理页面的起始地址为 \rule{2.5cm}{0.25mm}。
+        \proy{2018} 下列与虚拟内存有关的说法中哪些是不对的？
+        \begin{choices}
+            \item 操作系统为每个进程提供一个独立的页表，用于将其虚拟地址空间映射到物理地址空间。
+            \item MMU 使用页表进行地址翻译时，虚拟地址的虚拟页面偏移与物理地址的物理页面偏移是相同的。
+            \item 若某个进程的工作集大小超出了物理内存的大小，则可能出现抖动现象。
+            \item 动态内存分配管理中可以采用双向链表组织空闲块，使得首次适配的分配与释放的时间均和空闲块数量成线性关系。
+        \end{choices}
+        \proy{2018} 假定整型变量 \verb|A| 的虚拟地址为 \verb|0x12345cf0|，另一整型变量 \verb|B| 的虚拟地址为 \verb|0x12345d98|，假定一个页的长度为 \verb|0x1000| 字节，那么 \verb|A| 的物理地址数值和 \verb|B| 的物理地址数值之关系应该为：
+        \begin{choices}
+            \item \verb|A| 的物理地址数值始终大于 \verb|B| 的物理地址数值
+            \item \verb|A| 的物理地址数值始终小于 \verb|B| 的物理地址数值
+            \item \verb|A| 的物理地址数值和 \verb|B| 的物理地址数值大小取决于动态内存分配策略
+            \item 无论如何都无法判定两个物理地址数值的大小关系
+        \end{choices}
+        \proy{2018} 虚拟内存中两层页表和单层页表相比，最主要的优势在于：
+        \begin{choices}
+            \item 能够达到更快的地址翻译速度
+            \item 能够提供更加精细的保护措施
+            \item 能够充分利用代码的空间局部性
+            \item 能够充分利用稀疏的内存使用模式
+        \end{choices}
+        \proy{2018} 回答下列问题。
+        \qn 在进行地址翻译的过程中，操作系统需要借助页表。考虑一个 32 位的系统，页大小是 \SI{4}{KB}，页表项的大小是 4 字节。如果不使用多级页表，则常驻内存的页表一共需要 \rule{2.5cm}{0.25mm} 页。
+
+        再考虑下图示出的物理内存分配情况。假设系统使用二级页表，则已经显示的区域的页表需要占据 \rule{2.5cm}{0.25mm} 页。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|}
+                \hline
+                {\quad VP0 \quad} & \multirow{6}{*}{\quad 已分配页 \quad} \\ \cline{1-1}
+                ... &  \\ \cline{1-1}
+                VP1023 &  \\ \cline{1-1}
+                VP1024 &  \\ \cline{1-1}
+                ... &  \\ \cline{1-1}
+                VP2047 &  \\ \hline
+                \multirow{2}{*}{gap} & \multirow{4}{*}{未分配页} \\
+                &  \\ \cline{1-1}
+                \multirow{2}{*}{1023 个未分配页} &  \\
+                &  \\ \hline
+                VP10239 & \multirow{4}{*}{已分配页} \\ \cline{1-1}
+                ... &  \\ \cline{1-1}
+                VP11263 &  \\ \hline
+                \end{tabular}
+        \end{table}
+        \qn IA32 体系采用小端法和二级页表。其中两级页表大小相同，页大小均为 \SI{4}{KB}，结构也相同。TLB 采用直接映射。TLB 和页表每一项的后 7 位含义如下图所示。为简便起见，假设 TLB 和页表每一项的后 8\textasciitilde 12 位都是 0 且不会被改变。例如后 7 位 值为 \verb|0x27| 则表示可读写。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{cccccccc}
+                {\footnotesize 7} & {\footnotesize 6} & {\footnotesize 5} & {\footnotesize 4} & {\footnotesize 3} & {\footnotesize 2} & {\footnotesize 1} & {\footnotesize 0} \\ \hline
+                \multicolumn{1}{|c|}{\cellcolor{gray!50}} & \multicolumn{1}{c|}{D} & \multicolumn{1}{c|}{A} & \multicolumn{1}{c|}{CD} & \multicolumn{1}{c|}{WT} & \multicolumn{1}{c|}{U} & \multicolumn{1}{c|}{W} & \multicolumn{1}{c|}{P} \\ \hline
+                & {\footnotesize dirty} & {\footnotesize accessed} & {\footnotesize cache-disabled} & {\footnotesize write-through} & {\footnotesize user} & {\footnotesize writable} & {\footnotesize present}
+            \end{tabular}
+        \end{table}
+        当系统运行到某一时刻时，TLB 内容如下：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|}
+                \hline
+                索引 & TLB 标记 & 内容 & 有效位 \\ \hline
+                0 & 0x04013 & 0x3312D027 & 1 \\ \hline
+                1 & 0x01000 & 0x24833020 & 0 \\ \hline
+                2 & 0x005AE & 0x00055004 & 1 \\ \hline
+                3 & 0x00402 & 0x24AEE020 & 0 \\ \hline
+                4 & 0x0AA00 & 0x0005505C & 0 \\ \hline
+                5 & 0x0000A & 0x29DEE000 & 1 \\ \hline
+                6 & 0x1AE82 & 0x00A23027 & 1 \\ \hline
+                7 & 0x28DFC & 0x00023000 & 0 \\ \hline
+            \end{tabular}
+        \end{table}
+        一级页表的基地址为 \verb|0x0C23B00|，物理内存中的部分内容如下：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|c|c|c|}
+                \hline
+                地址 & 内容 & 地址 & 内容 & 地址 & 内容 & 地址 & 内容 \\ \hline
+                00023000 & E0 & 00023001 & BE & 00023002 & EF & 00023003 & BE \\ \hline
+                00023120 & 83 & 00023121 & C8 & 00023122 & FD & 00023123 & 12 \\ \hline
+                00023200 & 23 & 00023201 & FD & 00023202 & BC & 00023203 & DE \\ \hline
+                00023320 & 33 & 00023321 & 29 & 00023322 & E5 & 00023323 & D2 \\ \hline
+                0005545C & 97 & 0005545D & C2 & 0005545E & 7B & 0005545F & 45 \\ \hline
+                00055464 & 97 & 00055465 & D2 & 00055466 & 7B & 00055467 & 45 \\ \hline
+                0C23B020 & 27 & 0C23B021 & EB & 0C23B022 & AE & 0C23B023 & 24 \\ \hline
+                0C23B040 & 27 & 0C23B041 & 40 & 0C23B042 & DE & 0C23B043 & 29 \\ \hline
+                0C23B080 & 05 & 0C23B081 & 5D & 0C23B082 & 05 & 0C23B083 & 00 \\ \hline
+                2314D200 & 23 & 2314D201 & 12 & 2314D202 & DC & 2314D203 & 0F \\ \hline
+                2314D220 & A9 & 2314D221 & 45 & 2314D222 & 13 & 2314D223 & D2 \\ \hline
+                29DE404C & 27 & 29DE404D & 42 & 29DE404E & BA & 29DE404F & 00 \\ \hline
+                29DE4400 & D0 & 29DE4401 & 5C & 29DE4402 & B4 & 29DE4403 & 2A \\ \hline
+            \end{tabular}
+        \end{table}
+        此刻，系统先后试图对两个已经缓存在 cache 中的内存地址进行写操作，请分析完成写之后系统的状态（写的地址和上表中的内存地址无交集），完成下面的填空。若不需要某次访问或者缺少所需信息，请填写 X。
+        第一次向地址 \verb|0xD7416560| 写入内容，TLB 索引为 \rule{2.5cm}{0.25mm}，该项 TLB 内容为 \rule{2.5cm}{0.25mm}，二级页表页表项地址为 \rule{2.5cm}{0.25mm}，物理地址为 \rule{2.5cm}{0.25mm}。第二次向地址 \verb|0x0401369B| 写入内容，TLB 索引为 \rule{2.5cm}{0.25mm}，完成写之后该项 TLB 内容为 \rule{2.5cm}{0.25mm}，二级页表页表项地址为 \rule{2.5cm}{0.25mm}，物理地址为 \rule{2.5cm}{0.25mm}。
+        \qn 本学期的 fork bomb 作业中，大家曾用 \verb|fork()| 逼近系统的进程数量上限。下面有一个类似的程序，请仔细阅读程序并填空。
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    #define N 4
+    int main() {
+        volatile int pid, cnt = 1;
+        for (int i = 0; i < N; i++) {
+            if ((pid = fork()) > 0) {
+                cnt++;
+            }
+        }
+        while (wait(NULL) > 0);
+        return 0;
+    }
+        \end{minted}
+        整个过程中，变量 \verb|cnt| 最大值是 \rule{2.5cm}{0.25mm}。假设所有的数据都已经在内存中，\verb|pid| 和 \verb|cnt| 在同一个物理页中。从第一个进程开始执行 \verb|for| 语句起计算，此过程对 \verb|cnt| 的操作至少会导致页表中发生 \rule{2.5cm}{0.25mm} 次如下事件：虚拟页所对应的物理页被修改。
+        \proy{2016} 在 Core i7 中，以下哪个页表项属于 4 级页表项，不属于 1 级页表项？
+        \begin{choices}
+            \item \verb|G|
+            \item \verb|D|
+            \item \verb|XD|
+            \item \verb|U/S|
+        \end{choices}
+        \proy{2016} 在 Core i7 中，关于虚拟地址和物理地址的说法，不正确的是：
+        \begin{choices}
+            \item \verb|VPO = CI + CO|
+            \item \verb|PPN = TLBT + TLBI|
+            \item \verb|VPN1 = VPN2 = VPN3 = VPN4|
+            \item \verb|TLBT + TLBI = VPN|
+        \end{choices}
+        \proy{2016} 考虑如下程序，其被编译成可执行文件 \verb|i16|。
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    int main(int argc, char **argv){
+        int fd1, fd2;
+        char *cs;
+        struct stat stat;
+        int sz, i;
+
+        fd1 = Open(argv[1], O_RDWR, S_IRUSR | S_IWUSR);
+        Fstat(fd1, &stat);
+        sz = stat.st_size;
+        fd2 = Open(argv[2], O_RDWR | O_TRUNC | O_CREAT, \
+                        S_IRUSR | S_IWUSR);
+
+        cs = (char *) Mmap(NULL, sz, PROT_READ | PROT_WRITE, \
+                __________X__________, fd1, 0);
+        if (Fork()) {
+            Wait(&i);
+            Write(fd2, cs, sz);
+        } else {
+            for (i = 0; i < sz; i++) {
+                if (islower(cs[i]))
+                    cs[i] = (char) toupper(cs[i]);
+                else if (isupper(cs[i]))
+           }
+            cs[i] = (char) tolower(cs[i]);
+            __________Y__________;
+        }
+        Munmap(cs, sz);
+        Close(fd1);
+        Close(fd2);
+    }
+        \end{minted}
+        \qn 设文件 \verb|t1| 内容为 \verb|ICSexam|，根据 \verb|X/Y| 处的内容，判断执行 \verb|./i16 t1 t2| 之后的结果。
+            \subqn \verb|X| 为 \verb|MAP_PRIVATE|，\verb|Y| 为空：
+            \begin{choices}
+                \item \verb|t1| 为 \verb|ICSexam|，\verb|t2| 为 \verb|ICSexam|
+                \item \verb|t1| 为 \verb|ICSexam|，\verb|t2| 为 \verb|icsEXAM|
+                \item \verb|t1| 为 \verb|icsEXAM|，\verb|t2| 为 \verb|icsEXAM|
+                \item \verb|t1| 为 \verb|icsEXAM|，\verb|t2| 为 \verb|ICSexam|
+            \end{choices}
+            \subqn \verb|X| 为 \verb|MAP_SHARED|，\verb|Y| 为空：
+            \begin{choices}
+                \item \verb|t1| 为 \verb|ICSexam|，\verb|t2| 为 \verb|ICSexam|
+                \item \verb|t1| 为 \verb|ICSexam|，\verb|t2| 为 \verb|icsEXAM|
+                \item \verb|t1| 为 \verb|icsEXAM|，\verb|t2| 为 \verb|icsEXAM|
+                \item \verb|t1| 为 \verb|icsEXAM|，\verb|t2| 为 \verb|ICSexam|
+            \end{choices}
+            \subqn \verb|X| 为 \verb|MAP_PRIVATE|，\verb|Y| 为 \verb|Write(fd2, cs, sz)|，\verb|t2| 的内容：
+            \begin{choices}
+                \item \verb|ICSexam|
+                \item \verb|icsEXAM|
+                \item \verb|icsEXAMICSexam|
+                \item \verb|icsEXAMicsEXAM|
+            \end{choices}
+            \subqn \verb|X| 为 \verb|MAP_SHARED|，\verb|Y| 为 \verb|Write(fd2, cs, sz)|，\verb|t2| 的内容：
+            \begin{choices}
+                \item \verb|ICSexam|
+                \item \verb|icsEXAM|
+                \item \verb|icsEXAMICSexam|
+                \item \verb|icsEXAMicsEXAM|
+            \end{choices}
+        \qn 设 \verb|X| 为 \verb|MAP_SHARED|。当子进程运行到 \verb|Y| 处时，内存映射的内容如下（只保留了 \verb|/proc/pid/maps| 中的三部分内容，分别为 \verb|address/perm/path|）：
+        \begin{minted}[frame=single, fontsize=\small]{text}
+ADDRESS                    PERM   PATH 
+00400000-00405000          r-xp   /home/larry/i16/i16
+00604000-00605000          r--p   /home/larry/i16/i16
+00605000-00606000          __A__  /home/larry/i16/i16
+7f5df1e61000-7f5df2020000  r-xp   /lib/x86_64-linux-gnu/libc-2.23.so
+7f5df2020000-7f5df2220000  ---p   /lib/x86_64-linux-gnu/libc-2.23.so
+7f5df2220000-7f5df2224000  r--p   /lib/x86_64-linux-gnu/libc-2.23.so
+7f5df2224000-7f5df2226000  rw-p   /lib/x86_64-linux-gnu/libc-2.23.so
+7f5df2226000-7f5df222a000  rw-p
+7f5df222a000-7f5df2250000  r-xp   /lib/x86_64-linux-gnu/____B____
+7f5df243f000-7f5df2442000  rw-p
+7f5df244c000-7f5df244d000  rw-s   __________C__________
+7f5df244d000-7f5df244f000  rw-p
+7f5df244f000-7f5df2450000  r--p   /lib/x86_64-linux-gnu/____B____
+7f5df2450000-7f5df2451000  rw-p   /lib/x86_64-linux-gnu/____B____
+7f5df2451000-7f5df2452000  rw-p
+7ffd4e35f000-7ffd4e380000  rw-p   [_____D_____]
+7ffd4e3b0000-7ffd4e3b2000  r--p   [vvar]
+7ffd4e3b2000-7ffd4e3b4000  r-xp   [vdso]
+ffffffffff600000-ffffffffff601000 r-xp [vsyscall]
+        \end{minted}
+        根据程序执行情况，填充上面的空白。
+        \qn 设 \verb|X| 为 \verb|MAP_SHARED|。当子进程运行到 \verb|Y| 处时，回答有关问题。
+            \subqn 关于页表的描述，正确的是：
+            \begin{choices}
+                \item 由于 \verb|i16| 本身的代码和数据只占用了低 32 位空间，所以这部分空间只需使用 2 级页表。
+                \item 所有虚拟地址空间都是 48 位地址空间，都需要使用完整的 4 级页表。
+                \item 当页表项无效时（\verb|P| 位为 0)，MMU 不会使用到其它位的内容。
+                \item 除读写权限外，需要在页表项中为 COW 机制提供另外的专门支持
+            \end{choices}
+            \subqn 如果子进程在 \verb|Y| 处访问 \verb|7f5df2224| 这一页，则可能发生以下异常：
+            \begin{choices}
+                \item Page Fault 或 General Protection Fault
+                \item General Protection Fault 或 Segmentation Fault
+                \item Page Fault 或 Segmentation Fault
+                \item Page Fault 或 General Protection Fault 或 Segmentation Fault
+            \end{choices}
+            \subqn 假设 TLB 有 64 个表项，4 路组相联，访问 \verb|7f5df2224| 这一页时所对应的 \verb|TLBT| 是：
+            \begin{choices}
+                \item \verb|0111 1111 0101 1101 1111 0010 0010 0010|
+                \item \verb|0111 1111 0101 1101 1111 0010 0010 0010 01|
+                \item \verb|1111 0101 1101 1111 0010 0010 0010 0100|
+                \item \verb|11 1111 0101 1101 1111 0010 0010 0010 0100|
+            \end{choices}
+            \subqn 发生 TLB 命中时意味着：
+            \begin{choices}
+                \item 相应的页表项在 L1 Cache 里
+                \item 要访问的数据内容在 L1 Cache 里
+                \item 如果要访问的数据内容已在 L1 Cache 中，则该 Cache Line 的权限位中应具有相应的读写执行权限
+                \item 以上都不对
+            \end{choices}
+        \proy{2015} 虚拟内存管理方式可行性的基础是
+        \begin{choices}
+            \item 程序执行的离散性
+            \item 程序执行的顺序性
+            \item 程序执行的局部性
+            \item 程序执行的并发性
+        \end{choices}
+        \proy{2015} Intel 的 IA32 体系结构采用二级页表，称第一级页表为页目录，第二级页表为页表。页面的大小为 \SI{4}{KB}，页表项长 4 字节。以下给出了页目录与若干页表中的部分内容。例如，页目录中的 第 1 个项索引到的是页表 3，页表 1 中的第 3 个项索引到的是物理地址中的 第 5 个页。则十六进制逻辑地址 \verb|8052CB| 经过地址转换后形成的物理地址应为十进制的 \rule{2.5cm}{0.25mm}。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|cc|cc|cc|cc|}
+                \hline
+                \multicolumn{2}{|c|}{页目录} & \multicolumn{2}{c|}{页表 1} & \multicolumn{2}{c|}{页表 2} & \multicolumn{2}{c|}{页表 3} \\ \hline
+                \multicolumn{1}{|c|}{VPN} & 页表号 & \multicolumn{1}{c|}{VPN} & 页号 & \multicolumn{1}{c|}{VPN} & 页号 & \multicolumn{1}{c|}{VPN} & 页号 \\ \hline
+                \multicolumn{1}{|c|}{1} & 3 & \multicolumn{1}{c|}{3} & 5 & \multicolumn{1}{c|}{2} & 1 & \multicolumn{1}{c|}{2} & 9 \\ \hline
+                \multicolumn{1}{|c|}{2} & 1 & \multicolumn{1}{c|}{4} & 2 & \multicolumn{1}{c|}{4} & 4 & \multicolumn{1}{c|}{3} & 8 \\ \hline
+                \multicolumn{1}{|c|}{3} & 2 & \multicolumn{1}{c|}{5} & 7 & \multicolumn{1}{c|}{8} & 6 & \multicolumn{1}{c|}{5} & 3 \\ \hline
+            \end{tabular}
+        \end{table}
+        \proy{2015} 已知某系统页面大小为 \SI{8}{KB}，页表项长 4 字节，采用多层分页策略映射 64 位虚拟地址空间。若限定最高层页表占 1 页，则它可以采用\rule{2.5cm}{0.25mm} 层的分页策略。
+        \proy{2015} 为了提升虚拟内存地址的转换效率，降低遍历两级页表结构所带来的地址转换开销，Intel 处理器针对 32 位模式引入了大页 TLB，即一个 TLB 项可以涵盖整个 \SI{4}{MB} 对齐的地址空间。只要设置页目录项的大页标志位，即可让 MMU 识别这是一个大页 PDE，并加载到大页 TLB 项中。大页 PDE 中记录的物理内存页面号必须是 \SI{4}{MB} 对齐的，而且整个连续的 \SI{4}{MB} 内存均可统一通过该大页 PDE 进行地址转换。
+        
+        在 32 位的 Linux 系统中，为了方便访问物理内存，内核将地址 0\textasciitilde\SI{768}{MB} 间的物理内存映射到虚拟内存地址 \SI{3}{G}\textasciitilde\SI{3}{GB} + \SI{768}{MB} 间，并通过大页 PDE 进行进行该区间的地址转换。任何 0\textasciitilde\SI{768}{MB} 的物理内存地址可以直接通过加 \SI{3}{G}（\verb|0xC0000000|）的方式得到其虚拟内存地址。在内核中，除了该区间的内存外，其他地址的内存通常都通过普通的两级页表结构来进行地址转换。
+        
+        假设在我们使用的处理器中有 2 个大页 TLB 项，其当前状态如下：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|}
+                \hline
+                索引号 & TLB 标记 & 页面号 & 有效位 \\ \hline
+                0 & 0xC48 & 0x04800 & 1 \\ \hline
+                1 & 0xC9C & 0x09C00 & 1 \\ \hline
+            \end{tabular}
+        \end{table}
+        有 4 个普通 TLB 项，当前的状态如下：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|}
+                \hline
+                索引号 & TLB标记 & 页面号 & 有效位 \\ \hline
+                0 & 0xF8034 & 0x04812 & 1 \\ \hline
+                1 & 0xF8033 & 0x09812 & 1 \\ \hline
+                2 & 0xF4427 & 0x12137 & 1 \\ \hline
+                3 & 0xF44AE & 0x17343 & 1 \\ \hline
+            \end{tabular}
+        \end{table}
+        当前页活跃的目录页中的部分 PDE 的内容如下：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|}
+                \hline
+                PDE 索引 & 页面号 & 大页位 & 存在位 \\ \hline
+                786 & 0x04800 & 1 & 1 \\ \hline
+                807 & 0x09C00 & 1 & 1 \\ \hline
+                977 & 0x09C33 & 0 & 1 \\ \hline
+                992 & 0x09078 & 0 & 1 \\ \hline
+            \end{tabular}
+        \end{table}
+        注意，普通页面大小为 \SI{4}{KB}，并且 \SI{4}{KB} 对齐。每个页面的页面号为其页面起始物理地址除以 4096 得到。大页由连续 1024 个 \SI{4}{KB} 小页组成，且 \SI{4}{MB} 对齐。
+        \qn 分析下面的指令序列，
+        \begin{minted}[frame=single, fontsize=\small]{text}
+    movl   $0xC48012024, %ebx
+    movl   $128, (%ebx)
+    movl   $0xF8034000, %ecx
+    movl   $36(%ecx), %eax
+        \end{minted}
+        执行完上述指令后，\verb|%eax| 寄存器中的内容是 \rule{2.5cm}{0.25mm}；在执行上述指令过程中，共发生了 \rule{2.5cm}{0.25mm} 次 TLB miss；同时会发生 \rule{2.5cm}{0.25mm} 次 page fault。不确定的空填 X。
+        \qn 请判断下列页面号对应的页面中，哪些一定是页表页，哪些不是，哪些不确
+        定：\verb|0x04800|、\verb|0x09C33|、\verb|0x09812|。
+        \qn 下列虚拟地址中哪一个对应能将虚拟地址 \verb|0xF4427048| 映射到物理地址 \verb|0x14321048| 的页表项？
+        \begin{choices}
+            \item \verb|0x09C33027|
+            \item \verb|0xC9C3309C|
+            \item \verb|0xC9C33027|
+            \item \verb|0x09C3309C|
+        \end{choices}
+        通过上述虚拟地址，利用 \verb|movl| 指令修改对应的页表项，完成上述映射，在此过程中，是否会产生 TLB miss？
+
+        进一步，修改页表项后，是否可以立即直接使用下面的指令序列将物理内存地址 \verb|0x14321048| 开始的一个 32 位整数清零？说明理由。
+        \begin{minted}[frame=single, fontsize=\small]{text}
+    movl   $0xF4427048, %ebx
+    movl   $0, (%ebx)
+        \end{minted}
+        \proy{2014} IA32 体系采用小端法和二级页表。其中两级页表大小相同，页大小均为 \SI{4}{KB}，结构也相同。TLB 采用直接映射。TLB 和页表每一项的后 7 位含义如下图所示。为简便起见，假设 TLB 和页表每一项的后 8\textasciitilde 12 位都是 0 且不会被改变。例如后 7 位 值为 \verb|0x27| 则表示可读写。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{cccccccc}
+                {\footnotesize 7} & {\footnotesize 6} & {\footnotesize 5} & {\footnotesize 4} & {\footnotesize 3} & {\footnotesize 2} & {\footnotesize 1} & {\footnotesize 0} \\ \hline
+                \multicolumn{1}{|c|}{\cellcolor{gray!50}} & \multicolumn{1}{c|}{D} & \multicolumn{1}{c|}{A} & \multicolumn{1}{c|}{CD} & \multicolumn{1}{c|}{WT} & \multicolumn{1}{c|}{U} & \multicolumn{1}{c|}{W} & \multicolumn{1}{c|}{P} \\ \hline
+                & {\footnotesize dirty} & {\footnotesize accessed} & {\footnotesize cache-disabled} & {\footnotesize write-through} & {\footnotesize user} & {\footnotesize writable} & {\footnotesize present}
+            \end{tabular}
+        \end{table}
+        已知一级页表的地址为 \verb|0x0c23b000|，物理内存中的部分内容如下图所示。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|c|c|c|c|}
+                \hline
+                地址 & 内容 & 地址 & 内容 & 地址 & 内容 & 地址 & 内容 \\ \hline
+                00023000 & E0 & 00023001 & BE & 00023002 & EF & 00023003 & BE \\ \hline
+                00023120 & 83 & 00023121 & C8 & 00023122 & FD & 00023123 & 12 \\ \hline
+                00023200 & 23 & 00023201 & FD & 00023202 & BC & 00023203 & DE \\ \hline
+                00023320 & 33 & 00023321 & 29 & 00023322 & E5 & 00023323 & D2 \\ \hline
+                00023FF8 & 29 & 00023FF9 & FF & 00023FFA & DE & 00023FFB & BC \\ \hline
+                00055004 & 03 & 00055005 & D0 & 00055006 & 74 & 00055007 & 89 \\ \hline
+                0005545C & 97 & 0005545D & C2 & 0005545E & 7B & 0005545F & 45 \\ \hline
+                00055460 & 97 & 00055461 & D2 & 00055462 & 7B & 00055463 & 45 \\ \hline
+                00055464 & 97 & 00055465 & E2 & 00055466 & 7B & 00055467 & 45 \\ \hline
+                0C23B020 & 55 & 0C23B021 & EB & 0C23B022 & AE & 0C23B023 & 24 \\ \hline
+                0C23B040 & 55 & 0C23B041 & AB & 0C23B042 & 2A & 0C23B043 & 01 \\ \hline
+                0C23B080 & 05 & 0C23B081 & 5D & 0C23B082 & 05 & 0C23B083 & 00 \\ \hline
+                0C23B09D & 05 & 0C23B09E & D3 & 0C23B09F & F2 & 0C23B0A0 & 0F \\ \hline
+                0C23B274 & 05 & 0C23B275 & 3D & 0C23B276 & 02 & 0C23B277 & 00 \\ \hline
+                0C23B9FC & 25 & 0C23B9FD & D2 & 0C23B9FE & 14 & 0C23B9FF & 23 \\ \hline
+                2314D200 & 23 & 2314D201 & 12 & 2314D202 & DC & 2314D203 & 0F \\ \hline
+                2314D220 & A9 & 2314D221 & 45 & 2314D222 & 13 & 2314D223 & D2 \\ \hline
+                2314D4A0 & BD & 2314D4A1 & BC & 2314D4A2 & 88 & 2314D4A3 & D3 \\ \hline
+            \end{tabular}
+        \end{table}
+        TLB 的内容如下所示。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|c|}
+                \hline
+                索引 & TLB 标记 & 内容 & 有效位 \\ \hline
+                0 & 0x08001 & 2314d220 & 1 \\ \hline
+                1 & 0x01000 & 24aee520 & 0 \\ \hline
+                2 & 0x005AE & 00055004 & 0 \\ \hline
+                3 & 0x016BA & 0c23b09d & 1 \\ \hline
+                4 & 0x0AA00 & 0005545c & 1 \\ \hline
+                5 & 0x0000A & 29dee500 & 0 \\ \hline
+                6 & 0x5AE82 & 00023320 & 1 \\ \hline
+                7 & 0x28DFC & 00023000 & 1 \\ \hline
+            \end{tabular}
+        \end{table}
+        \qn 某用户态进程试图写入虚拟地址 \verb|0x080016ba|，该访问的最后结果是：
+        \begin{choices}
+            \item 该进程成功写入，未触发异常
+            \item 该进程触发了一个缺页异常
+            \item 该进程触发了一个非法访问异常
+        \end{choices}
+        \qn 下面描述了上一问的具体访问过程，请填空。如果某个空在访问过程中已不可用，请填入 X。TLB 的索引为 \rule{2.5cm}{0.25mm}，访问 \rule{2.5cm}{0.25mm}（填“命中”或“不命中”）。一级页表表项地址为 \rule{2.5cm}{0.25mm}；二级页表表项地址为 \rule{2.5cm}{0.25mm}；最后得到的物理地址为 \rule{2.5cm}{0.25mm}。
+        \proy{2014} 对于虚拟存储系统，一次访存过程中，下列命中组合不可能发生的是
+        \begin{choices}
+            \item TLB 未命中，Cache 未命中，Page 未命中
+            \item TLB 未命中，Cache 命中，Page 命中
+            \item TLB 命中，Cache 未命中，Page 命中
+            \item TLB 命中，Cache 命中，Page 未命中
+        \end{choices}
+        \proy{2013} 假设有一台 64 位的计算机的物理页块大小是 \SI{8}{KB}，采用三级页表进行虚拟地址寻址，则一般而言它的虚拟地址的 \verb|VPN| 有 \rule{2.5cm}{0.25mm} 位。
+        \proy{2013} 进程 \verb|P1| 通过 \verb|fork| 函数产生一个子进程 \verb|P2|。假设执行 \verb|fork| 函数之前，进程 \verb|P1| 占用了 53 个用户态的物理页，则 \verb|fork| 函数之后，进程 \verb|P1| 和进程 \verb|P2| 共占用 \rule{2.5cm}{0.25mm} 个用户态的物理页。设执行 \verb|fork| 函数之前进程 \verb|P1| 中有一个可读写的物理页，则执行 \verb|fork| 函数之后，进程 \verb|P1| 对该物理页的页表项权限为 \rule{2.5cm}{0.25mm}。
+        \proy{2013} Intel 的 IA32 体系结构采用二级页表，称第一级页表为页目录，第二级页表为页表。其虚拟地址到物理地址的翻译方式如：先根据 \verb|CR3| 寄存器找到页目录地址，然后依据偏移找到一个页目录项，页目录项的高 20 位为二级页表地址；在二级页表中根据偏移找到页表项，页表项中的高 20 位即为物理地址的高 20 位，将这 20 位与虚拟地址的低 12 位拼在一起形成完整的物理地址。
+
+        页目录和页表均有 1024 项，每一项为 4 字节，31\textasciitilde 12 位为物理页号，11\textasciitilde 7 为保留和系统使用的位，最后 7 位的含义如下：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{cccccccc}
+                {\footnotesize 7} & {\footnotesize 6} & {\footnotesize 5} & {\footnotesize 4} & {\footnotesize 3} & {\footnotesize 2} & {\footnotesize 1} & {\footnotesize 0} \\ \hline
+                \multicolumn{1}{|c|}{\cellcolor{gray!50}} & \multicolumn{1}{c|}{D} & \multicolumn{1}{c|}{A} & \multicolumn{1}{c|}{CD} & \multicolumn{1}{c|}{WT} & \multicolumn{1}{c|}{U} & \multicolumn{1}{c|}{W} & \multicolumn{1}{c|}{P} \\ \hline
+                & {\footnotesize dirty} & {\footnotesize accessed} & {\footnotesize cache-disabled} & {\footnotesize write-through} & {\footnotesize user} & {\footnotesize writable} & {\footnotesize present}
+            \end{tabular}
+        \end{table}
+
+        页目录和页表由操作系统维护，通常只能在内核态下访问，为了给用户提供一个访问页表项和页目录项内容的接口，假设操作系统中已经执行过如下代码段：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    #define UVPT 0xef400000
+    #define PDX(la) ((((unsigned int) (la)) >> 22) & 0x3FF)
+    ...
+    kern_pgdir[PDX(UVPT)] = PADDR(kern_pgdir) | PTE_U | PTE_P;
+        \end{minted}
+        其中 \verb|kern_pgdir| 是操作系统维护的页目录数组，共 1024 项，每一项的类型为 \verb|unsigned int|。\verb|PADDR(kern_pgdir)| 用于获得 \verb|kern_pgdir| 的物理地址，页目录在物理内存中正好占一页，所以 \verb|kern_pgdir| 的物理地址是 \SI{4}{KB} 对齐 的。\verb|PTE_U| 和 \verb|PTE_P| 代表了这个页目录项的权限，即用户态可访问（只读）。可以看到，这条语句将页目录的第 \verb|PDX(UVPT)| 项指向了页目录自身。
+        
+        利用这一点，对于给定的虚拟地址 \verb|va|，可以获得 \verb|va| 对应的页目录项和页表项内容，分别对应于函数 \verb|get_pde| 和 \verb|get_pte|，请完成这两个函数：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    #define UVPT 0xef400000
+    // get_pde(va) 获取虚拟地址 va 对应的一级页表(页目录)中的页目录项内容
+    unsigned int get_pde(unsigned int va) {
+        unsignedintpdx = (va >> __________) & __________;
+        unsigned int addr = UVPT + (__________) + pdx * 4;
+        return *((unsigned int *) addr);
+    }
+    // get_pte(va) 获取虚拟地址 va 对应的二级页表中的页表项内容
+    unsigned int get_pte(unsigned int va) {
+        unsigned int PGNUM = va >> __________;
+        unsigned int addr = __________ + PGNUM;
+        return *((unsigned int *) addr);
+    }
+        \end{minted}
+    \end{problems}
