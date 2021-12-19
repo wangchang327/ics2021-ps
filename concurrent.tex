@@ -1,0 +1,587 @@
+\chapter{网络和并发编程}\thispagestyle{empty}
+    \begin{summary}
+        \begin{compactitem}
+            \item 了解网络的物理层、链路层、网络层、传输层和应用层的基本结构，知道每一层所对应的硬件及其特性（如交换机、路由器）。
+            \item 知道什么是网络协议，熟悉网络包在传输过程中包装和拆解的过程。了解常见的几种应用层网络协议（HTTP、DNS）。知道 TCP 和 UDP 两种协议及其是否有连接、是否可靠等性质。
+            \item 熟悉 IP 地址的结构和用途。知道域名和 IP 地址之间的对应关系。
+            \item 掌握客户端{--}服务器模型和套接字的概念（地址、端口、协议），熟悉 Linux 中读写套接字的 API 并能编写简单的网络服务器。
+            \item 了解编写并发服务器的三种手段。
+            \item 熟悉线程的概念，知道 POSIX 线程的常见 API。会判断线程程序中，变量是否共享以及共享变量在内存中的性质。
+            \item 熟悉互斥同步问题的概念。会绘制进度图并分析互斥区域和不安全区域。
+            \item 熟练掌握使用信号量解决互斥锁（mutex）、生产者{--}消费者问题和读者{--}写者问题的方法，能灵活运用到实际代码中。知道线程提高并行性和同步带来的问题。
+            \item 理解线程安全和可重入的概念，会判断代码是否为线程安全。
+            \item 熟练掌握死锁的概念，会判断程序是否有死锁及如何解决。
+        \end{compactitem}
+    \end{summary}
+
+    \begin{problems}
+        \pro \verb|volatile| 修饰符保证定义的变量存放在内存中，而不总在寄存器中。请阅读下面的代码，在两个进程的地址空间中标出变量 \verb|gCount|、\verb|vCount| 与 \verb|lCount| 的位置。如果一个量出现多次，那么就标多次。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{ccc}
+                \cline{1-1} \cline{3-3}
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{高地址} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3} 
+                \multicolumn{1}{|c|}{...} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{...} \\ \cline{1-1} \cline{3-3} 
+                \multicolumn{1}{|c|}{共享库} & \multicolumn{1}{c|}{共享库} & \multicolumn{1}{c|}{共享库} \\ \cline{1-1} \cline{3-3} 
+                \multicolumn{1}{|c|}{...} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{...} \\ \cline{1-1} \cline{3-3} 
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{堆} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3} 
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{数据段} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3} 
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{代码段} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3} 
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{低地址} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3} 
+                父进程 &  & 子进程
+            \end{tabular}
+        \end{table}
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    long gCount = 0;
+    void *thread(void *vargp) {
+        volatile long vCount = *(long *) vargp;
+        static long lCount = 0;
+        gCount++; vCount++; lCount++;
+        printf("%ld\n", gCount + vCount + lCount);
+        return NULL;
+    }
+    int main() {
+        long var; pthread_t tid1, tid2;
+        scanf("%ld", &var);
+        fork();
+        pthread_create(&tid1, NULL, thread, &var);
+        pthread_create(&tid2, NULL, thread, &var);
+        pthread_join(tid1, NULL);
+        pthread_join(tid2, NULL);
+        return 0;
+    }
+        \end{minted}
+        \pro 下面的程序会引发竞争。一个可能的输出结果为 \verb|2 1 2 2|。解释输出这一结果的原因。
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    long foo = 0, bar = 0;
+    void *thread(void *vargp) {
+        foo++; bar++;
+        printf("%ld %ld ", foo, bar); fflush(stdout);
+        return NULL;
+    }
+    int main() {
+        pthread_t tid1, tid2;
+        pthread_create(&tid1, NULL, thread, NULL);
+        pthread_create(&tid2, NULL, thread, NULL);
+        pthread_join(tid1, NULL);
+        pthread_join(tid2, NULL);
+        return 0;
+    }
+        \end{minted}
+        \pro 信号量 \verb|w, x, y, z| 均被初始化为 \verb|1|。下面的两个线程运行时可能会发生死锁。给出发生死锁的执行顺序。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|}
+                \hline
+                线程 1 & P(w), P(x), P(y), P(z), V(w), V(x), V(y), V(z) \\ \hline
+                线程 2 & P(x), P(z), P(y), P(w), V(x), V(y), V(w), V(z) \\ \hline
+            \end{tabular}
+        \end{table}
+        \pro 某次考试有 30 名学生与 1 名监考老师，该教室的门很狭窄，每次只能通过一人。考试开始前，老师和学生进入考场（有的学生来得比老师早），当人来齐以后，老师开始发放试卷。拿到试卷后，学生就可以开始答卷。学生可以随时交卷，交卷后就可以离开考场。当所有的学生都上交试卷以后，老师才能离开考场。
+        请用信号量与 PV 操作，解决这个过程中的同步问题。以下所有空缺语句均为 PV 操作。
+
+        程序使用的全局变量为 \verb|stu_count: int|，表示考场中的学生数量，初值为 \verb|0|。信号量有：
+        \begin{compactitem}
+            \item\ \verb|mutex_stu_count|，保护全局变量，初值为 \verb|1|。
+            \item\ \verb|mutex_door|，保证门每次通过一人，初值为 \rule{2.5cm}{0.25mm}。
+            \item\ \verb|mutex_all_present|，保证学生都到了，初值为 \rule{2.5cm}{0.25mm}。
+            \item\ \verb|mutex_all_handin|，保证学生都交了，初值为 \rule{2.5cm}{0.25mm}。
+            \item\ \verb|mutex_test[30]|，表示学生拿到了试卷，初值均为 \rule{2.5cm}{0.25mm}。
+        \end{compactitem}
+        代码如下：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    Teacher: // 老师
+        ____________________
+        从门进入考场
+        ____________________
+        ____________________ // 等待同学来齐
+        for (i = 1; i <= 30; i++)
+            ____________________ // 给 i 号学生发放试卷
+        ____________________ // 等待同学将试卷交齐
+        ____________________
+        从门离开考场
+        ____________________
+
+    Student(x): // x 号学生
+        ____________________
+        从门进入考场
+        ____________________
+        P(mutex_stu_count);
+        stu_count++;
+        if (stu_count == 30)
+            ____________________
+        V(mutex_stu_count);
+        P(mutex_test[i]) // 等待拿自己的卷子
+        学生答卷
+        P(mutex_stu_count); stu_count--;
+        if (stu_count == 0)
+            ____________________
+        V(mutex_stu_count);
+        ____________________
+        从门离开考场
+        ____________________
+        \end{minted}
+    \end{problems}
+
+\chapter{网络与并发编程{---}往年考题}\thispagestyle{empty}
+    \begin{problems}
+        \proy{2018} 下面有关计算机网络概念的叙述中，正确的是
+        \begin{choices}
+            \item 大写字母的 Internet 用来描述互联网的一般概念，而小写字母的 internet 用来描述一种具体的实现，也就是全球 IP 互联网。
+            \item 在一个基于集线器的以太网中，如果往一台主机发送一段数据帧，那么其他主机无法看到这个帧。
+            \item IP 协议提供基本的命名方法和递送机制，因此我们能够借助 IP 协议，从一台主机往另一台主机发送包，即使两台主机不在同一个 LAN 内。
+            \item 当一段数据通过路由器，从 LAN1 被发送到 LAN2 时，附加的互联网络包头和局域网帧头保持不变。
+        \end{choices}
+        \proy{2018} 下面有关套接字接口的叙述中，错误的是
+        \begin{choices}
+            \item 套接字接口常常被用来创建网络应用。
+            \item Windows 10 系统没有实现套接字接口。
+            \item \verb|getaddrinfo()| 和 \verb|getnameinfo()| 可以被用于编写独立于特定版本的 IP 协议的程序。
+            \item \verb|socket()| 函数返回的描述符，可以使用标准 Unix I/O 函数进行读写。
+        \end{choices}
+        \proy{2018} 使用浏览器打开网页 \verb|www.pku.edu.cn| 的过程中，下列网络协议中，可能会被用到的网络协议有 \rule{2.5cm}{0.25mm} 个：DNS、TCP、IP、HTTP。
+        \proy{2018} 下面关于线程安全和可重入的叙述中，哪一个是正确的？
+        \begin{choices}
+            \item 如果一个函数的所有参数都是值传递的且无返回值，该函数一定是可重入的。
+            \item 函数的可重入版本一定比不可重入版本高效。
+            \item 可重入函数一定是线程安全的。
+            \item 以上说法都不正确。
+        \end{choices}
+        \proy{2018} 下列关于进程与线程的描述中，哪一个是不正确的？
+        \begin{choices}
+            \item 一个进程可以包含多个线程。
+            \item 进程中的各个线程共享进程的代码、数据、堆和栈。
+            \item 进程中的各个线程拥有自己的线程上下文。
+            \item 线程的上下文切换比进程的上下文切换快。
+        \end{choices}
+        \proy{2018} 给定下列代码片段：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    char **ptr; /* global var */
+    int main(int main, char *argv[]) {
+        long i; pthread_t tid;
+        char *msgs[2] = {" Hello from foo", " Hello from bar" };
+        ptr = msgs;
+        for (i = 0; i < 2; i++)
+            Pthread_create(&tid, NULL, thread,(void *)i);
+        Pthread_exit(NULL);
+    }
+    void *thread(void *vargp) {
+        long myid = (long) vargp;
+        static int cnt = 0;
+        printf("[%ld]: %s (cnt=%d)\n", myid, ptr[myid], ++cnt);
+        return NULL;
+    }
+        \end{minted}
+        下列哪一组变量集合是对等线程 1 引用的？
+        \begin{choices}
+            \item \verb|ptr, cnt, i.m, msgs.m, myid.p0, myid.p1|
+            \item \verb|ptr, cnt, msgs.m, myid.p0|
+            \item \verb|ptr, cnt, msgs.m, myid.p1|
+            \item \verb|ptr, cnt, i.m, msgs.m, myid.p1|
+        \end{choices}
+        \proy{2018} 给定如下程序：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    #include <stdio.h>
+    #include <pthread.h>
+    int i = 0;
+    int j = 0;
+    void *do_stuff1(void * arg __attribute__((unused))) {
+        int a;
+        for (a = 0; a < 1000; a++) { i++; j++; }
+        return NULL;
+    }
+    void *do_stuff2(void * arg __attribute__((unused))) {
+        int a;
+        for (a = 0; a < 1000; a++) { j++; i++; }
+        return NULL;
+    }
+    int main() {
+        pthread_t tid1, tid2;
+        pthread_create(&tid1, NULL, do_stuff1, NULL);
+        pthread_create(&tid2, NULL, do_stuff2, NULL);
+        pthread_join(tid1, NULL);
+        pthread_join(tid2, NULL);
+        printf("%d, %d\n", i, j);
+        return 0;
+    }
+        \end{minted}
+            \qn 用以下元素的编号写出  \verb|i++| 编译后最可能的汇编代码。(a) 、\verb|mov| (b) \verb|add| (c) \verb|0x601040| (d) \verb|%eax| (e) \verb|$0x1|
+            \qn 请分别回答该程序是否有可能输出如下结果，并简述原因。 (a) \verb|2000, 2000| (b) \verb|1500, 1500| (c) \verb|1000, 1000| (d) \verb|2, 2|
+            \qn 某同学在学习了信号量之后，决定要让程序能稳定输出 \verb|2000, 2000|， 于是对程序进行了如下改写。
+            \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    #include <stdio.h>
+    #include <pthread.h>
+    int i = 0;
+    int j = 0;
+    sem_t si;
+    sem_t sj;
+    void *do_stuff1(void * arg __attribute__((unused))) {
+        int a;
+        for (a = 0; a < 1000; a++) { i++; j++; }
+        return NULL;
+    }
+    void *do_stuff2(void * arg __attribute__((unused))) {
+        int a;
+        for (a = 0; a < 1000; a++) { j++; i++; }
+        return NULL;
+    }
+    int main() {
+        pthread_t tid1, tid2;
+        Sem_init(&si, 0, 1);
+        Sem_init(&sj, 0, 1);
+        pthread_create(&tid1, NULL, do_stuff1, NULL); 
+        pthread_create(&tid2, NULL, do_stuff2, NULL);
+        pthread_join(tid1, NULL);
+        pthread_join(tid2, NULL);
+        printf("%d\n", i);
+        return 0;
+    }
+        \end{minted}
+        请问该同学的程序有什么潜在问题？为什么？如果对该同学的程序改动一处数字来消除上述问题，同时仍然保证输出结果稳定为 \verb|2000, 2000|，应该如何改动？回答：将 \rule{2.5cm}{0.25mm} （填行号）行的 \rule{2.5cm}{0.25mm}（填数字）改为 \rule{2.5cm}{0.25mm}（填数字）。
+        \proy{2016} 关于 IP，以下说法正确的是
+        \begin{choices}
+            \item IP 协议提供了可信赖的主机与主机之间的数据包传输能力。
+            \item IP 地址的长度固定为 32 位。
+            \item 一个域名可以映射到多个 IP，但一个 IP 不能被多个域名映射。
+            \item 一个域名可以不映射到任何 IP。
+        \end{choices}
+        \proy{2016} 关于以下说法，以下说法正确的是
+        \begin{choices}
+            \item HTTP 协议规定服务器端使用 80 端口提供服务。
+            \item 使用 TCP 来实现数据传输一定是可靠的。
+            \item Internet 上的两台的主机要通信必须先建立端到端连接。
+            \item 在 Linux 中只能通过 Socket 接口进行网络编程。
+        \end{choices}
+        \proy{2016} 假设有一个 HTTPS（基于 HTTP 的一种安全的应用层协议）客户端程序想要 通过一个 URL 连接一个电子商务网络服务器获取一个文件，并且这个服务器 URL 的 IP 地址是已知的，以下哪种协议是一定不需要的？
+        \begin{choices}
+            \item HTTP
+            \item TCP
+            \item DNS
+            \item SSL/TLS
+        \end{choices}
+        \proy{2016} 请阅读如下代码：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    sem_t s;
+    int main() {
+        int i;
+        pthread_t tids[3];
+        sem_inti(&s, 0, 1);
+        for (i = 0; i < 3; i++)
+            pthread_create(&tids[i], NULL, justdoit, NULL);
+        for (i = 0; i < 3; i++)
+            pthread_join(&tids[i], NULL);
+        return 0;
+    }
+    int j = 0;
+    void *justdoit(void *arg) {
+       P(&s);
+       j = j + 1;
+       V(&s);
+       printf(“%d\n”, j);
+    }
+        \end{minted}
+        下列哪一个输出结果是不可能的？
+        \begin{choices}
+            \item $(1, 3, 2)$
+            \item $(2, 3, 2)$
+            \item $(3, 3, 2)$
+            \item $(2, 1, 2)$
+        \end{choices}
+        \proy{2016} 请阅读下列代码 \verb|badcnt.c|：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    /* Global shared variable */
+    volatile long cnt = 0;
+    /* Counter */
+    int main(int argc, char **argv) {
+        long niters;
+        pthread_t tid1, tid2;
+        niters = atoi(argv[1]);
+        Pthread_create(&tid1, NULL, thread, &niters);
+        Pthread_create(&tid2, NULL, thread, &niters);
+        Pthread_join(tid1, NULL);
+        Pthread_join(tid2, NULL);
+        /* Check result */
+        if (cnt != (2 * niters))
+            printf("BOOM! cnt=%ld\n", cnt);
+        else
+            printf("OK cnt=%ld\n", cnt);
+        exit(0);
+    }
+    /* Thread routine */
+    void *thread(void *vargp) {
+        long i, niters = *((long *) vargp);
+        for (i = 0; i < niters; i++)
+        cnt++;
+        return NULL;
+    }
+        \end{minted}
+        运行后可能产生如下结果：
+        \begin{minted}[frame=single, fontsize=\small]{shell-session}
+    $ ./badcnt 10000
+    OK cnt=20000
+        \end{minted}
+        或者：
+        \begin{minted}[frame=single, fontsize=\small]{shell-session}
+    $ ./badcnt 10000
+    BOOM! cnt=13051
+        \end{minted}
+        为什么会产生不同的结果？请分析产生不同结果的原因。
+        \proy{2016} 某辆公交车的司机和售票员为保证乘客的安全，需要密切配合、协调工作。司机和售票员的工作流程如下所示。请编写程序，用 PV 操作来实现司机与售票员之间的同步。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|l|l|}
+                \hline
+                司机进程循环执行以下命令 & 售票员进程循环指令以下命令 \\
+                \circled{1} & \circled{5} \\
+                启动车辆 & 关门 \\
+                \circled{2} & \circled{6} \\
+                正常行驶 & 报站名或维持秩序 \\
+                \circled{3} & \circled{7} \\
+                到站停车 & 到站开门 \\
+                \circled{4} & \circled{8} \\ \hline
+            \end{tabular}
+        \end{table}
+            \qn 请设计若干信号量，给出每一个信号量的作用和初值。
+            \qn 请将信号量对应的 PV 操作填写在代码中适当位置。注：每一标号处可以不填入语句（请标记为 X）或多条语句。
+        \proy{2015} HTTP 协议中，哪个命令可以用来获取动态内容？
+        \begin{choices}
+            \item \verb|HEAD|
+            \item \verb|GET|
+            \item \verb|POST|
+            \item \verb|PUT|
+        \end{choices}
+        \proy{2015} 下列关于计算机网络概念的说法中，哪一项是正确的？
+        \begin{choices}
+            \item HUB 会把它任意端口上接收到的帧只转发到它的目的地去。
+            \item 当在不同的 LAN 中的主机 A 和主机 B 通信的过程中，他们的数据包中的 LAN frame header 不会变化。
+            \item \verb|162.105.0.0| 是一个 B 类地址。
+            \item 同一台主机每次进入相同的网络，通过动态地址分配的到的 IP 地址总是相同的。
+        \end{choices}
+        \proy{2015} 有如下代码：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    int counter = 0;
+    void * thread(void * vargp) {
+        int thread_var = ((int *) vargp);
+        static int thread_counter = 0;
+        thread_internal(thread_var);
+        thread_counter++;
+        return NULL;
+    }
+
+    int main (int argc, const char ** argv) {
+        int tid1, tid2;
+        int var = atoi(argv[1]);
+        Pthread_create(&tid1, NULL, thread, (void *)var);
+        Pthread_create(&tid2, NULL, thread, (void *)var);
+        Pthread_join(tid1, NULL);
+        Pthread_join(tid2, NULL);
+        return 0;
+    }
+        \end{minted}
+        那么线程 \verb|tid1| 与线程 \verb|tid2| 可以共享的变量是
+        \begin{choices}
+            \item \verb|counter, var|
+            \item \verb|counter, thread_counter|
+            \item \verb|var, thread_counter|
+            \item \verb|thread_var, thread_counter|
+        \end{choices}
+        \proy{2015} 有四个信号量，初值分别为：\verb|a = 1, b = 1, c = 1, d = 1|。
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|}
+                \hline
+                进程 1 & 进程 2 & 进程 3 \\ \hline
+                P(a) & P(d) & P(d) \\
+                P(d) & P(a) & P(c) \\
+                P(c) & P(c) & P(b) \\
+                P(b) & P(b) & P(a) \\
+                V(c) & V(d) & V(c) \\
+                V(b) & P(d) & V(b) \\
+                V(d) & V(a) & V(a) \\
+                V(a) & V(b) & V(d) \\
+                & V(c) &  \\
+                & V(d) &  \\ \hline
+            \end{tabular}
+        \end{table}
+        下列哪两个线程并发执行时，一定不会发生死锁？
+        \begin{choices}
+            \item 1, 2
+            \item 1, 3
+            \item 2, 3
+            \item 都可能发生死锁
+        \end{choices}
+        \proy{2015} 以下关于网络的说法哪些是正确的？
+        \begin{choices}
+            \item 在 client-server 模型中，server 通常使用监听套接字 \verb|listenfd| 和多个 client 同时通信。
+            \item 在 client-server 模型中，套接字是一种文件标识符。
+            \item 准确地说，IP 地址是用于标识主机的 adapter（network interface card），并非用于标识主机。
+            \item Web 是一种互联网协议。
+            \item 域名和 IP 地址是一一对应的。
+            \item Internet 是一种 internet。
+        \end{choices}
+        \proy{2015} 有三个线程 \verb|PA|、\verb|PB|、\verb|PC| 协作工作以解决文件打印问题。\verb|PA| 将记录从磁盘读入内存缓冲区 \verb|Buff1|，每执行一次读一个记录；\verb|PB| 将缓冲区 \verb|Buff1| 的内容复制到缓冲区 \verb|Buff2|，每执行一次复制一个记录；\verb|PC| 将缓冲区 \verb|Buff2| 的内容打印出来，每执行一次打印一个记录。缓冲区 \verb|Buff1| 可以放 4 个记录；缓冲区 \verb|Buff2| 可以放 8 个记录。请用信号量及 PV 操作实现上述三个线程以保证文件的正确打印。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|c|}
+                \hline
+                \verb|PA| 循环执行以下命令 & \verb|PB| 循环执行以下命令 & \verb|PC| 循环执行以下命令 \\ \hline
+                \circled{1} & \circled{5} & \circled{7} \\
+                从磁盘读入一个记录 & 从 \verb|Buff1| 中取出一个记录 & 从 \verb|Buff2| 中取出一个记录 \\
+                \circled{2} & \circled{5} & \circled{8} \\
+                将记录放入 \verb|Buff1| & 将记录放入 \verb|Buff3| & 打印 \\
+                \circled{3} & \circled{6} &  \\ \hline
+            \end{tabular}
+        \end{table}
+            \qn 请设计若干信号量，给出每一个信号量的作用和初值。
+            \qn 请将信号量对应的 PV 操作填写在代码中适当位置。注：每一标号处可以不填入语句（请标记为 X）或多条语句。
+        \proy{2014} 如果两个局域网高层分别采用 TCP/IP 协议和 SPX/IPX 协议，那么可以选择的互连设备应是
+        \begin{choices}
+            \item 网桥
+            \item 集线器
+            \item 路由器
+            \item 交换机
+        \end{choices}
+        \proy{2014} 下面说法正确的是
+        \begin{choices}
+            \item TCP 是一种可靠的无连接协议。
+            \item UDP 是一种不可靠的无连接协议。
+            \item Web 浏览器与 Web 服务器通信采用的协议是 HTML。
+            \item 数字数据只能通过数字信号传输。
+        \end{choices}
+        \proy{2014} 对于如下 C 语言程序：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    #include "csapp.h"
+    void *thread (void *arg) {
+        printf("Hello World");
+        Pthread_detach(pthread_self());
+    }
+    int main(void) {
+        pthread_t tid;
+        int sta;
+        sta = Pthread_create(&tid, NULL, thread, NULL);
+        if (sta == 0)
+            printf("Oops, I can not create thread\n");
+        exit(NULL);
+    }
+        \end{minted}
+        在上述程序中，\verb|Pthread_detach| 函数的作用是
+        \begin{choices}
+            \item 使主线程阻塞以等待线程 thread 结束。
+            \item 线程 thread 运行结束后会自动释放所有资源。
+            \item 线程 thread 运行后主动释放 CPU 给其他线程。
+            \item 线程 thread 运行后成为僵尸线程。
+        \end{choices}
+        \proy{2014} 两个线程中共享如下一段 C 代码：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    for(j = 0; j < N; j++)
+        count += 2;
+        \end{minted}
+        假设其对应的汇编代码如下：
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{lll}
+                & \verb|movq   (%rdi), %rcx| & \multirow{4}{*}{$\left. \begin{aligned} \\ \\ \\ \end{aligned} \right\}H_i$} \\
+                & \verb|testq  %rcx, %rcx| &  \\
+                & \verb|jle    .L2| &  \\
+                & \verb|movl   $0, %eax| &  \\
+                \verb|.L3:| &  &  \\
+                & \verb|movq   count(%rip), %rdx| & $L_i$ \\
+                & \verb|addq   $2, %rdx| & $U_i$ \\
+                & \verb|movq   %rdx, count(%rip)| & $S_i$ \\
+                & \verb|addq   $1, %rax| & \multirow{3}{*}{$\left. \begin{aligned} \\ \\ \end{aligned} \right\}T_i$} \\
+                & \verb|cmpq   %rcx, %rax| &  \\
+                & \verb|jne    .L3| &  \\
+                \verb|.L2:| &  & 
+            \end{tabular}
+        \end{table}
+        上面用 $H_i, L_i, U_i, S_i, T_i\,(i=1, 2)$ 划分了指令的几个部分，下标代表执行的线程。在下列指令顺序对应的轨迹线中，哪一个是安全轨迹线？
+        \begin{choices}
+            \item $H_1 \to H_2 \to L_2 \to L_1 \to U_2 \to U_1 \to S_1 \to S_2 \to T_1 \to T_2$
+            \item $H_1 \to L_1 \to U_1 \to H_2 \to L_2 \to S_1 \to T_1 \to U_2 \to S_2 \to T_2$
+            \item $H_2 \to L_2 \to U_2 \to H_1 \to S_2 \to L_1 \to T_2 \to U_1 \to S_1 \to T_1$
+            \item $H_2 \to L_2 \to H_1 \to L_1 \to U_1 \to U_2 \to S_2 \to T_2 \to S_1 \to T_1$
+        \end{choices}
+        \proy{2014} 以下问题默认为 IPv4 协议。
+            \qn 一个服务器拥有四个独立的固定 IP 地址，那么它在 web 应用端口 80，理论上可以最多再监听多少个来自一个客户端独立的 socket 连接（设每个客户端只有一个固定 IP 地址）？
+            \qn 设客户端 IP 为 \verb|162.105.192.178|，内网 IP 为 \verb|192.168.100.121|。HTTP 服务器端 IP 为 \verb|208.216.181.15|。服务器使用的是默认监听端口号。指出下面这个网页浏览器应用的 connection socket pair 有什么错误，并简要说明原因：客户端 \verb|192.168.100.121:15321|，服务器 \verb|208.216.181.15:25|。
+        \proy{2014} 桌子上有一个水果盘，恰能容纳一个水果。一家四口人中，爸爸专门往盘子里放苹果，妈妈专门往盘子里放橘子；儿子专等盘子里的苹果吃，女儿专等盘子里的橘子吃。请用信号量及 PV 操作实现上述四个过程以保证家庭和睦。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|c|c|}
+                \hline
+                爸爸循环执行 & 妈妈循环执行 & 儿子循环执行 & 女儿循环执行 \\ \hline
+                准备一个苹果 & 准备一个橘子 & \circled{5} & \circled{7} \\
+                \circled{1} & \circled{3} & 从果盘中拿出苹果 & 从果盘中拿出橘子 \\
+                往盘子里放一个苹果 & 往盘子里放一个橘子 & \circled{6} & \circled{8} \\
+                \circled{2} & \circled{4} & 吃苹果 & 吃橘子 \\ \hline
+            \end{tabular}
+        \end{table}
+            \qn 请设计若干信号量，给出每一个信号量的作用和初值。
+            \qn 请将信号量对应的 PV 操作填写在代码中适当位置。注：每一标号处可以不填入语句（请标记为 X）或多条语句。
+        \proy{2013} 下列关于计算机网络概念的说法中，哪一项是正确的？
+        \begin{choices}
+            \item 全球最大的计算机网络是互联网 Internet，所以计算机网络协议是
+            Internet Protocol 即 IP 协议。
+            \item 计算机之间的网络通信是一个机器上的一个 process（如 client process）与另一个机器上的 process（如 server process）之间的通信。
+            \item 网络应用程序有默认的端口号，大部分应用的端口号可以修改，而少部分知名应用如 Web 服务程序的端口号 80 是无法修改的。
+            \item 一个域名只能对应一个 IP 地址，而一个 IP 地址可以对应多个域名。
+        \end{choices}
+        \proy{2013} 在 client-server 模型中，一个连接可以由 IP 地址和端口号的组合来表示。假设一个访问网页服务器的应用，客户端 IP 地址为 \verb|128.2.194.24|，目标服务器端 IP 地址为 \verb|208.216.181.15|，用户设置的代理服务器 IP 地址为 \verb|155.232.108.39|。目标服务器同时提供网页服务（默认端口 80）和邮件服务（默认端口 25）。当客户端向目标服务器发送访问网页的请求时，下面 connection socket pairs 正确的一组是
+        \begin{choices}
+            \item 客户端请求 \verb|(128.2.194.242:25, 155.232.108.39:80)| \\ 代理请求 \verb|(128.2.194.242:51213, 208.216.181.15:80)|
+            \item 客户端请求 \verb|(128.2.194.242:51213, 155.232.108.39:80)| \\ 代理请求 \verb|(128.2.194.242:12306, 208.216.181.15:80)|
+            \item 客户端请求 \verb|(128.2.194.242:25, 208.216.181.15:80)| \\ 代理请求 \verb|(155.232.108.39:51213, 208.216.181.15:80)|
+            \item 客户端请求 \verb|(128.2.194.242:51213, 208.216.181.15:80)| \\ 代理请求 \verb|(155.232.108.39:12306, 208.216.181.15:80)|
+        \end{choices}
+        \proy{2013} 下列代码输出正确的是
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    void *th_f(void *arg) {
+       printf("Hello World");
+       pthread_exit(0);
+    }
+    int main(void) {
+        pthread_t tid;
+        int st;
+        st = pthread_create(&tid, NULL, th_f, NULL);
+        if (st < 0) {
+            printf("Oops, I can not create thread\n");
+            exit(-1);
+        }
+        sleep(1);
+        exit(0);
+    }
+        \end{minted}
+        \begin{choices}
+            \item Oops, I can not create thread
+            \item Hello World \\ Oops, I can not create thread
+            \item Hello World
+            \item 不输出任何信息
+        \end{choices}
+        \proy{2013} 以下问题默认为 IPv4 协议。
+            \qn 一个服务器拥有两个独立的固定 IP 地址，那么它在 web 应用端口 80 上最 多可以监听多少个独立的 socket 连接？
+            \qn 该服务器在所有有web应用端口上最多可以监听多少个独立的 socket 连接？
+        \proy{2013} 某个城市为了解决市中心交通拥堵的问题，决定出台一项交通管制措施，对进入市中心区的机动车辆实行单双日限制行驶。具体要求是，逢单日，只允许车辆牌号号码为单数的机动车进入市中心区；逢双日，只允许车辆牌号号码为双数的机动车进入市内中心区。
+        
+        有一个进入市中心区的交通路口，进入该路口的道路有一条，离开该路口的道路有两条，其中一条是通往市中心区的道路，而另一条是绕过市中心区的环路，在进入路口处设置了自动识别车辆牌号的识别设备与放行栅栏控制设备。
+        
+        在单日，遇到单号车辆进入路口车辆号码识别区，号码识别设备打开通往市中心区道路的放行栅栏；而遇到双号车辆，则打开绕过市中心区环路的放行栅栏。反之亦然。显然，只有在该路口车辆号码识别区中无车时，才允许一辆车进入车辆号码识别区。同时为了防止有车辆混过路口，两个放行栅栏平时处于关闭状态，只有在车辆号码识别区中的车辆已被识别出单双号之后，放行栅栏才会在识别设备的控制下，打开对应的放行栅栏，在车辆通过之后，该放行栅栏自行关闭。
+
+        请编写程序，用 PV 操作来实现车牌号检查和两个放行栅栏之间的同步。
+        \begin{table}[H]
+            \centering
+            \begin{tabular}{|c|c|c|}
+                \hline
+                检查车辆牌号线程循环执行 & 市区放行栅栏线程循环执行 & 环路放行栅栏线程循环执行 \\ \hline
+                车辆到达识别路口 & \circled{4} & \circled{6} \\
+                \circled{1} & 允许车辆进入市中心区 & 允许车辆绕行环路 \\
+                车辆进入号码识别区 & \circled{5} & \circled{7} \\
+                如果号码为奇数 \circled{2} &  &  \\
+                否则 \circled{3} &  &  \\ \hline
+            \end{tabular}
+        \end{table}
+            \qn 请设计若干信号量，给出每一个信号量的作用和初值。
+            \qn 请将信号量对应的 PV 操作填写在代码中适当位置。注：每一标号处可以不填入语句（请标记为 X）或多条语句。
+    \end{problems}

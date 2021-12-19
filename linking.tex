@@ -27,7 +27,7 @@
                 \multicolumn{2}{c}{目标程序 \texttt{prog}}
             \end{tabular}
         \end{table}
-        \sol 根据课本描述，从上到下分别是 \verb|cpp, cc1, as|，分别得到的后缀名为 \verb|.i, .s, .o|。不要把 \verb|cc1| 记成 \verb|ccl|！
+        \sol 根据课本描述，从上到下分别是 \verb|cpp, cc1, as|，分别得到的后缀名为 \verb|.i, .s, .o|。
         \pro 判断下面关于静态链接的说法是否正确。
             \qn 链接时，链接器会拷贝静态库（\verb|.a|）中的所有模块（\verb|.o|）。
             \qn 链接时，链接器只会从每个模块（\verb|.o|）中拷贝出被用到的函数。
@@ -260,7 +260,7 @@
     0000000000600ff0 <__libc_start_main@GLIBC_2.2.5>
         \end{minted}
         则 \verb|done| 的入口点地址是 \verb|0x|\rule{2.5cm}{0.25mm}。
-        \sol 第一问。\verb|k| 是宏定义，在预处理过后就会被展开，不会出现；\verb|ans| 是一个过程内静态变量，因此符号表中出现的是形如 \verb|ans.????| 的符号，\verb|ans| 不会出现，类似可知 \verb|y.????| 不会出现，因为 \verb|y| 是过程外静态变量；局部变量 \verb|acc, x, n| 都不会出现；\verb|foo| 是全局符号，需要出现。答案为：
+        \sol 第一问。\verb|k| 是宏定义，在预处理过后就会被展开，不会出现；\verb|ans| 是一个过程内静态变量，因此符号表中出现的是形如 \verb|ans.????| 的符号，\verb|ans| 不会出现，类似可知 \verb|y.????| 不会出现，因为 \verb|y| 是过程外静态变量；局部变量 \verb|acc, x, n| 都不会出现；\verb|foo| 是全局符号，出现。答案：
         \begin{table}[H]
             \tt
             \centering
@@ -409,7 +409,7 @@
             \begin{hint}
                 \verb|disas| 是 gdb 中用于反汇编的指令。Gdb 如果通过立即数直接访问内存地址，直接使用该数即可。如果需要从一个地址中读值并以此间接访问内存，可以使用 \verb|*(long *) 0xImm| 的格式，其中 \verb|Imm| 表示该立即数。
             \end{hint}
-        \sol 题目第一问的填写方法和之前问题是类似的，惟 \verb|buf| 的地址需要注意。因为 \verb|.data| 节中只有 \verb|bufp1, buf|，而 \verb|bufp1| 从 \verb|0x4010| 开始占据了 8 字节，所以 \verb|buf| 的相应字段填写为 \verb|0x4018|。顺便指出，我们再一次看到，外部定义的内容在符号表中会出现在 \verb|UND| 节中。
+        \sol 题目第一问的填写方法和之前问题是类似的，惟 \verb|buf| 的地址需要注意。因为 \verb|.data| 节中只有 \verb|bufp1, buf|，而 \verb|bufp1| 从 \verb|0x4010| 开始占据了 8 字节，所以计算立刻得到 \verb|buf| 的相应字段填写为 \verb|0x4018|。顺便指出，我们再一次看到，外部定义的内容在符号表中会出现在 \verb|UND| 节中。
         \begin{table}[H]
             \tt
             \centering
@@ -552,6 +552,8 @@
             \end{tabular}
         \end{table}
         \sol 第一问比较简单，按照基本的理解进行就可以，不要忘了未初始化的全局变量进入 \verb|COM|。注意此题后两栏的填写要求的是“定义的模块”及其所在的节，因此 \verb|foo.o| 中的 \verb|buf| 虽然是 \verb|extern| 变量，但它在 \verb|m.o| 中定义，所在的位置是 \verb|.data| 节。如果要问 \verb|buf| 在 \verb|foo.o| 中的位置，则答案为 \verb|UND|。
+
+        第二问有两种做法。一种是根据重定位条目计算，一种是直接根据链接完毕的程序中的信息。我们先讲后者。注意到 \verb|%rip| 是程序计数器，因此题中访问全局变量或者静态变量时所使用的偏移本质上就是目标地址减下一条指令的地址（看汇编）。注意最后一个空我们可以结合汇编代码和 C 代码判断出重定位的是 \verb|count| 的引用，从而各空依次答案为 \verb|1000 - ff6 = 0xa|（注意这个填写时要用小端法，且补足 4 字节 \verb|0a 00 00 00|），\verb|2330 + 4 = 0x2334|，\verb|3028 - 100f = 0x2019|，\verb|2338 - 1022 = 0x1316| 和 \verb|3024 - 1048 = 0x1fdc|。
         \begin{table}[H]
             \tt
             \centering
@@ -566,8 +568,6 @@
                 count & 是 & 局部 & foo.o & .bss \\ \hline
             \end{tabular}
         \end{table}
-
-        第二问有两种做法。一种是根据重定位条目计算，一种是直接根据链接完毕的程序中的信息。我们先讲后者。注意到 \verb|%rip| 是程序计数器，因此题中访问全局变量或者静态变量时所使用的偏移本质上就是目标地址减下一条指令的地址（看汇编）。注意最后一个空我们可以结合汇编代码和 C 代码判断出重定位的是 \verb|count| 的引用，从而各空依次答案为 \verb|1000 - ff6 = 0xa|（注意这个填写时要用小端法，且补足 4 字节 \verb|0a 00 00 00|），\verb|2330 + 4 = 0x2334|，\verb|3028 - 100f = 0x2019|，\verb|2338 - 1022 = 0x1316| 和 \verb|3024 - 1048 = 0x1fdc|。
 
         传统的做法首先要确定 \verb|addr(s)|。注意这里需要重定位的引用都是指令，所以 \verb|m.o| 中的 \verb|.text| 绝对地址是 \verb|0xfe8|，而 \verb|foo.o| 中的 \verb|.text| 的绝对地址是 \verb|0x1000|。对于第 \circled{1} 个，目标为 \verb|0x1000|，偏移量 \verb|0xa|，\verb|addend| 为 \verb|-0x4|，所以结果是 \verb|1000 - (fe8 + a) - 4 = 0xa|（填写方法同上）。第 \circled{2} 个是绝对引用，\verb|2330 + 4 = 0x2334| 即可。第 \circled{3} 个的目标为 \verb|0x3028|，偏移量 \verb|0x7|，\verb|addend| 为 \verb|-0x8|，所以结果是 \verb|3028 - (1000 + 7) - 8 = 0x2019|。剩下的皆同理，不再赘述。
         \proy{2016} C 源文件 \verb|f1.c| 和 \verb|f2.c| 的代码分别如下所示，编译链接生成可执行文件后执行，输出结果为：
