@@ -164,7 +164,7 @@
         char *msgs[2] = {" Hello from foo", " Hello from bar" };
         ptr = msgs;
         for (i = 0; i < 2; i++)
-            Pthread_create(&tid, NULL, thread,(void *)i);
+            Pthread_create(&tid, NULL, thread, (void *) i);
         Pthread_exit(NULL);
     }
     void *thread(void *vargp) {
@@ -187,12 +187,12 @@
     #include <pthread.h>
     int i = 0;
     int j = 0;
-    void *do_stuff1(void * arg __attribute__((unused))) {
+    void *do_stuff1(void *arg __attribute__((unused))) {
         int a;
         for (a = 0; a < 1000; a++) { i++; j++; }
         return NULL;
     }
-    void *do_stuff2(void * arg __attribute__((unused))) {
+    void *do_stuff2(void *arg __attribute__((unused))) {
         int a;
         for (a = 0; a < 1000; a++) { j++; i++; }
         return NULL;
@@ -217,14 +217,28 @@
     int j = 0;
     sem_t si;
     sem_t sj;
-    void *do_stuff1(void * arg __attribute__((unused))) {
+    void *do_stuff1(void *arg __attribute__((unused))) {
         int a;
-        for (a = 0; a < 1000; a++) { i++; j++; }
+        for (a = 0; a < 1000; a++) {
+            P(&si);
+            P(&sj);
+            i++;
+            j++;
+            V(&si);
+            V(&sj);
+        }
         return NULL;
     }
-    void *do_stuff2(void * arg __attribute__((unused))) {
+    void *do_stuff2(void *arg __attribute__((unused))) {
         int a;
-        for (a = 0; a < 1000; a++) { j++; i++; }
+        for (a = 0; a < 1000; a++) {
+            P(&sj);
+            P(&si);
+            j++;
+            i++;
+            V(&si);
+            V(&sj);
+        }
         return NULL;
     }
     int main() {
@@ -267,7 +281,7 @@
     int main() {
         int i;
         pthread_t tids[3];
-        sem_inti(&s, 0, 1);
+        sem_init(&s, 0, 1);
         for (i = 0; i < 3; i++)
             pthread_create(&tids[i], NULL, justdoit, NULL);
         for (i = 0; i < 3; i++)
@@ -279,7 +293,7 @@
        P(&s);
        j = j + 1;
        V(&s);
-       printf(“%d\n”, j);
+       printf("%d\n", j);
     }
         \end{minted}
         下列哪一个输出结果是不可能的？
@@ -362,7 +376,7 @@
         \proy{2015} 有如下代码：
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     int counter = 0;
-    void * thread(void * vargp) {
+    void *thread(void *vargp) {
         int thread_var = ((int *) vargp);
         static int thread_counter = 0;
         thread_internal(thread_var);
@@ -370,7 +384,7 @@
         return NULL;
     }
 
-    int main (int argc, const char ** argv) {
+    int main(int argc, const char **argv) {
         int tid1, tid2;
         int var = atoi(argv[1]);
         Pthread_create(&tid1, NULL, thread, (void *)var);
