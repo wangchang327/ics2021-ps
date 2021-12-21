@@ -52,7 +52,7 @@
         return 0;
     }
         \end{minted}
-        \pro 下面的程序会引发竞争。一个可能的输出结果为 \verb|2 1 2 2|。解释输出这一结果的原因。
+        \pro 下面的程序会引发竞争（不考虑原子性问题）。一个可能的输出结果为 \verb|2 1 2 2|。解释输出这一结果的原因。
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     long foo = 0, bar = 0;
     void *thread(void *vargp) {
@@ -115,7 +115,8 @@
         V(mutex_stu_count);
         P(mutex_test[i]) // 等待拿自己的卷子
         学生答卷
-        P(mutex_stu_count); stu_count--;
+        P(mutex_stu_count);
+        stu_count--;
         if (stu_count == 0)
             ____________________
         V(mutex_stu_count);
@@ -207,7 +208,7 @@
         return 0;
     }
         \end{minted}
-            \qn 用以下元素的编号写出  \verb|i++| 编译后最可能的汇编代码。(a) 、\verb|mov| (b) \verb|add| (c) \verb|0x601040| (d) \verb|%eax| (e) \verb|$0x1|
+            \qn 用以下元素的编号写出  \verb|i++| 编译后最可能的汇编代码。(a) \verb|mov| (b) \verb|add| (c) \verb|0x601040| (d) \verb|%eax| (e) \verb|$0x1|
             \qn 请分别回答该程序是否有可能输出如下结果，并简述原因。 (a) \verb|2000, 2000| (b) \verb|1500, 1500| (c) \verb|1000, 1000| (d) \verb|2, 2|
             \qn 某同学在学习了信号量之后，决定要让程序能稳定输出 \verb|2000, 2000|， 于是对程序进行了如下改写。
             \begin{minted}[frame=single, fontsize=\small, linenos]{c}
@@ -243,8 +244,8 @@
     }
     int main() {
         pthread_t tid1, tid2;
-        Sem_init(&si, 0, 1);
-        Sem_init(&sj, 0, 1);
+        sem_init(&si, 0, 1);
+        sem_init(&sj, 0, 1);
         pthread_create(&tid1, NULL, do_stuff1, NULL); 
         pthread_create(&tid2, NULL, do_stuff2, NULL);
         pthread_join(tid1, NULL);
@@ -261,7 +262,7 @@
             \item 一个域名可以映射到多个 IP，但一个 IP 不能被多个域名映射。
             \item 一个域名可以不映射到任何 IP。
         \end{choices}
-        \proy{2016} 关于以下说法，以下说法正确的是
+        \proy{2016} 以下说法正确的是
         \begin{choices}
             \item HTTP 协议规定服务器端使用 80 端口提供服务。
             \item 使用 TCP 来实现数据传输一定是可靠的。
@@ -296,7 +297,7 @@
        printf("%d\n", j);
     }
         \end{minted}
-        下列哪一个输出结果是不可能的？
+        下列输出结果按三个线程排序（不一定按输出顺序），那么哪一个输出结果是不可能的？
         \begin{choices}
             \item $(1, 3, 2)$
             \item $(2, 3, 2)$
@@ -345,9 +346,9 @@
         \proy{2016} 某辆公交车的司机和售票员为保证乘客的安全，需要密切配合、协调工作。司机和售票员的工作流程如下所示。请编写程序，用 PV 操作来实现司机与售票员之间的同步。
         \begin{table}[H]
             \centering
-            \begin{tabular}{|l|l|}
+            \begin{tabular}{|c|c|}
                 \hline
-                司机进程循环执行以下命令 & 售票员进程循环指令以下命令 \\
+                司机进程循环执行以下命令 & 售票员进程循环指令以下命令 \\ \hline
                 \circled{1} & \circled{5} \\
                 启动车辆 & 关门 \\
                 \circled{2} & \circled{6} \\
@@ -387,8 +388,8 @@
     int main(int argc, const char **argv) {
         int tid1, tid2;
         int var = atoi(argv[1]);
-        Pthread_create(&tid1, NULL, thread, (void *)var);
-        Pthread_create(&tid2, NULL, thread, (void *)var);
+        Pthread_create(&tid1, NULL, thread, (void *) var);
+        Pthread_create(&tid2, NULL, thread, (void *) var);
         Pthread_join(tid1, NULL);
         Pthread_join(tid2, NULL);
         return 0;
