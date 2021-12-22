@@ -455,6 +455,22 @@
         \end{table}
             \qn 请设计若干信号量，给出每一个信号量的作用和初值。
             \qn 请将信号量对应的 PV 操作填写在代码中适当位置。注：每一标号处可以不填入语句（请标记为 X）或多条语句。
+        \sol 此题没有互斥关系，有两对同步关系，即停车之后才能开门以及关门之后才能开车，所以要设计两个信号量：开车信号量（初始化为 0）和开门信号量（初始化为0）。这样即可填写代码：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|}
+                \hline
+                司机进程循环执行以下命令 & 售票员进程循环指令以下命令 \\ \hline
+                P(开车信号量) & X \\
+                启动车辆 & 关门 \\
+                X & V(开车信号量) \\
+                正常行驶 & 报站名或维持秩序 \\
+                X & P(开门信号量) \\
+                到站停车 & 到站开门 \\
+                V(开门信号量) & X \\ \hline
+            \end{tabular}
+        \end{table}
         \proy{2015} HTTP 协议中，哪个命令可以用来获取动态内容？
         \begin{choices}
             \item \verb|HEAD|
@@ -539,15 +555,34 @@
             \begin{tabular}{|c|c|c|}
                 \hline
                 \verb|PA| 循环执行以下命令 & \verb|PB| 循环执行以下命令 & \verb|PC| 循环执行以下命令 \\ \hline
-                \circled{1} & \circled{5} & \circled{7} \\
+                \circled{1} & \circled{4} & \circled{7} \\
                 从磁盘读入一个记录 & 从 \verb|Buff1| 中取出一个记录 & 从 \verb|Buff2| 中取出一个记录 \\
                 \circled{2} & \circled{5} & \circled{8} \\
-                将记录放入 \verb|Buff1| & 将记录放入 \verb|Buff3| & 打印 \\
+                将记录放入 \verb|Buff1| & 将记录放入 \verb|Buff2| & 打印 \\
                 \circled{3} & \circled{6} &  \\ \hline
             \end{tabular}
         \end{table}
             \qn 请设计若干信号量，给出每一个信号量的作用和初值。
             \qn 请将信号量对应的 PV 操作填写在代码中适当位置。注：每一标号处可以不填入语句（请标记为 X）或多条语句。
+        \sol 此题是二重生产者{--}消费者问题。有两个互斥关系，即两个缓冲区的访问；有两对同步关系，即两个缓冲区的空和满。这样，一共需要六个信号量，两个互斥，两组同步（空/满）。空信号量初始化为容量（4、8），满信号量初始化为 0。这样即可填写代码：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{|c|c|c|}
+                \hline
+                PA 循环执行 & PB 循环执行 & PC 循环执行 \\ \hline
+                X & P(b1\_full) & P(b2\_full) \\
+                从磁盘读入一个记录 & P(b1\_mutex) & P(b2\_mutex) \\
+                P(b1\_empty) & 从 Buff1 中取出一个记录 & 从 Buff2 中取出一个记录 \\
+                P(b1\_mutex) & V(b1\_mutex) & V(b2\_mutex) \\
+                从 Buff1 中取出一个记录 & V(b1\_empty) & V(b2\_empty) \\
+                V(b1\_mutex) & P(b2\_empty) & 打印 \\
+                V(b1\_full) & P(b2\_mutex) &  \\
+                & 将记录放入 Buff2 &  \\
+                & V(b2\_mutex) &  \\
+                & V(b2\_full) &  \\ \hline
+            \end{tabular}
+        \end{table}
         \proy{2014} 如果两个局域网高层分别采用 TCP/IP 协议和 SPX/IPX 协议，那么可以选择的互连设备应是
         \begin{choices}
             \item 网桥
