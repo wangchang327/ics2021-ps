@@ -798,7 +798,7 @@
     #define N 16
     static unsigned int ring[3][N];
 
-    static void print_bignat(unsigned int* a) {
+    static void print_bignat(unsigned int *a) {
         int i;
         for (i = N-1; i >= 0; i--)
         printf("%u ", a[i]); /* print a[i] as unsigned int */
@@ -822,8 +822,8 @@
         \end{minted}
         另外，假设在文件 \verb|bignat.c| 中定义了如下两个函数 \verb|plus| 和 \verb|from_int|（定义的具体内容略）：
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
-    int plus (int n, unsigned int* a, unsigned int* b, unsigned int* c);
-    void from_int (int n, unsigned int k, unsigned int* a);
+    int plus (int n, unsigned int *a, unsigned int *b, unsigned int *c);
+    void from_int (int n, unsigned int k, unsigned int *a);
         \end{minted}
         \qn 请在下表中给出程序中相关符号的属性（局部或全局、强符号或弱符号），其中不确定的请在表格中填 X。
         \begin{table}[H]
@@ -899,7 +899,7 @@
     }
 
     /* fact2.c */
-    int* table;
+    int *table;
     int fact(int n) {
         static int num = 2;
         if (n >= num) {

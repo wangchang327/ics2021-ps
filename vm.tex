@@ -233,8 +233,8 @@ ffffffffff600000-ffffffffff601000 r-xp [vsyscall]
         \proy{2019} 在一个具有 TLB 和高速缓存的系统中，假设地址翻译使用四级页表来进行，且不发生缺页异常，那么在 CPU 访问某个虚拟内存地址的过程中，至少会访问 \rule{2.5cm}{0.25mm} 次物理内存，至多会访问 \rule{2.5cm}{0.25mm} 次物理内存。
         \proy{2019, 有改动} 某 32 位机器有 28 位虚拟地址空间，物理地址为 24 位。采用二级页表，一级页表中有 64 个 PTE，二级页表中有 1024 个 PTE，页表页均按 \SI{4}{KB} 对齐。PTE 最高一位是有效位，页表项中低 12\textasciitilde 23 位为物理页号（最低位为 第 0 位）。系统中没有 TLB 和高速缓存。某人在该机器上执行了如下代码：
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
-    int* a = calloc(10000, sizeof(int));
-    int* b = a + 5000;
+    int *a = calloc(10000, sizeof(int));
+    int *b = a + 5000;
     fork();
     *b = 0x80C3F110;
         \end{minted}
@@ -362,7 +362,9 @@ ffffffffff600000-ffffffffff601000 r-xp [vsyscall]
     }
         \end{minted}
         整个过程中，变量 \verb|cnt| 最大值是 \rule{2.5cm}{0.25mm}。假设所有的数据都已经在内存中，\verb|pid| 和 \verb|cnt| 在同一个物理页中。从第一个进程开始执行 \verb|for| 语句起计算，此过程对 \verb|cnt| 的操作至少会导致页表中发生 \rule{2.5cm}{0.25mm} 次如下事件：虚拟页所对应的物理页被修改。
-        \sol (1)问计算页表大小是容易的。一共有 $2^{20}$ 个页面，每个页面都需要一个页表项，所以答案为 $2^{20} \times 2^2=2^{22} = \SI{4}{MB}$。在二级页表下，可以算出 \verb|VPN1, VPN2| 都有 10 位，每个页表恰好 \SI{4}{KB}，有 1024 个页表项（即对应 1024 个页面）。所以图中 \verb|VP0..VP2047| 需要两张二级页表，\verb|VP10239| 需要独占一张二级页表（注意对齐），\verb|VP10240..11263| 需要一张二级页表，加上一级页表一直是需要的，所以一共需要 5 页。
+        \sol (1)问计算页表大小是容易的。一共有 $2^{20}$ 个页面，每个页面都需要一个页表项，所以答案为 $2^{20} \times 2^2=2^{22} = \SI{4}{MB}$。
+        
+        在二级页表下，可以算出 \verb|VPN1, VPN2| 都有 10 位，每个页表恰好 \SI{4}{KB}，有 1024 个页表项（即对应 1024 个页面）。所以图中 \verb|VP0..VP2047| 需要两张二级页表，\verb|VP10239| 需要独占一张二级页表（注意对齐），\verb|VP10240..11263| 需要一张二级页表，加上一级页表一直是需要的，所以一共需要 5 页。
 
         (2)问需要结合 TLB 解决问题，留意 TLB 中存储的都是最后一级页表项，通过 \verb|VPN| 就可以查出。由于 TLB 有 8 个项，且是直接映射，所以索引占 3 位，剩下 17 位都是 TLB 标记。对于第一次访问，其 \verb|VPN| 为 \verb|0xD7416 = 1101 0111 0100 0001 0110|，于是 \verb|TLBI = 6, TLBT = 1 1010 1110 1000 0010 = 0x1AE82|，恰好命中 TLB，所以页表项是 \verb|0x00A32027|，物理页号是 \verb|0x00A32|，所以物理地址是 \verb|0x00A32560|。这一过程中不需要访问二级页表项所在的内存位置。
         
@@ -685,13 +687,44 @@ ffffffffff600000-ffffffffff601000 r-xp [vsyscall]
     unsigned int get_pde(unsigned int va) {
         unsigned int pdx = (va >> __________) & __________;
         unsigned int addr = UVPT + (__________) + pdx * 4;
-        return *((unsigned int *) addr);
+        return *((unsigned int*) addr);
     }
     // get_pte(va) 获取虚拟地址 va 对应的二级页表中的页表项内容
     unsigned int get_pte(unsigned int va) {
         unsigned int PGNUM = va >> __________;
-        unsigned int addr = __________ + PGNUM;
-        return *((unsigned int *) addr);
+        unsigned int addr = __________ + PGNUM * 4;
+        return *((unsigned int*) addr);
     }
         \end{minted}
+        \sol 此题的背景是页表自映射问题。32 位系统下，所有的 \verb|PTE| 所占的空间刚好是 \SI{4}{MB}。如果将这些 \verb|PTE| 连续地放在内存中，那么这 \SI{4}{MB} 内存空间对应的 \verb|PTE|（“\verb|PTE| 的 \verb|PTE|”）刚好在一个 \SI{4}{KB}页中，而这个 \SI{4}{KB}在页目录表中刚好也占一项。如果能再合理地设置二级页表项的地址，那么就可使 \verb|PTE| 的 \verb|PTE| 所占的 \SI{4}{KB} 的内容与 \verb|PDE| 所占的 \SI{4}{KB} 的内容完全相同。换句话说，二级页表每个表都是 1 个页面，这个页面当然也需要页表项，我们不难发现它的页表项其实就是 \verb|PDE|，所以 \verb|PDE| 可以“一人分饰两角”。页目录除了作为页目录之外，还作为整个大页表在内存中的二级页表。
+        
+        题目具体分析如下（以下由张茂森提供）：首先明确用户进程要访问内存区域，用的只能是虚拟地址。由于
+        \begin{center}
+            \verb+kern_pgdir[PDX(UVPT)] = PADDR(kern_pgdir) | PTE_U | PTE_P+
+        \end{center}
+        这一操作使得一级页表的第 \verb|PDX(UVPT)| 项指向了了一级页表（页目录）本身的物理地址，而这一项的内容本应该是第 \verb|PDX(UVPT)| 个二级页表（也就是虚拟地址 \verb|UVPT| 对应的二级页表）的起始地址，因此第 \verb|PDX(UVPT)| 个二级页表就是一级页表（页目录）。
+
+        同时，第 \verb|PDX(UVPT)| 个二级页表的第 \verb|PDX(UVPT)| 项⼜指向了了一级页表本身，而这一项的内容本应该是虚拟地址 \verb|UVPT + (UVPT >> 10)| 对应的物理地址（注意 \verb|UVPT| 低 22 位都是零，所以才可以这样写）。因此虚拟地址 \verb|UVPT + (UVPT >> 10)| 对应的物理地址就是一级页表（页目录）的起始物理地址，也就是我们可以认为一级页表的起始虚拟地址就是 \verb|UVPT + (UVPT >> 10)| 。
+
+        要获取 \verb|va| 对应的一级页表中的页目录项内容，注意到 \verb|va| 对应的页目录项在页目录中的位置已经知道了（\verb|pdx = (va >> 22) & 0x3ff|，也就是 \verb|va| 的高 10 位），只要将一级页表的起始地址（虚拟地址）加上 \verb|pdx * 4| 即可。这样得到前三空的答案为：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    // get_pde(va) 获取虚拟地址 va 对应的一级页表(页目录)中的页目录项内容
+    unsigned int get_pde(unsigned int va) {
+        unsigned int pdx = (va >> 22) & 0x3ff;
+        unsigned int addr = UVPT + (UVPT >> 10) + pdx * 4;
+        return *((unsigned int*) addr);
+    }
+        \end{minted}
+
+        要获取 \verb|va| 对应的二级页表中的页表项内容，\verb|va| 对应的二级页表项在该页表中的位置是 \verb|va| 的中间 10 位，而该二级页表的起始物理地址是一级页表第 \verb|pdx|（\verb|va| 的高 10 位）项的内容。由于一级页表等价于第 \verb|PDX(UVPT)| 个二级页表，因此一级页表第 \verb|pdx| 项的内容就是第 \verb|PDX(UVPT)| 个二级页表第 \verb|pdx| 项的内容，也就是虚拟地址 \verb|UVPT + (pdx << 12)| 对应的物理地址。 因此可以认为 \verb|va| 对应的二级页表的起始虚拟地址就是 \verb|UVPT + (pdx << 12)|。综上所述，\verb|va| 对应的二级页表项的虚拟地址为 \verb|UVPT + (pdx << 12) + (index << 2)|，也就是 \verb|UVPT + ((va >> 12) << 2)|。后两空的答案为：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    // get_pte(va) 获取虚拟地址 va 对应的二级页表中的页表项内容
+    unsigned int get_pte(unsigned int va) {
+        unsigned int PGNUM = va >> 12;
+        unsigned int addr = UVPT + PGNUM * 4;
+        return *((unsigned int*) addr);
+    }
+        \end{minted}
+        
+        需要注意，此处不能直接调用上一问 \verb|get_pde| 函数的返回值作为页表起始地址，因为其返回值是物理地址，用户进程是无法访问物理地址的。另注：题干有改动，注意 \verb|UVPT + ((va >> 12) << 2)| 并不一定等价于 \verb|UVPT + (va >> 10)|。
     \end{problems}

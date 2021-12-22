@@ -52,6 +52,25 @@
         return 0;
     }
         \end{minted}
+        \sol \verb|gCount| 是全局变量，\verb|lCount| 是静态变量，都会存储在数据段，因此两个进程各一个，线程共用。\verb|vCount| 是局部变量，但要求存在内存中，所以是在栈中。答案如下：
+        \begin{table}[H]
+            \tt
+            \centering
+            \begin{tabular}{ccc}
+                \cline{1-1} \cline{3-3}
+                \multicolumn{1}{|c|}{vCount} & \multicolumn{1}{c|}{高地址} & \multicolumn{1}{c|}{vCount} \\
+                \multicolumn{1}{|c|}{vCount} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{vCount} \\ \cline{1-1} \cline{3-3} 
+                \multicolumn{1}{|c|}{...} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{...} \\ \cline{1-1} \cline{3-3} 
+                \multicolumn{1}{|c|}{共享库} & \multicolumn{1}{c|}{共享库} & \multicolumn{1}{c|}{共享库} \\ \cline{1-1} \cline{3-3} 
+                \multicolumn{1}{|c|}{...} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{...} \\ \cline{1-1} \cline{3-3} 
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{堆} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3} 
+                \multicolumn{1}{|c|}{gCount} & \multicolumn{1}{c|}{数据段} & \multicolumn{1}{c|}{gCount} \\
+                \multicolumn{1}{|c|}{lCount} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{lCount} \\ \cline{1-1} \cline{3-3} 
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{代码段} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3} 
+                \multicolumn{1}{|c|}{} & \multicolumn{1}{c|}{低地址} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3} 
+                父进程 &  & 子进程
+            \end{tabular}
+        \end{table}
         \pro 下面的程序会引发竞争（不考虑原子性问题）。一个可能的输出结果为 \verb|2 1 2 2|。解释输出这一结果的原因。
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     long foo = 0, bar = 0;
@@ -69,6 +88,7 @@
         return 0;
     }
         \end{minted}
+        \sol 线程 1 将 \verb|foo|、\verb|bar| 改为 1 以后被线程 2 打断，线程 2 将 \verb|foo| 改为 2 以后被线程 1 打断，线程 1 再输出 \verb|2 1|，线程 2 将 \verb|bar| 改为 2，然后输出了 \verb|2 2|。
         \pro 信号量 \verb|w, x, y, z| 均被初始化为 \verb|1|。下面的两个线程运行时可能会发生死锁。给出发生死锁的执行顺序。
         \begin{table}[H]
             \tt
@@ -79,6 +99,7 @@
                 线程 2 & P(x), P(z), P(y), P(w), V(x), V(y), V(w), V(z) \\ \hline
             \end{tabular}
         \end{table}
+        \sol 可看出有 \verb|w, x| 的潜在反序。线程 1 先执行完 \verb|P(w)| 后线程 2 连续执行 \verb|P(x), P(z), P(y)|，随后二者就发生了相互等待。
         \pro 某次考试有 30 名学生与 1 名监考老师，该教室的门很狭窄，每次只能通过一人。考试开始前，老师和学生进入考场（有的学生来得比老师早），当人来齐以后，老师开始发放试卷。拿到试卷后，学生就可以开始答卷。学生可以随时交卷，交卷后就可以离开考场。当所有的学生都上交试卷以后，老师才能离开考场。
         请用信号量与 PV 操作，解决这个过程中的同步问题。以下所有空缺语句均为 PV 操作。
 
@@ -124,24 +145,72 @@
         从门离开考场
         ____________________
         \end{minted}
+        \sol 此题属于一种读者{--}写者问题的变种。因为已经设计了信号量，就比较容易。答案如下：
+        \begin{compactitem}
+            \item\ \verb|mutex_stu_count| 初值为 \verb|1|。
+            \item\ \verb|mutex_door| 初值为 \verb|1|。
+            \item\ \verb|mutex_all_present| 初值为 \verb|0|。
+            \item\ \verb|mutex_all_handin| 初值为 \verb|0|。
+            \item\ \verb|mutex_test[30]| 初值均为 \verb|0|。
+        \end{compactitem}
+        代码：
+        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+    Teacher: // 老师
+        P(mutex_door)
+        从门进入考场
+        V(mutex_door)
+        P(mutex_all_present) // 等待同学来齐
+        for (i = 1; i <= 30; i++)
+            V(mutex_test[i]) // 给 i 号学生发放试卷
+        P(mutex_all_handin) // 等待同学将试卷交齐
+        P(mutex_door)
+        从门离开考场
+        V(mutex_door)
+
+    Student(x): // x 号学生
+        P(mutex_door)
+        从门进入考场
+        V(mutex_door)
+        P(mutex_stu_count);
+        stu_count++;
+        if (stu_count == 30)
+            V(mutex_all_present)
+        V(mutex_stu_count);
+        P(mutex_test[i]) // 等待拿自己的卷子
+        学生答卷
+        P(mutex_stu_count);
+        stu_count--;
+        if (stu_count == 0)
+            V(mutex_all_handin)
+        V(mutex_stu_count);
+        P(mutex_door)
+        从门离开考场
+        V(mutex_door)
+        \end{minted}
+        \pro 假设每个资源都有一个互斥锁，以下设定是否可能导致死锁？说明理由。
+            \qn 一个系统有四个相同类型的资源，它们被三个进程同时共享，每个进程最多需要两个资源一个系统有 $m$ 个相同类型的资源，它们被 $n$ 个进程同时共享。
+            \qn 在每个时刻，进程只能至多申请或者释放一个资源。假设系统满足以下两个条件：每个进程所需的最大资源数量不超过 $m$，所有进程的最大资源需求数量之和小于 $m+n$ 个。
+        \sol 都不会。假设 1 出现死锁，那么 4 个资源耗尽，而且每个进程都想要请求资源，但至少有一个进程有 2 个资源，矛盾。类似，假设 2 出现死锁，则全部资源都被消耗，而且每个进程都在请求资源，这样所需求的资源不少于 $m+n$ 个，矛盾。
     \end{problems}
 
 \chapter{网络与并发编程{---}往年考题}\thispagestyle{empty}
     \begin{problems}
-        \proy{2018} 下面有关计算机网络概念的叙述中，正确的是
+        \proy{2018} 下面有关计算机网络概念的叙述中，正确的是：
         \begin{choices}
             \item 大写字母的 Internet 用来描述互联网的一般概念，而小写字母的 internet 用来描述一种具体的实现，也就是全球 IP 互联网。
             \item 在一个基于集线器的以太网中，如果往一台主机发送一段数据帧，那么其他主机无法看到这个帧。
             \item IP 协议提供基本的命名方法和递送机制，因此我们能够借助 IP 协议，从一台主机往另一台主机发送包，即使两台主机不在同一个 LAN 内。
             \item 当一段数据通过路由器，从 LAN1 被发送到 LAN2 时，附加的互联网络包头和局域网帧头保持不变。
         \end{choices}
-        \proy{2018} 下面有关套接字接口的叙述中，错误的是
+        \sol C。A 反了，Internet 是指全球 IP 互联网，是一个具体的实现。B 不对，集线器是广播的，大家都能看到。D 也不对，会发生反复的打包和拆包过程，因此帧头会有变化。
+        \proy{2018} 下面有关套接字接口的叙述中，错误的是：
         \begin{choices}
             \item 套接字接口常常被用来创建网络应用。
             \item Windows 10 系统没有实现套接字接口。
             \item \verb|getaddrinfo()| 和 \verb|getnameinfo()| 可以被用于编写独立于特定版本的 IP 协议的程序。
             \item \verb|socket()| 函数返回的描述符，可以使用标准 Unix I/O 函数进行读写。
         \end{choices}
+        \sol B，系统一般都实现了套接字接口。其他都是正确的。注意 D 不够准确，其返回的描述符是半打开的，并不是能马上读写。
         \proy{2018} 使用浏览器打开网页 \verb|www.pku.edu.cn| 的过程中，下列网络协议中，可能会被用到的网络协议有 \rule{2.5cm}{0.25mm} 个：DNS、TCP、IP、HTTP。
         \proy{2018} 下面关于线程安全和可重入的叙述中，哪一个是正确的？
         \begin{choices}
@@ -150,6 +219,7 @@
             \item 可重入函数一定是线程安全的。
             \item 以上说法都不正确。
         \end{choices}
+        \sol C。A 不对，因为可以访问共享变量。B 不对，如果不需要同步则不一定。C 是对的，可重入函数真包含于线程安全的函数（举一个不可重入但线程安全的函数的例子？）。
         \proy{2018} 下列关于进程与线程的描述中，哪一个是不正确的？
         \begin{choices}
             \item 一个进程可以包含多个线程。
@@ -182,6 +252,7 @@
             \item \verb|ptr, cnt, msgs.m, myid.p1|
             \item \verb|ptr, cnt, i.m, msgs.m, myid.p1|
         \end{choices}
+        \sol C。注意 \verb|i| 是传值的，因此没有引用；\verb|msg| 则是通过指针 \verb|ptr| 引用的。
         \proy{2018} 给定如下程序：
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     #include <stdio.h>
@@ -255,20 +326,42 @@
     }
         \end{minted}
         请问该同学的程序有什么潜在问题？为什么？如果对该同学的程序改动一处数字来消除上述问题，同时仍然保证输出结果稳定为 \verb|2000, 2000|，应该如何改动？回答：将 \rule{2.5cm}{0.25mm} （填行号）行的 \rule{2.5cm}{0.25mm}（填数字）改为 \rule{2.5cm}{0.25mm}（填数字）。
-        \proy{2016} 关于 IP，以下说法正确的是
+        \sol (1)问考察对课本内容的理解，根据题目的意思我们知道自增应该分 load, inc, store 三步（当然，本题考虑不周，实验表明不一定这样翻译！）。三句汇编为 (a)(c)(d)、(b)(e)(d)、(a)(d)(c)。
+
+        (2)问比较有意思（但是只是理论上的，由于硬件和体系结构的缘故，实际情况和理论分析不会一致，所以本题是个错题。首先，\verb|2000, 2000| 当然是可能的（就是没有原子性问题的情况）。两个线程实际上执行了如下的
+        \begin{center}
+            \verb|i++, j++, i++, j++, ...| \\
+            \verb|j++, i++, j++, i++, ...|
+        \end{center}
+        的序列。为什么会出现不足值的情况？就是说某个进程在执行load, inc, store 的间隙中，另一个线程对 \verb|i| 的操作都是全部无效的（会被写回覆盖）。我们可以构造 \verb|1500, 1500| 的情形。比如线程 1 读出 \verb|i| 后被 2 打断，2 进行了 500 次 \verb|j++| 和 \verb|i++|，此时\verb|i = 500, j = 500|。然后 1 写回，得到 \verb|i = 1, j = 500|。此时 1 再读 \verb|j|，又被打断，2 进行了 500 次的 \verb|j++| 和 \verb|i++|，得到 \verb|i = 501, j = 1000|。然后 1 写回，得到 \verb|i = 501, j = 501|。这时 2 已经结束，1 还有 \verb|i++| 和 \verb|j++| 各 999 个，所以得到 \verb|1500, 1500|。
+        
+        做到这里我们可以发现两个执行序列可以通过一种“break window”的方式来构造可能的输出。这样可以构造出 \verb|1001, 1001| 到 \verb|2000, 2000| 的所有可能，于是猜测(3)(4)不可能。
+        
+        让我们来考虑 1 的某个 \verb|i++| 被打断的情形，我们知道最坏情况是 2 在这个窗口中完成了 $n$ 次 \verb|i++|，然后都因为写回失效了，由于自增交替进行，所以这中间至少会有 $n-1$ 次的 \verb|j++| 被完成，而补上 1 被打断的那个 \verb|i++|，我们发现损失的自增最多不超过有效的自增数目。所以 \verb|2, 2| 绝对不可能。另外我们注意到开头的 \verb|i++| 和 \verb|j++| 至少有一个完全有效（也不会在被打断的过程中被用来抵消别的损失），结尾的两个也是这样（反证即可），所以 \verb|i + j| 至少是 $2000-1+2=2001$。因此 \verb|1000, 1000| 不可能。
+        
+        但是 \verb|1001, 1000| 是可能的，表明我们的估计是紧的。事实上我们可以考虑如下序列：
+        \begin{center}
+            \verb|i++, j++, i++, j++, ..., i++, j++| \\
+            \verb|          j++, i++, j++, ..., i++, j++, i++|
+        \end{center}
+        首先让 1 完成一次 \verb|i++|，剩下的 999 个配对的 \verb|i++| 和 1000 对配对的 \verb|j++| 均可用以下方法使得每对只造成一次自增：1 load 之后被打断，2 再 load 之后又被打断，然后二者分别写回同一个自增 1 的值即可。结尾的 \verb|i++| 正常完成，所以 \verb|i = 999 + 2 = 1001, j = 1000|。
+
+        (3)问很显然，出现了反序的加锁，所以有潜在的死锁的问题。解决方案是将任何一个信号量的初始值改为 $\geq 2$ 的值。
+        \proy{2016} 关于 IP，以下说法正确的是：
         \begin{choices}
             \item IP 协议提供了可信赖的主机与主机之间的数据包传输能力。
             \item IP 地址的长度固定为 32 位。
             \item 一个域名可以映射到多个 IP，但一个 IP 不能被多个域名映射。
             \item 一个域名可以不映射到任何 IP。
         \end{choices}
-        \proy{2016} 以下说法正确的是
+        \proy{2016} 以下说法正确的是：
         \begin{choices}
             \item HTTP 协议规定服务器端使用 80 端口提供服务。
             \item 使用 TCP 来实现数据传输一定是可靠的。
             \item Internet 上的两台的主机要通信必须先建立端到端连接。
             \item 在 Linux 中只能通过 Socket 接口进行网络编程。
         \end{choices}
+        \sol D。IP 属于网络层协议，其传输是 best effort，不保证传输可靠。IPv6 协议的地址长度为 128 位，B 错误。C 则是明显的，IP 地址和域名之间属于“关系”但不保证是“映射”，更不保证是单射或者满射。
         \proy{2016} 假设有一个 HTTPS（基于 HTTP 的一种安全的应用层协议）客户端程序想要 通过一个 URL 连接一个电子商务网络服务器获取一个文件，并且这个服务器 URL 的 IP 地址是已知的，以下哪种协议是一定不需要的？
         \begin{choices}
             \item HTTP
@@ -304,6 +397,8 @@
             \item $(3, 3, 2)$
             \item $(2, 1, 2)$
         \end{choices}
+        \sol D。信号量的操作导致 \verb|j| 的增加是原子的，也就是说实际上是 3 个 \verb|j++| 和 3 个 \verb|printf| 拓扑排序，因此一定会出现 3。注意如果是按顺序输出，则还一
+        定是递增的。
         \proy{2016} 请阅读下列代码 \verb|badcnt.c|：
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     /* Global shared variable */
@@ -428,6 +523,7 @@
             \item 2, 3
             \item 都可能发生死锁
         \end{choices}
+        \sol D。1, 2 和 1, 3 都存在 \verb|a, d| 的反序，会出现死锁。2, 3 的死锁出现在 \verb|c, d| 的反序，比如 2 第二次要 \verb|P(d)| 时还持有 \verb|c| 的锁，但是 3 在获得 \verb|c| 的锁之前不会释放 \verb|d|。所以都是可能发生死锁的。
         \proy{2015} 以下关于网络的说法哪些是正确的？
         \begin{choices}
             \item 在 client-server 模型中，server 通常使用监听套接字 \verb|listenfd| 和多个 client 同时通信。
@@ -459,7 +555,8 @@
             \item 路由器
             \item 交换机
         \end{choices}
-        \proy{2014} 下面说法正确的是
+        \sol C，因为协议不同，所以需要路由器来完成工作。另一方面，只有路由器属于网络层，能够处理 IP 协议。
+        \proy{2014} 下面说法正确的是：
         \begin{choices}
             \item TCP 是一种可靠的无连接协议。
             \item UDP 是一种不可靠的无连接协议。
@@ -519,6 +616,7 @@
             \item $H_2 \to L_2 \to U_2 \to H_1 \to S_2 \to L_1 \to T_2 \to U_1 \to S_1 \to T_1$
             \item $H_2 \to L_2 \to H_1 \to L_1 \to U_1 \to U_2 \to S_2 \to T_2 \to S_1 \to T_1$
         \end{choices}
+        \sol C。这里的不安全问题就是 $LUS$ 必须一步执行到位，否则出错（一个线程的 $S$ 必须在另一个线程 $L$ 之前）。所以如果存在 $L_i, U_i$ 被打断给另一边的 $L_i, U_i$，就不是安全的。A、B、D 都出现了这样的问题。
         \proy{2014} 以下问题默认为 IPv4 协议。
             \qn 一个服务器拥有四个独立的固定 IP 地址，那么它在 web 应用端口 80，理论上可以最多再监听多少个来自一个客户端独立的 socket 连接（设每个客户端只有一个固定 IP 地址）？
             \qn 设客户端 IP 为 \verb|162.105.192.178|，内网 IP 为 \verb|192.168.100.121|。HTTP 服务器端 IP 为 \verb|208.216.181.15|。服务器使用的是默认监听端口号。指出下面这个网页浏览器应用的 connection socket pair 有什么错误，并简要说明原因：客户端 \verb|192.168.100.121:15321|，服务器 \verb|208.216.181.15:25|。
@@ -551,7 +649,7 @@
             \item 客户端请求 \verb|(128.2.194.242:25, 208.216.181.15:80)| \\ 代理请求 \verb|(155.232.108.39:51213, 208.216.181.15:80)|
             \item 客户端请求 \verb|(128.2.194.242:51213, 208.216.181.15:80)| \\ 代理请求 \verb|(155.232.108.39:12306, 208.216.181.15:80)|
         \end{choices}
-        \proy{2013} 下列代码输出正确的是
+        \proy{2013} 下列代码输出正确的是：
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     void *th_f(void *arg) {
        printf("Hello World");
