@@ -156,36 +156,36 @@
         代码：
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     Teacher: // 老师
-        P(mutex_door)
+        P(mutex_door);
         从门进入考场
-        V(mutex_door)
-        P(mutex_all_present) // 等待同学来齐
+        V(mutex_door);
+        P(mutex_all_present); // 等待同学来齐
         for (i = 1; i <= 30; i++)
-            V(mutex_test[i]) // 给 i 号学生发放试卷
-        P(mutex_all_handin) // 等待同学将试卷交齐
-        P(mutex_door)
+            V(mutex_test[i]); // 给 i 号学生发放试卷
+        P(mutex_all_handin); // 等待同学将试卷交齐
+        P(mutex_door);
         从门离开考场
-        V(mutex_door)
+        V(mutex_door);
 
     Student(x): // x 号学生
-        P(mutex_door)
+        P(mutex_door);
         从门进入考场
-        V(mutex_door)
+        V(mutex_door);
         P(mutex_stu_count);
         stu_count++;
         if (stu_count == 30)
-            V(mutex_all_present)
+            V(mutex_all_present);
         V(mutex_stu_count);
         P(mutex_test[i]) // 等待拿自己的卷子
         学生答卷
         P(mutex_stu_count);
         stu_count--;
         if (stu_count == 0)
-            V(mutex_all_handin)
+            V(mutex_all_handin);
         V(mutex_stu_count);
-        P(mutex_door)
+        P(mutex_door);
         从门离开考场
-        V(mutex_door)
+        V(mutex_door);
         \end{minted}
         \pro 假设每个资源都有一个互斥锁，以下设定是否可能导致死锁？说明理由。
             \qn 一个系统有四个相同类型的资源，它们被三个进程同时共享，每个进程最多需要两个资源一个系统有 $m$ 个相同类型的资源，它们被 $n$ 个进程同时共享。
@@ -390,15 +390,14 @@
        printf("%d\n", j);
     }
         \end{minted}
-        下列输出结果按三个线程排序（不一定按输出顺序），那么哪一个输出结果是不可能的？
+        下列哪一个输出结果是不可能的？
         \begin{choices}
             \item $(1, 3, 2)$
             \item $(2, 3, 2)$
             \item $(3, 3, 2)$
             \item $(2, 1, 2)$
         \end{choices}
-        \sol D。信号量的操作导致 \verb|j| 的增加是原子的，也就是说实际上是 3 个 \verb|j++| 和 3 个 \verb|printf| 拓扑排序，因此一定会出现 3。注意如果是按顺序输出，则还一
-        定是递增的。
+        \sol D。信号量的操作导致 \verb|j| 的增加是原子的，也就是说实际上是 3 个 \verb|j++| 和 3 个 \verb|printf|（分两步）拓扑排序。这里我们需要假设 \verb|printf| 是先读取 \verb|j|，然后再输出，所以结果不一定是单调递增的。但无论如何，最后的输出结果一定会有一个是 3，因此 D 不可能。
         \proy{2016} 请阅读下列代码 \verb|badcnt.c|：
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
     /* Global shared variable */
