@@ -1,17 +1,39 @@
-\RequirePackage{newtxtext}
-\RequirePackage[cmintegrals, cmbraces]{newtxmath}
-\renewcommand{\mathbb}{\varmathbb}
-\RequirePackage{esint}
+\usepackage{fontspec}
+\usepackage{unicode-math}
+
+\setmainfont[
+    Extension=.otf,
+    UprightFont=*-Regular,
+    BoldFont=*-Bold,
+    ItalicFont=*-Italic,
+    BoldItalicFont=*-BoldItalic
+]{StixTwoText}
+
+\setmathfont[
+    Extension=.otf,
+    BoldFont=*,
+]{StixTwoMath-Regular}
+
+\let\exerciseQuestion\Question
+\AtBeginDocument{%
+    \let\mathQuestion\Question
+    \let\Question\exerciseQuestion
+}
+
+\setsansfont{TeX Gyre Heros}
+\setmonofont{Courier New}
+
+\usepackage{esint}
 
 \DeclareSymbolFont{CMlargesymbols}{OMX}{cmex}{m}{n}
 \let\sumop\relax\let\prodop\relax
 \DeclareMathSymbol{\sumop}{\mathop}{CMlargesymbols}{"50}
 \DeclareMathSymbol{\prodop}{\mathop}{CMlargesymbols}{"51}
 
-\RequirePackage{fontspec}
+\usepackage{euscript}
 
-\setsansfont{TeX Gyre Heros}
-\RequirePackage{courier}
+\newcommand{\bm}{\symbfit}
+\newcommand{\smalltriangle}{\mathbin{\vcenter{\hbox{\scalebox{0.65}{$\triangle$}}}}}
 
 \setCJKmainfont[
     ItalicFont=FZKai-Z03S

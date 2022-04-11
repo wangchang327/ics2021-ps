@@ -317,7 +317,7 @@
                 \multicolumn{1}{|c|}{5} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3} \cline{5-5} 
             \end{tabular}
         \end{table}
-        \qn 程序结束时，标准输出上的内容是 \rule{3.5cm}{0.25mm}，\verb|file.txt| 中的内容是 \rule{3.5cm}{0.25mm}。
+        \qn 程序结束时，标准输出上的内容是 \rule{2cm}{0.25mm}，\verb|file.txt| 中的内容是 \rule{2cm}{0.25mm}。
         \sol \verb|fd1| 和 \verb|fd2| 对应独立的打开文件表条目，所以指针相互独立，前者写上 \verb|123| 而后者从头写上 \verb|45|，所以文件中得到 \verb|453|，标准输出显然是 \verb|3 4|（顺序分配文件描述符）。三级表图略，文件描述符分别指向两个条目，\verb|refcnt| 均为 1。
         \pro 假设磁盘上有空文件 \verb|file.txt|，以下程序运行过程中的所有系统调用均成功。
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
@@ -345,7 +345,7 @@
                 \multicolumn{1}{|c|}{5} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3} \cline{5-5} 
             \end{tabular}
         \end{table}
-        \qn 程序结束时，标准输出上的内容是 \rule{3.5cm}{0.25mm}，\verb|file.txt| 中的内容是 \rule{3.5cm}{0.25mm}。
+        \qn 程序结束时，标准输出上的内容是 \rule{2cm}{0.25mm}，\verb|file.txt| 中的内容是 \rule{2cm}{0.25mm}。
         \sol 由于 \verb|fd2| 被复制给 \verb|fd1|，所以现在两个打开文件表条目是同一个，本质上是同一个文件读写指针，所以写出的结果是 \verb|12345|。注意复制的是打开文件表条目，所以标准输出上还是 \verb|3 4|。三级表图略，文件描述符指向同一个条目，\verb|refcnt| 为 2。
         \pro 假设磁盘上有空文件 \verb|file.txt|，以下程序运行过程中的所有系统调用均成功；缓冲区足够大，且 \verb|stdout| 只有在关闭文件、换行与 \verb|fflush| 的情况下才会刷新缓冲区。
         \begin{minted}[frame=single, fontsize=\small, linenos]{c}
@@ -379,7 +379,7 @@
                 \multicolumn{1}{|c|}{Child 4} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} & \multicolumn{1}{c|}{} \\ \cline{1-1} \cline{3-3} \cline{5-5} 
             \end{tabular}
         \end{table}
-        \qn 程序结束时，标准输出上的内容是 \rule{3.5cm}{0.25mm}，\verb|file.txt| 中的内容是 \rule{3.5cm}{0.25mm}。（都写出所有可能答案）
+        \qn 程序结束时，标准输出上的内容是 \rule{2cm}{0.25mm}，\verb|file.txt| 中的内容是 \rule{2cm}{0.25mm}。（都写出所有可能答案）
         \sol 因为 \verb|fork| 时文件描述符也被复制，因此父子进程用的描述符都是 3 号描述符，且二者共用同一个读写指针，只不过读写的顺序不确定，所以文件中可能是 \verb|45123| 或者 \verb|12345|。不过标准输出中的内容则顺序确定：因为 \verb|printf| 是行缓冲，而这里一定是子进程先结束，所以输出为 \verb|C:3 P:3|。
     \end{problems}
 
@@ -715,7 +715,7 @@
             2Q_n \quad (2 \nmid n),
         \end{cases} \quad (n \in \mathbb N). \]
         注意：若某个位置中的程序内容对本次程序执行结果没有影响，请在相应位置填写 “无关”。
-        \proy{2015} 设一段程序中阻塞了 \verb|SIGCHLD| 和 \verb|SIGUSR1| 信号。接下来，向它按顺序发送 \verb|SIGCHLD, SIGUSR1, SIGCHLD| 信号，当程序取消阻塞继续执行时，将处理这三个信号中的哪几个？
+        \proy{2015} 设一段程序中阻塞了 \verb|SIGCHLD| 和 \verb|SIGUSR1| 信号。接下来，向它按顺序发送 \verb|SIGCHLD|、\verb|SIGUSR1|、\verb|SIGCHLD| 信号，当程序取消阻塞继续执行时，将处理这三个信号中的哪几个？
         \begin{choices}
             \item 都不处理
             \item 处理一次 \verb|SIGCHLD|

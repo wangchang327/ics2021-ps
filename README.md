@@ -10,7 +10,7 @@
 
 ## 编译指引
 
-需要安装方正书宋、方正楷体和 Noto Sans CJK 系列字体以及完整的 TeX Live 2019 以上版本。另外，还需要有 ```Python``` 及其包 ```Pygments```。执行命令：
+需要安装方正书宋、方正楷体、Noto Sans CJK 和 stix2 系列字体以及完整的 TeX Live 2019 以上版本。另外，还需要有 ```Python``` 及其包 ```Pygments```。执行命令：
 
 ```
 latexmk -pdf -pdflatex="xelatex -shell-escape -interaction=nonstopmode %O %S" ics2021-ps.tex

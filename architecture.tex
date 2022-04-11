@@ -473,11 +473,11 @@
             \begin{tabular}{|c|c|c|}
                 \hline
                 阶段 & {\qquad} \verb|rmmovq rA, D(rB)| {\qquad} & {\qquad} \verb|cmrmovqXX D(rB), rA| {\qquad} \\ \hline
-                取指 & \multicolumn{2}{c|}{\rule{0pt}{10ex}} \\ \hline
+                取指 & \multicolumn{2}{c|}{\rule{0pt}{8ex}} \\ \hline
                 译码 & \multicolumn{2}{c|}{\texttt{valA <- R[rA], valB <- R[rB]}} \\ \hline
-                执行 & \rule{0pt}{10ex} & \rule{0pt}{10ex} \\ \hline
-                访存 & \rule{0pt}{10ex} & \rule{0pt}{10ex} \\ \hline
-                写回 & N/A & \rule{0pt}{10ex} \\ \hline
+                执行 & \rule{0pt}{8ex} & \rule{0pt}{8ex} \\ \hline
+                访存 & \rule{0pt}{8ex} & \rule{0pt}{8ex} \\ \hline
+                写回 & N/A & \rule{0pt}{8ex} \\ \hline
                 更新 \verb|PC| & \multicolumn{2}{c|}{\texttt{PC <- valP}} \\ \hline
             \end{tabular}
         \end{table}
@@ -551,12 +551,12 @@
             \begin{tabular}{|c|c|}
                 \hline
                 阶段 & {\qquad \qquad \qquad \qquad} \verb|cretXX offset| {\qquad \qquad \qquad \qquad} \\ \hline
-                取指 & \rule{0pt}{10ex} \\ \hline
-                译码 & \rule{0pt}{10ex} \\ \hline
-                执行 & \rule{0pt}{10ex} \\ \hline
-                访存 & \rule{0pt}{10ex} \\ \hline
-                写回 & \rule{0pt}{10ex} \\ \hline
-                更新 \verb|PC| & \rule{0pt}{10ex} \\ \hline
+                取指 & \rule{0pt}{8ex} \\ \hline
+                译码 & \rule{0pt}{8ex} \\ \hline
+                执行 & \rule{0pt}{8ex} \\ \hline
+                访存 & \rule{0pt}{8ex} \\ \hline
+                写回 & \rule{0pt}{8ex} \\ \hline
+                更新 \verb|PC| & \rule{0pt}{8ex} \\ \hline
             \end{tabular}
         \end{table}
         \qn 为了执行 \verb|cretXX| 指令，我们需要改进教材所描述的 PIPE 处理器，在 W（Write Back）阶段引入流水线寄存器 \rule{2.5cm}{0.25mm}，并将其连接到 PC 选择器（Select PC）以便有条件地更新 PC。假设改进后的处理器总是预测函数返回条件不满足，则如果返回条件满足时，一共会错误取指 \rule{2.5cm}{0.25mm} 条指令。
@@ -665,12 +665,12 @@
             \begin{tabular}{|c|c|}
                 \hline
                 阶段 & {\qquad \qquad \qquad \qquad} \verb|cretXX offset| {\qquad \qquad \qquad \qquad} \\ \hline
-                取指 & \rule{0pt}{10ex} \\ \hline
-                译码 & \rule{0pt}{10ex} \\ \hline
-                执行 & \rule{0pt}{10ex} \\ \hline
-                访存 & \rule{0pt}{10ex} \\ \hline
-                写回 & \rule{0pt}{10ex} \\ \hline
-                更新 \verb|PC| & \rule{0pt}{10ex} \\ \hline
+                取指 & \rule{0pt}{8ex} \\ \hline
+                译码 & \rule{0pt}{8ex} \\ \hline
+                执行 & \rule{0pt}{8ex} \\ \hline
+                访存 & \rule{0pt}{8ex} \\ \hline
+                写回 & \rule{0pt}{8ex} \\ \hline
+                更新 \verb|PC| & \rule{0pt}{8ex} \\ \hline
             \end{tabular}
         \end{table}
         \qn 若在教材所描述的 PIPE 处理器上执行 \verb|NewJE| 指令，如果跳转条件不满足，一共会错误执行 \rule{2.5cm}{0.25mm} 条指令。
@@ -777,12 +777,12 @@
             \begin{tabular}{|c|c|}
                 \hline
                 阶段 & {\qquad \qquad \qquad \qquad} \verb|caddXX offset| {\qquad \qquad \qquad \qquad} \\ \hline
-                取指 & \rule{0pt}{10ex} \\ \hline
-                译码 & \rule{0pt}{10ex} \\ \hline
-                执行 & \rule{0pt}{10ex} \\ \hline
-                访存 & \rule{0pt}{10ex} \\ \hline
-                写回 & \rule{0pt}{10ex} \\ \hline
-                更新 \verb|PC| & \rule{0pt}{10ex} \\ \hline
+                取指 & \rule{0pt}{8ex} \\ \hline
+                译码 & \rule{0pt}{8ex} \\ \hline
+                执行 & \rule{0pt}{8ex} \\ \hline
+                访存 & \rule{0pt}{8ex} \\ \hline
+                写回 & \rule{0pt}{8ex} \\ \hline
+                更新 \verb|PC| & \rule{0pt}{8ex} \\ \hline
             \end{tabular}
         \end{table}
     \end{problems}

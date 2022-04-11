@@ -1,7 +1,7 @@
 \documentclass[a4paper, 11pt]{book}
 \usepackage{anyfontsize}
 \usepackage[CJKchecksingle, AutoFakeBold]{xeCJK}
-\usepackage{CJKnumb}
+\usepackage{zhnumber}
 
 \usepackage{setspace}
 \onehalfspacing
@@ -10,10 +10,9 @@
 \setlength{\parindent}{2em}
 
 \usepackage[intlimits, leqno]{amsmath}
-\usepackage{amssymb}
-\usepackage[centercolon]{mathtools}
 \usepackage{siunitx}
 
+\usepackage[answerdelayed, lastexercise]{exercise}
 \input{font-setup}
 
 \usepackage[unicode, colorlinks, bookmarksnumbered]{hyperref}
@@ -47,7 +46,7 @@
 \usepackage{longtable}
 \usepackage{multirow}
 \usepackage{tikz}
-\usetikzlibrary{shapes.symbols, backgrounds, matrix, calc, arrows, math, arrows.meta, shapes.gates.logic.US, shapes.gates.logic.IEC, decorations.pathreplacing}
+\usetikzlibrary{shapes.symbols, backgrounds, positioning, matrix, calc, arrows, math, arrows.meta, shapes.gates.logic.US, shapes.gates.logic.IEC, decorations.pathreplacing}
 \usepackage{minted}
 \renewcommand\fcolorbox[4][]{\textcolor[rgb]{0.63,0.63,0.00}{\strut#4}}
 \renewcommand{\theFancyVerbLine}{\texttt{\scriptsize{\arabic{FancyVerbLine}}}}
@@ -84,7 +83,7 @@
 \newcommand\sectionname{\arabic{chapter}.\arabic{section}}
 \pagestyle{fancy}
 \renewcommand{\chaptermark}[1]{\markboth{
-    \CJKnumber{\thechapter}\quad #1
+    \zhnumber{\thechapter}\quad #1
 }{}}
 \renewcommand{\sectionmark}[1]{\markright{\arabic{chapter} \quad #1}}
 \fancyhf{}
@@ -121,7 +120,7 @@
 \usepackage{titletoc}
 \usepackage[titles]{tocloft}
 \cftsetpnumwidth{1.75em}
-\providecommand{\dmchapterttl}[1]{\IfSubStr{ABCDEFGHIJKLMNOPQRSTUVWXYZ}{#1}{附录 #1	}{\CJKnumber{#1}}}
+\providecommand{\dmchapterttl}[1]{\IfSubStr{ABCDEFGHIJKLMNOPQRSTUVWXYZ}{#1}{附录 #1	}{\zhnumber{#1}}}
 
 \newlength{\BoxTtlwidth}
 
@@ -220,8 +219,6 @@
 \titlespacing*{name=\section}
     {1pc}{*1.3}{*1}
 
-\usepackage{zhnumber}
-\usepackage[answerdelayed, lastexercise]{exercise}
 \renewcommand{\ExerciseListName}{}
 \renewcommand{\AnswerListName}{}
 \renewcommand{\ExerciseHeaderNB}{\theExercise}

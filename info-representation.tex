@@ -466,7 +466,7 @@
         \begin{hint}
             C90 中的类型转换顺序：\texttt{int -> long -> unsigned -> unsigned long}，$2^{31}=2147483648$。
         \end{hint}
-        \sol B。此题和 C90 标准有关，分析参看 \url{https://stackoverflow.com/questions/9941261/warning-this-decimal-constant-is-unsigned-only-in-iso-c90}。
+        \sol B。此题和 C90 标准密切相关，分析参看 \url{https://stackoverflow.com/questions/9941261/warning-this-decimal-constant-is-unsigned-only-in-iso-c90}。
         \proy{2014} 设整数均为 32 位，其中 \texttt{unsigned x = 0x00000001; int y = 0x80000000; int z = 0x80000001;}。以下表达式求值为 1 的是：
         \begin{choices}
             \item \verb|(-1) < x|
