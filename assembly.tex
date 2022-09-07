@@ -125,19 +125,19 @@
         \end{minted}
         \pro 对于下列四个函数，假设 gcc 开了编译优化，判断 gcc 是否会将其编译为条件传送。
         \qn
-        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+        \begin{minted}[frame=single, fontsize=\small]{c}
     long f1(long a, long b) { return (++a > --b) ? a : b; }
         \end{minted}
         \qn
-        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+        \begin{minted}[frame=single, fontsize=\small]{c}
     long f2(long a, long b) { return (*a > *b) ? --(*a) : (*b)--; }
         \end{minted}
         \qn
-        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+        \begin{minted}[frame=single, fontsize=\small]{c}
     long f3(long a, long b) { return a ? *a : (b ? *b : 0); }
         \end{minted}
         \qn
-        \begin{minted}[frame=single, fontsize=\small, linenos]{c}
+        \begin{minted}[frame=single, fontsize=\small]{c}
     long f4(long a, long b) { return (a > b) ? a++ : ++b; }
         \end{minted}
         \sol 1、4 会被编译成条件传送。1 由于比较前计算出的 \verb|a| 与 \verb|b| 就是传送的目标，因此会被编译成条件传送；2 由于比较结果会导致 \verb|a| 与 \verb|b| 指向的元素发生不同的改变，因此会被编译成条件跳转；3 由于指针 \verb|a| 可能无效，因此会被编译为条件跳转；4 会被编译成条件传送，因为 \verb|a| 和 \verb|b| 都是局部变量，返回的时候对 \verb|a| 和 \verb|b| 的操作都是无影响的。

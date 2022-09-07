@@ -477,7 +477,7 @@ ffffffffff600000-ffffffffff601000 r-xp [vsyscall]
             \begin{choices}
                 \item 由于 \verb|i16| 本身的代码和数据只占用了低 32 位空间，所以这部分空间只需使用 2 级页表。
                 \item 所有虚拟地址空间都是 48 位地址空间，都需要使用完整的 4 级页表。
-                \item 当页表项无效时（\verb|P| 位为 0)，MMU 不会使用到其它位的内容。
+                \item 当页表项无效时（\verb|P| 位为 0)，MMU 不会使用到其他位的内容。
                 \item 除读写权限外，需要在页表项中为 COW 机制提供另外的专门支持
             \end{choices}
             \subqn 如果子进程在 \verb|Y| 处访问 \verb|7f5df2224| 这一页，则可能发生以下异常：
